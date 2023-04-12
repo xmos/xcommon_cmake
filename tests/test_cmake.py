@@ -16,6 +16,8 @@ def list_test_dirs():
 def test_cmake(test_dir):
     test_dir = Path(__file__).parent / test_dir
     build_dir = test_dir / "build"
+
+    # Cmake uses this directly so doesn't need an OS-specific path
     toolchain_file = "../../xmos_cmake_toolchain/xs3a.cmake"
 
     # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
