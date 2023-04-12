@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.14)
+
+# Disable in-source build.
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message(FATAL_ERROR "In-source build is not allowed! Please specify a build folder.\n\tex:cmake -B build")
+endif()
+
+# Note, this will be set in XMOS SetupEnv
+if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
+    message(ERROR "XMOS_CMAKE_PATH not defined")
+else()
+    message(STATUS "Using cmake scripts from $ENV{XMOS_CMAKE_PATH}")
+endif()
+
+## Import XMOS configurations
+include("$ENV{XMOS_CMAKE_PATH}xmos_utils.cmake")
+
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+## Define project
+project(app_test)
+
+## Set XMOS application variables
+set(APP_COMPILER_FLAGS
+        "-DMSG=config1"
+    )
+
+set(APP_XC_SRCS
+        "src/app_test.xc"
+    )
+set(APP_CXX_SRCS
+        ""
+    )
+set(APP_C_SRCS
+        ""
+    )
+set(APP_ASM_SRCS
+        ""
+    )
+set(APP_INCLUDES
+        ""
+    )
+
+## Register the application
+XMOS_REGISTER_APP()

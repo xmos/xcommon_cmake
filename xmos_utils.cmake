@@ -5,7 +5,9 @@ IF(NOT DEFINED ENV{XMOS_AIOT_SDK_PATH})
 endif()
 
 # Set up compiler
-include("$ENV{XMOS_AIOT_SDK_PATH}/tools/cmake_utils/xmos_toolchain.cmake")
+# This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
+# TODO remove hardcoded xs3a
+include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xs3a.cmake")
 
 set(XMOS_MODULES_ROOT_DIR "$ENV{XMOS_AIOT_SDK_PATH}/modules")
 
@@ -14,24 +16,24 @@ if(PROJECT_SOURCE_DIR)
 endif()
 
 # Check that supported bitstream has been specified
-include("bitstream_src/supported_hw.cmake")
-if(DEFINED BOARD)
-    if(${BOARD} IN_LIST SUPPORTED_HW)
-        include("bitstream_src/${BOARD}/board.cmake")
-    else()
-        message("\nConfiguration for ${BOARD} not found.\nPreconfigured bitstreams are:")
-        foreach(HW ${SUPPORTED_HW})
-            message("\t${HW}")
-        endforeach()
-        message(FATAL_ERROR "")
-    endif()
-else()
-    message("\n-DBOARD must be specified.\nPreconfigured bitstreams are:")
-    foreach(HW ${SUPPORTED_HW})
-        message("\t${HW}")
-    endforeach()
-    message(FATAL_ERROR "")
-endif()
+#include("bitstream_src/supported_hw.cmake")
+#if(DEFINED BOARD)
+#    if(${BOARD} IN_LIST SUPPORTED_HW)
+#        include("bitstream_src/${BOARD}/board.cmake")
+#    else()
+#        message("\nConfiguration for ${BOARD} not found.\nPreconfigured bitstreams are:")
+#        foreach(HW ${SUPPORTED_HW})
+#            message("\t${HW}")
+#        endforeach()
+#        message(FATAL_ERROR "")
+#    endif()
+#else()
+#    message("\n-DBOARD must be specified.\nPreconfigured bitstreams are:")
+#    foreach(HW ${SUPPORTED_HW})
+#        message("\t${HW}")
+#    endforeach()
+#    message(FATAL_ERROR "")
+#endif()
 
 ## Setup at caller scope
 
