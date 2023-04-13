@@ -1,27 +1,35 @@
+import os
 from pathlib import Path
 import platform
-import pytest
 import shutil
 import subprocess
+
+import pytest
 
 
 def list_test_dirs():
     base_dir = Path(__file__).parent
-    exclude = [".pytest_cache", "__pycache__"]
+
+    # Ignore directories that start with these characters
+    exclude_start = [".", "_"]
+
     dirs = [d.name for d in base_dir.iterdir() if d.is_dir()]
-    return [d for d in dirs if d not in exclude]
+    return [d for d in dirs if d[0] not in exclude_start]
 
 
 @pytest.mark.parametrize("test_dir", list_test_dirs())
 def test_cmake(test_dir):
     test_dir = Path(__file__).parent / test_dir
     build_dir = test_dir / "build"
+    bin_dir = test_dir / "bin"
 
-    # Cmake uses this directly so doesn't need an OS-specific path
-    toolchain_file = "../../xmos_cmake_toolchain/xs3a.cmake"
+    # Set XMOS_CMAKE_PATH in local environment if not set
+    cmake_env = os.environ
+    if "XMOS_CMAKE_PATH" not in cmake_env:
+        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
     # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
-    ret = subprocess.run(["cmake", f"-DCMAKE_TOOLCHAIN_FILE={toolchain_file}", "-B", "build", "."], cwd=test_dir)
+    ret = subprocess.run(["cmake", "-B", "build", "."], cwd=test_dir, env=cmake_env)
     assert(ret.returncode == 0)
 
     # Build
@@ -29,13 +37,17 @@ def test_cmake(test_dir):
     ret = subprocess.run([build_tool], cwd=build_dir)
     assert(ret.returncode == 0)
 
-    # Run the XE
-    run_expect = test_dir / "run.expect"
-    if run_expect.exists():
-        ret = subprocess.run(["xsim", "a.xe"], cwd=build_dir, capture_output=True, text=True)
+    # Run all XEs
+    apps = bin_dir.glob("**/*.xe")
+    for app in apps:
+        print(app)
+        run_expect = test_dir / f"{app.stem}.expect"
+
+        ret = subprocess.run(["xsim", app], capture_output=True, text=True)
         assert(ret.returncode == 0)
         with open(run_expect, "r") as f:
             assert(f.read() == ret.stdout)
 
     # Cleanup
     shutil.rmtree(build_dir)
+    shutil.rmtree(bin_dir)

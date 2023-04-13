@@ -89,6 +89,22 @@ function(XMOS_REGISTER_APP)
     #    list(APPEND APP_COMPILER_FLAGS "-DTHIS_XCORE_TILE=${THIS_XCORE_TILE}")
     #endif()
 
+    if(NOT APP_XC_SRCS)
+        file(GLOB_RECURSE APP_XC_SRCS src/*.xc)
+    endif()
+
+    if(NOT APP_CXX_SRCS)
+        file(GLOB_RECURSE APP_CXX_SRCS src/*.cpp)
+    endif()
+
+    if(NOT APP_C_SRCS)
+        file(GLOB_RECURSE APP_C_SRCS src/*.c)
+    endif()
+
+    if(NOT APP_ASM_SRCS)
+        file(GLOB_RECURSE APP_ASM_SRCS src/*.S)
+    endif()
+
     set(LIB_NAME ${PROJECT_NAME}_LIB)
     set(LIB_VERSION ${PROJECT_VERSION})
     set(LIB_ADD_COMPILER_FLAGS ${APP_COMPILER_FLAGS} ${BOARD_COMPILE_FLAGS})
@@ -135,11 +151,11 @@ function(XMOS_REGISTER_APP)
     endforeach()
 
     if(DEFINED THIS_XCORE_TILE)
-        set(TARGET_NAME "${PROJECT_NAME}_${THIS_XCORE_TILE}.xe")
+        set(TARGET_NAME "${PROJECT_NAME}_${THIS_XCORE_TILE}")
         file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
     else()
-        set(TARGET_NAME "${PROJECT_NAME}.xe")
+        set(TARGET_NAME "${PROJECT_NAME}")
     endif()
 
     set(APP_COMPILE_FLAGS ${APP_TARGET_COMPILER_FLAG} ${LIB_ADD_COMPILER_FLAGS} ${APP_COMPILER_C_FLAGS} ${HEADER_EXIST_FLAGS})

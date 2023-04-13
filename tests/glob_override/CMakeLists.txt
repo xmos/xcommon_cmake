@@ -13,11 +13,26 @@ include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 ## Define project
-project(hello)
+project(glob_override)
+
+enable_language(CXX C ASM)
 
 set(APP_XC_SRCS
-        "src/hello.xc"
-    )
+        "src/main.xc"
+        "src/src0/src0.xc"
+)
+
+set(APP_CXX_SRCS
+        "src/src1/src1.cpp"
+)
+
+set(APP_C_SRCS
+        "src/src1/src1.c"
+)
+
+set(APP_ASM_SRCS
+        "src/src0/src0.S"
+)
 
 set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
