@@ -21,13 +21,14 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 project(app_test)
 
 ## Set XMOS application variables
-set(APP_COMPILER_FLAGS
-        "-DMSG=config1"
-    )
+set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
-set(APP_XC_SRCS
-        "src/app_test.xc"
-    )
+set(APP_COMPILER_FLAGS "-DMSG=config1")
+
+# TODO eventually wont need to set this
+set(APP_XC_SRCS "src/app_test.xc")
+
+# TODO remove these
 set(APP_CXX_SRCS
         ""
     )
