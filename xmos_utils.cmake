@@ -1,4 +1,9 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.14)
+
+# Disable in-source build.
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message(FATAL_ERROR "In-source build is not allowed! Please specify a build folder.\n\tex:cmake -B build")
+endif()
 
 IF(NOT DEFINED ENV{XMOS_AIOT_SDK_PATH})
     message(FATAL_ERROR "Environment var XMOS_AIOT_SDK_PATH must be set before including xmos_utils.cmake")

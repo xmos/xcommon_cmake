@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
-# Disable in-source build.
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
-    message(FATAL_ERROR "In-source build is not allowed! Please specify a build folder.\n\tex:cmake -B build")
-endif()
+include("$ENV{XMOS_CMAKE_PATH}xmos_utils.cmake")
+
+project(app_test)
 
 # Note, this will be set in XMOS SetupEnv
 if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
@@ -11,14 +10,6 @@ if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
 else()
     message(STATUS "Using cmake scripts from $ENV{XMOS_CMAKE_PATH}")
 endif()
-
-## Import XMOS configurations
-include("$ENV{XMOS_CMAKE_PATH}xmos_utils.cmake")
-
-set(CMAKE_VERBOSE_MAKEFILE ON)
-
-## Define project
-project(app_test)
 
 ## Set XMOS application variables
 set(APP_HW_TARGET "XCORE-AI-EXPLORER")
@@ -28,19 +19,4 @@ set(APP_COMPILER_FLAGS "-DMSG=config1")
 # TODO eventually wont need to set this
 set(APP_XC_SRCS "src/app_test.xc")
 
-# TODO remove these
-set(APP_CXX_SRCS
-        ""
-    )
-set(APP_C_SRCS
-        ""
-    )
-set(APP_ASM_SRCS
-        ""
-    )
-set(APP_INCLUDES
-        ""
-    )
-
-## Register the application
 XMOS_REGISTER_APP()
