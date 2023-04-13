@@ -68,7 +68,8 @@ endfunction()
 ## Registers an application and it's dependencies
 function(XMOS_REGISTER_APP)
     if(NOT APP_HW_TARGET)
-        set(APP_HW_TARGET ${BOARD_HW_TARGET})
+        #set(APP_HW_TARGET ${BOARD_HW_TARGET})
+        message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
     endif()
 
     ## Populate build flag for hardware target
