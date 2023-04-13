@@ -16,6 +16,7 @@ def list_test_dirs():
 def test_cmake(test_dir):
     test_dir = Path(__file__).parent / test_dir
     build_dir = test_dir / "build"
+    bin_dir = test_dir / "bin"
 
     # Cmake uses this directly so doesn't need an OS-specific path
     toolchain_file = "../../xmos_cmake_toolchain/xs3a.cmake"
@@ -29,13 +30,17 @@ def test_cmake(test_dir):
     ret = subprocess.run([build_tool], cwd=build_dir)
     assert(ret.returncode == 0)
 
-    # Run the XE
-    run_expect = test_dir / "run.expect"
-    if run_expect.exists():
-        ret = subprocess.run(["xsim", "a.xe"], cwd=build_dir, capture_output=True, text=True)
+    # Run all XEs
+    apps = bin_dir.glob("**/*.xe")
+    for app in apps:
+        print(app)
+        run_expect = test_dir / f"{app.stem}.expect"
+
+        ret = subprocess.run(["xsim", app], capture_output=True, text=True)
         assert(ret.returncode == 0)
         with open(run_expect, "r") as f:
             assert(f.read() == ret.stdout)
 
     # Cleanup
     shutil.rmtree(build_dir)
+    shutil.rmtree(bin_dir)
