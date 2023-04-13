@@ -1,15 +1,20 @@
+import os
 from pathlib import Path
 import platform
-import pytest
 import shutil
 import subprocess
+
+import pytest
 
 
 def list_test_dirs():
     base_dir = Path(__file__).parent
-    exclude = [".pytest_cache", "__pycache__"]
+
+    # Ignore directories that start with these characters
+    exclude_start = [".", "_"]
+
     dirs = [d.name for d in base_dir.iterdir() if d.is_dir()]
-    return [d for d in dirs if d not in exclude]
+    return [d for d in dirs if d[0] not in exclude_start]
 
 
 @pytest.mark.parametrize("test_dir", list_test_dirs())
@@ -21,8 +26,13 @@ def test_cmake(test_dir):
     # Cmake uses this directly so doesn't need an OS-specific path
     toolchain_file = "../../xmos_cmake_toolchain/xs3a.cmake"
 
+    # Set XMOS_CMAKE_PATH in local environment if not set
+    cmake_env = os.environ
+    if "XMOS_CMAKE_PATH" not in cmake_env:
+        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+
     # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
-    ret = subprocess.run(["cmake", f"-DCMAKE_TOOLCHAIN_FILE={toolchain_file}", "-B", "build", "."], cwd=test_dir)
+    ret = subprocess.run(["cmake", f"-DCMAKE_TOOLCHAIN_FILE={toolchain_file}", "-B", "build", "."], cwd=test_dir, env=cmake_env)
     assert(ret.returncode == 0)
 
     # Build
