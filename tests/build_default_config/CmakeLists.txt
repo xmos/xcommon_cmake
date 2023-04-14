@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 include("$ENV{XMOS_CMAKE_PATH}xmos_utils.cmake")
 
-project(app_test)
+project(build_default_config)
 
 # Note, this will be set in XMOS SetupEnv
 if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
@@ -14,9 +14,7 @@ endif()
 ## Set XMOS application variables
 set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
-set(APP_COMPILER_FLAGS "-DMSG=ERROR") # We expect this to be ignored
-set(APP_COMPILER_FLAGS_config1 "-DMSG=config1")
-set(APP_COMPILER_FLAGS_config2 "-DMSG=config2")
+set(APP_COMPILER_FLAGS "-DMSG=DefaultConfig")
 
 # TODO eventually wont need to set this
 set(APP_XC_SRCS "src/app_test.xc")
