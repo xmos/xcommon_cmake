@@ -69,6 +69,11 @@ function(XMOS_ADD_FILE_COMPILER_FLAGS)
     set_source_files_properties(${ARGV0} PROPERTIES COMPILE_FLAGS ${ARGV1})
 endfunction()
 
+function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
+    get_cmake_property(_vars VARIABLES)
+    string (REGEX MATCHALL "(^|;)${_prefix}[A-Za-z0-9_]*" _matchedVars "${_vars}")
+    set (${_varResult} ${_matchedVars} PARENT_SCOPE)
+endfunction()
 
 ## Registers an application and it's dependencies
 function(XMOS_REGISTER_APP)
@@ -158,15 +163,30 @@ function(XMOS_REGISTER_APP)
         set(TARGET_NAME "${PROJECT_NAME}")
     endif()
 
+    # Find all build configs
+    GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_CONFIGS)
+
+    set(APP_CONFIGS_LIST "")
+    message(STATUS "Found configs:")
+    foreach(APP_CONFIG ${APP_CONFIGS})
+        string(REPLACE "APP_COMPILER_FLAGS_" "" APP_CONFIG ${APP_CONFIG})
+        list(APPEND APP_CONFIGS_LIST ${APP_CONFIG})
+    endforeach()
+
     set(APP_COMPILE_FLAGS ${APP_TARGET_COMPILER_FLAG} ${LIB_ADD_COMPILER_FLAGS} ${APP_COMPILER_C_FLAGS} ${HEADER_EXIST_FLAGS})
 
-    add_executable(${TARGET_NAME})
-    target_sources(${TARGET_NAME} PRIVATE ${APP_SOURCES})
+    foreach(APP_CONFIG ${APP_CONFIGS_LIST})
+        message(STATUS ${APP_CONFIG})
+    endforeach()
+    list(LENGTH APP_CONFIGS_LIST CONFIGS_COUNT) 
 
-    target_include_directories(${TARGET_NAME} PRIVATE ${APP_INCLUDES})
-    target_compile_options(${TARGET_NAME} PRIVATE ${APP_COMPILE_FLAGS})
+    message(STATUS ${CONFIGS_COUNT})
+    if(${CONFIGS_COUNT} EQUAL 0)
+        list(APPEND APP_CONFIGS_LIST "") 
+    endif()
 
     set(DEPS_TO_LINK "")
+    message(STATUS ${XMOS_TARGETS_LIST})
     foreach(target ${XMOS_TARGETS_LIST})
         target_include_directories(${target} PRIVATE ${APP_INCLUDES})
         target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS})
@@ -175,8 +195,15 @@ function(XMOS_REGISTER_APP)
     endforeach()
     list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
-    target_link_libraries(${TARGET_NAME} PRIVATE ${DEPS_TO_LINK})
-    target_link_options(${TARGET_NAME} PRIVATE ${APP_COMPILE_FLAGS})
+    foreach(APP_CONFIG ${APP_CONFIGS_LIST})
+        message(STATUS ${APP_COMPILER_FLAGS_${APP_CONFIG}})
+        add_executable(${TARGET_NAME}_${APP_CONFIG})
+        target_sources(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_SOURCES})
+        target_include_directories(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
+        target_compile_options(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}}) #TODO fix extra _ when no configs set
+        target_link_libraries(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${DEPS_TO_LINK})
+        target_link_options(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILE_FLAGS})
+    endforeach()
 endfunction()
 
 ## Registers a module and it's dependencies
