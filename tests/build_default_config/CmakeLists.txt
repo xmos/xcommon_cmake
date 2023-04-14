@@ -16,7 +16,4 @@ set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
 set(APP_COMPILER_FLAGS "-DMSG=DefaultConfig")
 
-# TODO eventually wont need to set this
-set(APP_XC_SRCS "src/app_test.xc")
-
 XMOS_REGISTER_APP()

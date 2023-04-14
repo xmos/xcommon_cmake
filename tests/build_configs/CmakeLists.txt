@@ -18,7 +18,4 @@ set(APP_COMPILER_FLAGS "-DMSG=ERROR") # We expect this to be ignored
 set(APP_COMPILER_FLAGS_config1 "-DMSG=config1")
 set(APP_COMPILER_FLAGS_config2 "-DMSG=config2")
 
-# TODO eventually wont need to set this
-set(APP_XC_SRCS "src/app_test.xc")
-
 XMOS_REGISTER_APP()
