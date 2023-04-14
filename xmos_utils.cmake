@@ -1,15 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 
-IF(NOT DEFINED ENV{XMOS_AIOT_SDK_PATH})
-    message(FATAL_ERROR "Environment var XMOS_AIOT_SDK_PATH must be set before including xmos_utils.cmake")
-endif()
-
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
 # TODO remove hardcoded xs3a
 include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xs3a.cmake")
-
-set(XMOS_MODULES_ROOT_DIR "$ENV{XMOS_AIOT_SDK_PATH}/modules")
 
 if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
@@ -209,9 +203,7 @@ function(XMOS_REGISTER_MODULE)
 
             # Add dependencies directories
             if(NOT TARGET ${DEP_NAME})
-                if(EXISTS ${XMOS_MODULES_ROOT_DIR}/${DEP_NAME})
-                    add_subdirectory("${XMOS_MODULES_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
-                elseif(EXISTS ${XMOS_APP_MODULES_ROOT_DIR}/${DEP_NAME})
+                if(EXISTS ${XMOS_APP_MODULES_ROOT_DIR}/${DEP_NAME})
                     add_subdirectory("${XMOS_APP_MODULES_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
                 else()
                     message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
