@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
 
-# Disable in-source build.
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
-    message(FATAL_ERROR "In-source build is not allowed! Please specify a build folder.\n\tex:cmake -B build")
-endif()
-
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
 # TODO remove hardcoded xs3a
