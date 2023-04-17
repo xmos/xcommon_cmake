@@ -1,0 +1,25 @@
+Building configuration config1
+Checking build modules
+No build modules used.
+Rebuild .build_config1/_iflag.rsp
+Analyzing test.xc
+Rebuild .build_config1/_pca.rsp
+Propagating analysis
+Creating dependencies for test.xc
+Compiling test.xc
+Rebuild .build_config1/_obj.rsp
+Creating app_test_config1.xe
+Build Complete
+Building configuration config2
+Checking build modules
+No build modules used.
+Rebuild .build_config2/_iflag.rsp
+Analyzing test.xc
+Rebuild .build_config2/_pca.rsp
+Propagating analysis
+Creating dependencies for test.xc
+Compiling test.xc
+Rebuild .build_config2/_obj.rsp
+Creating app_test_config2.xe
+Build Complete
+Built all configurations

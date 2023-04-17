@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.14)
 
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
@@ -38,10 +38,13 @@ set(BSP_ONLY 3 )
 define_property(TARGET PROPERTY OPTIONAL_HEADERS BRIEF_DOCS "Contains list of optional headers." FULL_DOCS "Contains a list of optional headers.  The application level should search through all app includes and define D__[header]_h_exists__ for each header that is in both the app and optional headers.")
 define_property(GLOBAL PROPERTY XMOS_TARGETS_LIST BRIEF_DOCS "brief" FULL_DOCS "full")
 
+# Setup lib build output
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/libs")
+
 # Setup build output
 file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/libs")
+
 
 function(XMOS_ADD_FILE_COMPILER_FLAGS)
     if(NOT ${ARGC} EQUAL 2)
@@ -58,11 +61,17 @@ function(XMOS_ADD_FILE_COMPILER_FLAGS)
     set_source_files_properties(${ARGV0} PROPERTIES COMPILE_FLAGS ${ARGV1})
 endfunction()
 
+function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
+    get_cmake_property(_vars VARIABLES)
+    string (REGEX MATCHALL "(^|;)${_prefix}[A-Za-z0-9_]*" _matchedVars "${_vars}")
+    set (${_varResult} ${_matchedVars} PARENT_SCOPE)
+endfunction()
 
 ## Registers an application and it's dependencies
 function(XMOS_REGISTER_APP)
     if(NOT APP_HW_TARGET)
-        set(APP_HW_TARGET ${BOARD_HW_TARGET})
+        #set(APP_HW_TARGET ${BOARD_HW_TARGET})
+        message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
     endif()
 
     ## Populate build flag for hardware target
@@ -73,9 +82,9 @@ function(XMOS_REGISTER_APP)
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
     endif()
 
-    if(DEFINED THIS_XCORE_TILE)
-        list(APPEND APP_COMPILER_FLAGS "-DTHIS_XCORE_TILE=${THIS_XCORE_TILE}")
-    endif()
+    #if(DEFINED THIS_XCORE_TILE)
+    #    list(APPEND APP_COMPILER_FLAGS "-DTHIS_XCORE_TILE=${THIS_XCORE_TILE}")
+    #endif()
 
     if(NOT APP_XC_SRCS)
         file(GLOB_RECURSE APP_XC_SRCS src/*.xc)
@@ -138,21 +147,28 @@ function(XMOS_REGISTER_APP)
         endforeach()
     endforeach()
 
-    if(DEFINED THIS_XCORE_TILE)
-        set(TARGET_NAME "${PROJECT_NAME}_${THIS_XCORE_TILE}")
-        file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
-    else()
+    #if(DEFINED THIS_XCORE_TILE)
+    #    set(TARGET_NAME "${PROJECT_NAME}_${THIS_XCORE_TILE}")
+    #    file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
+    #    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
+    #else()
         set(TARGET_NAME "${PROJECT_NAME}")
+    #endif()
+
+    # Find all build configs
+    GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_CONFIGS)
+
+    set(APP_CONFIGS_LIST "")
+    foreach(APP_CONFIG ${APP_CONFIGS})
+        string(REPLACE "APP_COMPILER_FLAGS_" "" APP_CONFIG ${APP_CONFIG})
+        list(APPEND APP_CONFIGS_LIST ${APP_CONFIG})
+    endforeach()
+
+    # Somewhat follow the strategy of xcommon here with a config named "Default" 
+    list(LENGTH APP_CONFIGS_LIST CONFIGS_COUNT) 
+    if(${CONFIGS_COUNT} EQUAL 0)
+        list(APPEND APP_CONFIGS_LIST "Default") 
     endif()
-
-    set(APP_COMPILE_FLAGS ${APP_TARGET_COMPILER_FLAG} ${LIB_ADD_COMPILER_FLAGS} ${APP_COMPILER_C_FLAGS} ${HEADER_EXIST_FLAGS})
-
-    add_executable(${TARGET_NAME})
-    target_sources(${TARGET_NAME} PRIVATE ${APP_SOURCES})
-
-    target_include_directories(${TARGET_NAME} PRIVATE ${APP_INCLUDES})
-    target_compile_options(${TARGET_NAME} PRIVATE ${APP_COMPILE_FLAGS})
 
     set(DEPS_TO_LINK "")
     foreach(target ${XMOS_TARGETS_LIST})
@@ -163,8 +179,36 @@ function(XMOS_REGISTER_APP)
     endforeach()
     list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
-    target_link_libraries(${TARGET_NAME} PRIVATE ${DEPS_TO_LINK})
-    target_link_options(${TARGET_NAME} PRIVATE ${APP_COMPILE_FLAGS})
+    message(STATUS "Found build configs:")
+    
+    # For each build config set up targets and compiler flags etc
+    foreach(APP_CONFIG ${APP_CONFIGS_LIST})
+        message(STATUS ${APP_CONFIG})
+        # Check for the "Default" config we created if user didn't specify any configs
+        if(${APP_CONFIG} STREQUAL "Default")
+            add_executable(${TARGET_NAME})
+            target_sources(${TARGET_NAME} PRIVATE ${APP_SOURCES})
+            target_include_directories(${TARGET_NAME} PRIVATE ${APP_INCLUDES})
+            target_compile_options(${TARGET_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+            target_link_libraries(${TARGET_NAME}  PRIVATE ${DEPS_TO_LINK})
+            target_link_options(${TARGET_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+
+            # Setup build output
+            file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+            set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+        else()
+            add_executable(${TARGET_NAME}_${APP_CONFIG})
+            target_sources(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_SOURCES})
+            target_include_directories(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
+            target_compile_options(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+            target_link_libraries(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${DEPS_TO_LINK})
+            target_link_options(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+
+            # Setup build output
+            file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+            set_target_properties(${TARGET_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
+        endif()
+    endforeach()
 endfunction()
 
 ## Registers a module and it's dependencies

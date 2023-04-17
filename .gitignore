@@ -1,0 +1,20 @@
+
+# tmp files
+*.swo
+*.swp
+*~
+
+# XMOS tmp files
+*.pxa.xml*
+**/Build/*
+*.o
+*.d
+*.rsp
+*.xml
+*.decouple
+
+# XMOS binaries
+*.xe
+
+# Python
+*.pyc

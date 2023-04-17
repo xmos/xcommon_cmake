@@ -30,23 +30,24 @@ def test_cmake(test_dir):
 
     # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
     ret = subprocess.run(["cmake", "-B", "build", "."], cwd=test_dir, env=cmake_env)
-    assert(ret.returncode == 0)
+    assert ret.returncode == 0
 
     # Build
     build_tool = "ninja" if platform.system() == "Windows" else "make"
     ret = subprocess.run([build_tool], cwd=build_dir)
-    assert(ret.returncode == 0)
+    assert ret.returncode == 0
 
     # Run all XEs
+    # TODO we need to check that all the xe files we expect are present
     apps = bin_dir.glob("**/*.xe")
     for app in apps:
         print(app)
         run_expect = test_dir / f"{app.stem}.expect"
 
         ret = subprocess.run(["xsim", app], capture_output=True, text=True)
-        assert(ret.returncode == 0)
+        assert ret.returncode == 0
         with open(run_expect, "r") as f:
-            assert(f.read() == ret.stdout)
+            assert f.read() == ret.stdout
 
     # Cleanup
     shutil.rmtree(build_dir)
