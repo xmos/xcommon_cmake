@@ -63,7 +63,7 @@ endfunction()
 
 function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     get_cmake_property(_vars VARIABLES)
-    string (REGEX MATCHALL "(^|;)${_prefix}[A-Za-z0-9_]*" _matchedVars "${_vars}")
+    string (REGEX MATCHALL "(^|;)${_prefix}[A-Za-z0-9_\\.]*" _matchedVars "${_vars}")
     set (${_varResult} ${_matchedVars} PARENT_SCOPE)
 endfunction()
 
@@ -101,6 +101,8 @@ function(XMOS_REGISTER_APP)
     if(NOT APP_ASM_SRCS)
         file(GLOB_RECURSE APP_ASM_SRCS src/*.S)
     endif()
+
+    set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
 
     set(LIB_NAME ${PROJECT_NAME}_LIB)
     set(LIB_VERSION ${PROJECT_VERSION})
@@ -156,18 +158,28 @@ function(XMOS_REGISTER_APP)
     #endif()
 
     # Find all build configs
-    GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_CONFIGS)
+    GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
 
-    set(APP_CONFIGS_LIST "")
-    foreach(APP_CONFIG ${APP_CONFIGS})
-        string(REPLACE "APP_COMPILER_FLAGS_" "" APP_CONFIG ${APP_CONFIG})
-        list(APPEND APP_CONFIGS_LIST ${APP_CONFIG})
+    message(STATUS ${APP_COMPILER_FLAGS_VARS})
+
+    set(APP_CONFIGS "")
+    set(APP_FLAG_FILES "")
+    foreach(APP_FLAGS ${APP_COMPILER_FLAGS_VARS})
+        string(REPLACE "APP_COMPILER_FLAGS_" "" APP_FLAGS ${APP_FLAGS})
+
+        # Ignore any "file" flags 
+        if(NOT APP_FLAGS MATCHES "\\.")
+            list(APPEND APP_CONFIGS ${APP_FLAGS})
+        else()
+            list(APPEND APP_FLAG_FILES ${APP_FLAGS})
+        endif()
+        
     endforeach()
 
     # Somewhat follow the strategy of xcommon here with a config named "Default" 
-    list(LENGTH APP_CONFIGS_LIST CONFIGS_COUNT) 
+    list(LENGTH APP_CONFIGS CONFIGS_COUNT) 
     if(${CONFIGS_COUNT} EQUAL 0)
-        list(APPEND APP_CONFIGS_LIST "Default") 
+        list(APPEND APP_CONFIGS "Default") 
     endif()
 
     set(DEPS_TO_LINK "")
@@ -182,7 +194,8 @@ function(XMOS_REGISTER_APP)
     message(STATUS "Found build configs:")
     
     # For each build config set up targets and compiler flags etc
-    foreach(APP_CONFIG ${APP_CONFIGS_LIST})
+    #TODO -DCONFIG=${APP_CONFIG}
+    foreach(APP_CONFIG ${APP_CONFIGS})
         message(STATUS ${APP_CONFIG})
         # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "Default")
@@ -192,6 +205,8 @@ function(XMOS_REGISTER_APP)
             target_compile_options(${TARGET_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
             target_link_libraries(${TARGET_NAME}  PRIVATE ${DEPS_TO_LINK})
             target_link_options(${TARGET_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+
+            
 
             # Setup build output
             file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
@@ -208,6 +223,18 @@ function(XMOS_REGISTER_APP)
             file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
             set_target_properties(${TARGET_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
         endif()
+
+        foreach(SRC_FILE_PATH ${ALL_SRCS_PATH})
+            get_filename_component(SRC_FILE ${SRC_FILE_PATH} NAME)
+            foreach(FLAG_FILE ${APP_FLAG_FILES})
+                string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
+                if(_cmp)
+                    set_source_files_properties(${SRC_FILE_PATH} PROPERTIES COMPILE_FLAGS ${APP_COMPILER_FLAGS_${FLAG_FILE}})
+                    message(STATUS ${SRC_FILE_PATH})
+                    message(STATUS ${APP_COMPILER_FLAGS_${FLAG_FILE}})
+                endif()
+            endforeach()
+        endforeach()
     endforeach()
 endfunction()
 
