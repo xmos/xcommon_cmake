@@ -193,6 +193,19 @@ function(XMOS_REGISTER_APP)
         list(APPEND APP_CONFIGS "DEFAULT") 
     endif()
 
+    message(STATUS "Found build configs:")
+
+    # Setup targets for each build config
+    foreach(APP_CONFIG ${APP_CONFIGS})
+        message(STATUS ${APP_CONFIG})
+        # Check for the "Default" config we created if user didn't specify any configs
+        if(${APP_CONFIG} STREQUAL "DEFAULT")
+            add_executable(${PROJECT_NAME})
+        else()
+            add_executable(${PROJECT_NAME}_${APP_CONFIG})
+        endif()
+    endforeach()
+
     set(DEPS_TO_LINK "")
     foreach(target ${XMOS_TARGETS_LIST})
         target_include_directories(${target} PRIVATE ${APP_INCLUDES})
@@ -202,14 +215,9 @@ function(XMOS_REGISTER_APP)
     endforeach()
     list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
-    message(STATUS "Found build configs:")
-    
     # For each build config set up targets and compiler flags etc
     foreach(APP_CONFIG ${APP_CONFIGS})
-        message(STATUS ${APP_CONFIG})
-        # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "DEFAULT")
-            add_executable(${PROJECT_NAME})
             target_sources(${PROJECT_NAME} PRIVATE ${APP_SOURCES})
             target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
             
@@ -222,8 +230,6 @@ function(XMOS_REGISTER_APP)
             file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
             set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
         else()
-            add_executable(${PROJECT_NAME}_${APP_CONFIG})
-    
             remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${APP_SOURCES}" CFG_SOURCES)
           
             target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${CFG_SOURCES})
@@ -282,8 +288,8 @@ function(XMOS_REGISTER_MODULE)
 
             # Add dependencies directories
             if(NOT TARGET ${DEP_NAME})
-                if(EXISTS ${XMOS_APP_MODULES_ROOT_DIR}/${DEP_NAME})
-                    add_subdirectory("${XMOS_APP_MODULES_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
+                if(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                    add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
                 else()
                     message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
                 endif()
