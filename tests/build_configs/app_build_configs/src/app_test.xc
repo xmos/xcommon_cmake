@@ -6,5 +6,6 @@
 #endif
 int main() {
   printstrln(STRINGIFY(MSG));
+  printstrln(STRINGIFY(CONFIG));
   return 0;
 }

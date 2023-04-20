@@ -188,7 +188,6 @@ function(XMOS_REGISTER_APP)
     message(STATUS "Found build configs:")
     
     # For each build config set up targets and compiler flags etc
-    #TODO -DCONFIG=${APP_CONFIG}
     foreach(APP_CONFIG ${APP_CONFIGS})
         message(STATUS ${APP_CONFIG})
         # Check for the "Default" config we created if user didn't specify any configs
@@ -210,7 +209,7 @@ function(XMOS_REGISTER_APP)
             target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_SOURCES})
             target_include_directories(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
             
-            target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+            target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS} "-DCONFIG=${APP_CONFIG}")
             
             target_link_libraries(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${DEPS_TO_LINK})
             target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
