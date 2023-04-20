@@ -61,8 +61,6 @@ macro(add_app_file_flags)
             if(_cmp)
                 set(flags ${APP_COMPILER_FLAGS_${FLAG_FILE}})
                 set_source_files_properties(${SRC_FILE_PATH} PROPERTIES COMPILE_FLAGS ${flags})
-                message(STATUS "MATCH" ${SRC_FILE_PATH})
-                message(STATUS ${APP_COMPILER_FLAGS_${FLAG_FILE}})
             endif()
         endforeach()
     endforeach()
@@ -75,7 +73,7 @@ function(XMOS_REGISTER_APP)
     endif()
 
     if(NOT APP_COMPILER_FLAGS)
-        set(APP_COMPILER_FLAGS "-DF") #TODO FIXME HACK
+        set(APP_COMPILER_FLAGS "")
     endif()
 
     ## Populate build flag for hardware target
