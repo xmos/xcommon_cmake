@@ -19,17 +19,35 @@ def list_test_dirs():
 
 @pytest.mark.parametrize("test_dir", list_test_dirs())
 def test_cmake(test_dir):
-    test_dir = Path(__file__).parent / test_dir
-    build_dir = test_dir / "build"
-    bin_dir = test_dir / "bin"
 
+
+    test_dir = Path(__file__).parent / test_dir
+
+    apps = os.listdir(test_dir)
+
+    if not any(app.startswith('app_') for app in apps):
+        assert 0, f"No app found in {test_dir}"
+    
+    for app in apps:
+        if app.startswith('app_'):
+            app_dir = app  # Just take the first one for now 
+    
+    build_dir = test_dir / app_dir / "build"
+    bin_dir = test_dir / app_dir / "bin"
+
+    # Pre-clean
+    if bin_dir.exists() and bin_dir.is_dir():
+        shutil.rmtree(bin_dir)
+    if build_dir.exists() and build_dir.is_dir():
+        shutil.rmtree(build_dir)
+    
     # Set XMOS_CMAKE_PATH in local environment if not set
     cmake_env = os.environ
     if "XMOS_CMAKE_PATH" not in cmake_env:
         cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
     # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
-    ret = subprocess.run(["cmake", "-B", "build", "."], cwd=test_dir, env=cmake_env)
+    ret = subprocess.run(["cmake", "-B", "build", "."], cwd=test_dir/app_dir, env=cmake_env)
     assert ret.returncode == 0
 
     # Build
@@ -42,7 +60,7 @@ def test_cmake(test_dir):
     apps = bin_dir.glob("**/*.xe")
     for app in apps:
         print(app)
-        run_expect = test_dir / f"{app.stem}.expect"
+        run_expect = test_dir /  f"{app.stem}.expect"
 
         ret = subprocess.run(["xsim", app], capture_output=True, text=True)
         assert ret.returncode == 0
