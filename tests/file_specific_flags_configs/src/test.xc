@@ -1,14 +1,6 @@
 #include <print.h>
 
-#ifdef FLAG0
-#error
-#endif
-
 #ifndef FLAG1
-#error
-#endif
-
-#if(FLAG1 != 1)
 #error
 #endif
 
@@ -24,12 +16,18 @@
 #error
 #endif
 
+#define STRINGIFY0(x) #x
+#define STRINGIFY(x) STRINGIFY0(x)
+#ifndef MSG
+#error MSG not defined
+#endif
+
 void flag2();
 void flag3();
-void flag10();
 
 int main() 
 {
+    printstrln(STRINGIFY(MSG));
     printintln(FLAG1);
     flag2();
     flag3();

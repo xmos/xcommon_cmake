@@ -1,8 +1,8 @@
 #include <print.h>
 
-//ifdef FLAG1
-//#error
-//#endif
+#ifdef FLAG1
+#error
+#endif
 
 #ifndef FLAG2
 #error

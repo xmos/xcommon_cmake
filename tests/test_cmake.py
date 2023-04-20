@@ -23,6 +23,12 @@ def test_cmake(test_dir):
     build_dir = test_dir / "build"
     bin_dir = test_dir / "bin"
 
+    # Pre-clean
+    if bin_dir.exists() and bin_dir.is_dir():
+        shutil.rmtree(bin_dir)
+    if build_dir.exists() and build_dir_dir.is_dir():
+        shutil.rmtree(build_dir)
+    
     # Set XMOS_CMAKE_PATH in local environment if not set
     cmake_env = os.environ
     if "XMOS_CMAKE_PATH" not in cmake_env:

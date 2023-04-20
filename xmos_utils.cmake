@@ -45,33 +45,37 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/libs")
 file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
 
-
-function(XMOS_ADD_FILE_COMPILER_FLAGS)
-    if(NOT ${ARGC} EQUAL 2)
-        message(FATAL_ERROR "XMOS_ADD_FILE_COMPILER_FLAGS requires 2 arguments, a file and string of flags")
-    else()
-        if(NOT EXISTS ${ARGV0} AND NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${ARGV0})
-            message(FATAL_ERROR "arg 0 must be a file relative to the caller.")
-        endif()
-        if(NOT ${ARGV1} STRGREATER "")
-            message(FATAL_ERROR "arg 1 must be a non empty string.")
-        endif()
-    endif()
-
-    set_source_files_properties(${ARGV0} PROPERTIES COMPILE_FLAGS ${ARGV1})
-endfunction()
-
 function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     get_cmake_property(_vars VARIABLES)
     string (REGEX MATCHALL "(^|;)${_prefix}[A-Za-z0-9_\\.]*" _matchedVars "${_vars}")
     set (${_varResult} ${_matchedVars} PARENT_SCOPE)
 endfunction()
 
+macro(add_app_file_flags)
+    foreach(SRC_FILE_PATH ${ALL_SRCS_PATH})
+        
+        # Over-ride file flags if APP_COMPILER_FLAGS_<source_file> is set
+        get_filename_component(SRC_FILE ${SRC_FILE_PATH} NAME)
+        foreach(FLAG_FILE ${APP_FLAG_FILES})
+            string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
+            if(_cmp)
+                set(flags ${APP_COMPILER_FLAGS_${FLAG_FILE}})
+                set_source_files_properties(${SRC_FILE_PATH} PROPERTIES COMPILE_FLAGS ${flags})
+                message(STATUS "MATCH" ${SRC_FILE_PATH})
+                message(STATUS ${APP_COMPILER_FLAGS_${FLAG_FILE}})
+            endif()
+        endforeach()
+    endforeach()
+endmacro() 
+
 ## Registers an application and it's dependencies
 function(XMOS_REGISTER_APP)
     if(NOT APP_HW_TARGET)
-        #set(APP_HW_TARGET ${BOARD_HW_TARGET})
         message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
+    endif()
+
+    if(NOT APP_COMPILER_FLAGS)
+        set(APP_COMPILER_FLAGS "-DF") #TODO FIXME HACK
     endif()
 
     ## Populate build flag for hardware target
@@ -149,14 +153,6 @@ function(XMOS_REGISTER_APP)
         endforeach()
     endforeach()
 
-    #if(DEFINED THIS_XCORE_TILE)
-    #    set(TARGET_NAME "${PROJECT_NAME}_${THIS_XCORE_TILE}")
-    #    file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
-    #    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/tile${THIS_XCORE_TILE}")
-    #else()
-        set(TARGET_NAME "${PROJECT_NAME}")
-    #endif()
-
     # Find all build configs
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
 
@@ -179,14 +175,14 @@ function(XMOS_REGISTER_APP)
     # Somewhat follow the strategy of xcommon here with a config named "Default" 
     list(LENGTH APP_CONFIGS CONFIGS_COUNT) 
     if(${CONFIGS_COUNT} EQUAL 0)
-        list(APPEND APP_CONFIGS "Default") 
+        list(APPEND APP_CONFIGS "DEFAULT") 
     endif()
 
     set(DEPS_TO_LINK "")
     foreach(target ${XMOS_TARGETS_LIST})
         target_include_directories(${target} PRIVATE ${APP_INCLUDES})
         target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS})
-        add_dependencies(${TARGET_NAME} ${target})
+        add_dependencies(${PROJECT_NAME} ${target})
         list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
     endforeach()
     list(REMOVE_DUPLICATES DEPS_TO_LINK)
@@ -198,43 +194,39 @@ function(XMOS_REGISTER_APP)
     foreach(APP_CONFIG ${APP_CONFIGS})
         message(STATUS ${APP_CONFIG})
         # Check for the "Default" config we created if user didn't specify any configs
-        if(${APP_CONFIG} STREQUAL "Default")
-            add_executable(${TARGET_NAME})
-            target_sources(${TARGET_NAME} PRIVATE ${APP_SOURCES})
-            target_include_directories(${TARGET_NAME} PRIVATE ${APP_INCLUDES})
-            target_compile_options(${TARGET_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
-            target_link_libraries(${TARGET_NAME}  PRIVATE ${DEPS_TO_LINK})
-            target_link_options(${TARGET_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
-
+        if(${APP_CONFIG} STREQUAL "DEFAULT")
+            add_executable(${PROJECT_NAME})
+            target_sources(${PROJECT_NAME} PRIVATE ${APP_SOURCES})
+            target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
             
+            target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+            
+            target_link_libraries(${PROJECT_NAME} PRIVATE ${DEPS_TO_LINK})
+            target_link_options(${PROJECT_NAME} PRIVATE ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
 
             # Setup build output
             file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
-            set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+            set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
         else()
-            add_executable(${TARGET_NAME}_${APP_CONFIG})
-            target_sources(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_SOURCES})
-            target_include_directories(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
-            target_compile_options(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
-            target_link_libraries(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${DEPS_TO_LINK})
-            target_link_options(${TARGET_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+            add_executable(${PROJECT_NAME}_${APP_CONFIG})
+            target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_SOURCES})
+            target_include_directories(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
+            
+            target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+            
+            target_link_libraries(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${DEPS_TO_LINK})
+            target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+
+            message(STATUS ${APP_CONFIG})
+            message(STATUS ${APP_COMPILER_FLAGS_${APP_CONFIG}}) 
 
             # Setup build output
             file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
-            set_target_properties(${TARGET_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
+            set_target_properties(${PROJECT_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
         endif()
-
-        foreach(SRC_FILE_PATH ${ALL_SRCS_PATH})
-            get_filename_component(SRC_FILE ${SRC_FILE_PATH} NAME)
-            foreach(FLAG_FILE ${APP_FLAG_FILES})
-                string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
-                if(_cmp)
-                    set_source_files_properties(${SRC_FILE_PATH} PROPERTIES COMPILE_FLAGS ${APP_COMPILER_FLAGS_${FLAG_FILE}})
-                    message(STATUS ${SRC_FILE_PATH})
-                    message(STATUS ${APP_COMPILER_FLAGS_${FLAG_FILE}})
-                endif()
-            endforeach()
-        endforeach()
+   
+        add_app_file_flags() 
+   
     endforeach()
 endfunction()
 
