@@ -66,6 +66,23 @@ macro(add_app_file_flags)
     endforeach()
 endmacro() 
 
+# Remove src files from ALL_SRCS if they are for a different config and return source
+# file list in RET_CONFIG_SRCS
+function(remove_srcs ALL_APP_CONFIGS APP_CONFIG ALL_SRCS RET_CONFIG_SRCS)
+          
+    set(CONFIG_SRCS ${ALL_SRCS}) 
+
+    foreach(CFG ${ALL_APP_CONFIGS})
+        string(COMPARE EQUAL ${CFG} ${APP_CONFIG} _cmp)
+        if(NOT ${_cmp})
+            foreach(RM_FILE ${SOURCE_FILES_${CFG}})
+                list(REMOVE_ITEM CONFIG_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/${RM_FILE})
+            endforeach()
+        endif()
+    endforeach()
+    set(${RET_CONFIG_SRCS} ${CONFIG_SRCS} PARENT_SCOPE) 
+endfunction()
+
 ## Registers an application and it's dependencies
 function(XMOS_REGISTER_APP)
     if(NOT APP_HW_TARGET)
@@ -206,7 +223,11 @@ function(XMOS_REGISTER_APP)
             set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
         else()
             add_executable(${PROJECT_NAME}_${APP_CONFIG})
-            target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_SOURCES})
+    
+            remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${APP_SOURCES}" CFG_SOURCES)
+          
+            target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${CFG_SOURCES})
+
             target_include_directories(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
             
             target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS} "-DCONFIG=${APP_CONFIG}")
@@ -214,8 +235,6 @@ function(XMOS_REGISTER_APP)
             target_link_libraries(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${DEPS_TO_LINK})
             target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
 
-            message(STATUS ${APP_CONFIG})
-            message(STATUS ${APP_COMPILER_FLAGS_${APP_CONFIG}}) 
 
             # Setup build output
             file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
