@@ -209,40 +209,29 @@ function(XMOS_REGISTER_APP)
         message(STATUS ${APP_CONFIG})
         # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "DEFAULT")
-            add_executable(${PROJECT_NAME})
-            target_sources(${PROJECT_NAME} PRIVATE ${APP_SOURCES})
-            target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
-            
-            target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
-            
-            target_link_libraries(${PROJECT_NAME} PRIVATE ${DEPS_TO_LINK})
-            target_link_options(${PROJECT_NAME} PRIVATE ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
-
-            # Setup build output
-            file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
-            set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+            set(BINARY_NAME  ${PROJECT_NAME})
+            set(BINARY_SOURCES ${APP_SOURCES})
+            set(BINARY_FLAGS ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+            set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/")
         else()
-            add_executable(${PROJECT_NAME}_${APP_CONFIG})
-    
-            remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${APP_SOURCES}" CFG_SOURCES)
-          
-            target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${CFG_SOURCES})
-
-            target_include_directories(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
-            
-            target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS} "-DCONFIG=${APP_CONFIG}")
-            
-            target_link_libraries(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${DEPS_TO_LINK})
-            target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
-
-
-            # Setup build output
-            file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
-            set_target_properties(${PROJECT_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
+            set(BINARY_NAME  ${PROJECT_NAME}_${APP_CONFIG})
+            remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${APP_SOURCES}" BINARY_SOURCES)
+            set(BINARY_FLAGS ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS} "-DCONFIG=${APP_CONFIG}")
+            set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
         endif()
    
         add_app_file_flags() 
-   
+  
+        add_executable(${BINARY_NAME}) 
+        target_sources(${BINARY_NAME} PRIVATE ${BINARY_SOURCES})
+        target_include_directories(${BINARY_NAME} PRIVATE ${APP_INCLUDES})
+        target_compile_options(${BINARY_NAME} PRIVATE ${BINARY_FLAGS})
+        target_link_libraries(${BINARY_NAME} PRIVATE ${DEPS_TO_LINK})
+        target_link_options(${BINARY_NAME} PRIVATE ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
+
+        # Setup build output
+        file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+        set_target_properties(${BINARY_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BINARY_OUTPUT_DIR}")
     endforeach()
 endfunction()
 
