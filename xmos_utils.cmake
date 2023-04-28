@@ -213,50 +213,50 @@ function(XMOS_REGISTER_APP)
             set(BINARY_SOURCES ${APP_SOURCES})
             set(BINARY_FLAGS ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
             set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/")
+            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/tmp/") #TODO xcommon uses .build for tmp items
         else()
             set(BINARY_NAME  ${PROJECT_NAME}_${APP_CONFIG})
             remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${APP_SOURCES}" BINARY_SOURCES)
             set(BINARY_FLAGS ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS} "-DCONFIG=${APP_CONFIG}")
             set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
+            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/tmp_${APP_CONFIG}/") #TODO xcommon uses .build_<config> for tmp iems
         endif()
    
         add_app_file_flags() 
 
         # TODO do we need the .decouple file scheme? 
-        set(PCA_FILES "")
         set(PCA_FILES_PATH "")
-        file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/tmp/") #TODO .build
+        file(MAKE_DIRECTORY ${DOT_BUILD_DIR})
+
         foreach(_file ${BINARY_SOURCES})
             get_filename_component(_file_pca ${_file} NAME_WE)
             set(_file_pca ${_file_pca}.pca.xml)
 
-            message(STATUS CUSTOM${_file_pca})
             add_custom_command(
-                OUTPUT ${_file_pca}
-                COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} -x none -o ${CMAKE_SOURCE_DIR}/tmp/${_file_pca}
+                OUTPUT ${DOT_BUILD_DIR}/${_file_pca}
+                COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} -x none -o ${DOT_BUILD_DIR}/${_file_pca}
                 DEPENDS ${_file}
             )
 
-            list(APPEND PCA_FILES_PATH ${CMAKE_SOURCE_DIR}/tmp/${_file_pca})
-            list(APPEND PCA_FILES ${_file_pca})
+            list(APPEND PCA_FILES_PATH ${DOT_BUILD_DIR}/${_file_pca})
             set_property(SOURCE ${_file_pca} APPEND PROPERTY OBJECT_DEPENDS ${_file})
         endforeach()
 
         # TODO add used modules
         # TODO xcommon uses rsp file for xml file list 
-        set(PCA_FILE ${CMAKE_SOURCE_DIR}/tmp/pca.xml)
+        set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
         add_custom_command(
                 OUTPUT ${PCA_FILE}
-                COMMAND xpca ${PCA_FILE} -deps ${CMAKE_SOURCE_DIR}/tmp/pca.d ${CMAKE_SOURCE_DIR}/tmp ${PCA_FILES_PATH}              
-                DEPENDS ${PCA_FILES}
-                DEPFILE ${CMAKE_SOURCE_DIR}/tmp/pca.d 
+                COMMAND xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} ${PCA_FILES_PATH}              
+                DEPENDS ${PCA_FILES_PATH}
+                DEPFILE ${DOT_BUILD_DIR}/pca.d 
             )
-        set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES})
+        set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES_PATH})
       
-        set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc ${CMAKE_SOURCE_DIR}/tmp/pca.xml")
+        set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc ${DOT_BUILD_DIR}/pca.xml")
 
         add_executable(${BINARY_NAME}) 
-        target_sources(${BINARY_NAME} PRIVATE ${BINARY_SOURCES} ${PCA_FILES} ${PCA_FILE})
+        target_sources(${BINARY_NAME} PRIVATE ${BINARY_SOURCES} ${PCA_FILES_PATH} ${PCA_FILE})
         target_include_directories(${BINARY_NAME} PRIVATE ${APP_INCLUDES})
         target_compile_options(${BINARY_NAME} PRIVATE ${BINARY_FLAGS} ${PCA_FLAG})
         target_link_libraries(${BINARY_NAME} PRIVATE ${DEPS_TO_LINK})
