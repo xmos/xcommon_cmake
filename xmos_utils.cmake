@@ -243,7 +243,13 @@ function(XMOS_REGISTER_APP)
            
             # Need to pass file flags to PCA also 
             get_source_file_property(FILE_FLAGS ${_file} COMPILE_FLAGS)
+            
+            string(COMPARE EQUAL ${FILE_FLAGS} NOTFOUND _cmp)
+            if(_cmp)
+                set(FILE_FLAGS "")
+            endif()
 
+            message(STATUS FLAG__ ${_file} ${FILE_FLAGS})
             add_custom_command(
                 OUTPUT ${DOT_BUILD_DIR}/${_file_pca}
                 COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} ${FILE_FLAGS} -x none -o ${DOT_BUILD_DIR}/${_file_pca}
