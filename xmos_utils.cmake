@@ -53,13 +53,14 @@ endfunction()
 
 macro(add_app_file_flags)
     foreach(SRC_FILE_PATH ${ALL_SRCS_PATH})
-        
+       
         # Over-ride file flags if APP_COMPILER_FLAGS_<source_file> is set
         get_filename_component(SRC_FILE ${SRC_FILE_PATH} NAME)
         foreach(FLAG_FILE ${APP_FLAG_FILES})
             string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
             if(_cmp)
                 set(flags ${APP_COMPILER_FLAGS_${FLAG_FILE}})
+                #message(STATUS FLAGS_${SRC_FILE_PATH} " " ${APP_COMPILER_FLAGS_${FLAG_FILE}})
                 set_source_files_properties(${SRC_FILE_PATH} PROPERTIES COMPILE_FLAGS ${flags})
             endif()
         endforeach()
@@ -107,18 +108,26 @@ function(XMOS_REGISTER_APP)
 
     if(NOT APP_XC_SRCS)
         file(GLOB_RECURSE APP_XC_SRCS src/*.xc)
+    else()
+        list(TRANSFORM APP_XC_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
     if(NOT APP_CXX_SRCS)
         file(GLOB_RECURSE APP_CXX_SRCS src/*.cpp)
+    else()
+        list(TRANSFORM APP_CXX_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
     if(NOT APP_C_SRCS)
         file(GLOB_RECURSE APP_C_SRCS src/*.c)
+    else()
+        list(TRANSFORM APP_C_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
     if(NOT APP_ASM_SRCS)
         file(GLOB_RECURSE APP_ASM_SRCS src/*.S)
+    else()
+        list(TRANSFORM APP_ASM_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
@@ -229,16 +238,19 @@ function(XMOS_REGISTER_APP)
         file(MAKE_DIRECTORY ${DOT_BUILD_DIR})
 
         foreach(_file ${BINARY_SOURCES})
-            get_filename_component(_file_pca ${_file} NAME_WE)
+            get_filename_component(_file_pca ${_file} NAME)
             set(_file_pca ${_file_pca}.pca.xml)
+           
+            # Need to pass file flags to PCA also 
+            get_source_file_property(FILE_FLAGS ${_file} COMPILE_FLAGS)
 
             add_custom_command(
                 OUTPUT ${DOT_BUILD_DIR}/${_file_pca}
-                COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} -x none -o ${DOT_BUILD_DIR}/${_file_pca}
+                COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} ${FILE_FLAGS} -x none -o ${DOT_BUILD_DIR}/${_file_pca}
                 DEPENDS ${_file}
             )
-
-            list(APPEND PCA_FILES_PATH ${DOT_BUILD_DIR}/${_file_pca})
+            
+        list(APPEND PCA_FILES_PATH ${DOT_BUILD_DIR}/${_file_pca})
             set_property(SOURCE ${_file_pca} APPEND PROPERTY OBJECT_DEPENDS ${_file})
         endforeach()
 
