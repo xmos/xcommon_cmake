@@ -157,8 +157,11 @@ function(XMOS_REGISTER_APP)
     get_property(XMOS_TARGETS_LIST GLOBAL PROPERTY XMOS_TARGETS_LIST)
 
     foreach(lib ${XMOS_TARGETS_LIST})
-        get_target_property(inc ${lib} INCLUDE_DIRECTORIES)
-        list(APPEND APP_INCLUDES ${inc})
+        get_target_property(libtype ${lib} TYPE)
+        if(${libtype} MATCHES STATIC_LIBRARY)
+            get_target_property(inc ${lib} INCLUDE_DIRECTORIES)
+            list(APPEND APP_INCLUDES ${inc})
+        endif()
     endforeach()
 
     list(REMOVE_DUPLICATES APP_SOURCES)
@@ -202,18 +205,9 @@ function(XMOS_REGISTER_APP)
         list(APPEND APP_CONFIGS "DEFAULT") 
     endif()
 
-    set(DEPS_TO_LINK "")
-    foreach(target ${XMOS_TARGETS_LIST})
-        target_include_directories(${target} PRIVATE ${APP_INCLUDES})
-        target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS})
-        add_dependencies(${PROJECT_NAME} ${target})
-        list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
-    endforeach()
-    list(REMOVE_DUPLICATES DEPS_TO_LINK)
-
     message(STATUS "Found build configs:")
-    
-    # For each build config set up targets and compiler flags etc
+
+    # Setup targets for each build config
     foreach(APP_CONFIG ${APP_CONFIGS})
         message(STATUS ${APP_CONFIG})
         # Check for the "Default" config we created if user didn't specify any configs
@@ -230,7 +224,9 @@ function(XMOS_REGISTER_APP)
             set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
             set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/tmp_${APP_CONFIG}/") #TODO xcommon uses .build_<config> for tmp iems
         endif()
+
    
+        
         add_app_file_flags() 
 
         # TODO do we need the .decouple file scheme? 
@@ -260,6 +256,25 @@ function(XMOS_REGISTER_APP)
             set_property(SOURCE ${_file_pca} APPEND PROPERTY OBJECT_DEPENDS ${_file})
         endforeach()
 
+        add_executable(${BINARY_NAME}) 
+
+        set(DEPS_TO_LINK "")
+        message(STATUS XMOS_TARGETS_LIST: ${XMOS_TARGETS_LIST})
+        foreach(target ${XMOS_TARGETS_LIST})
+            get_target_property(libtype ${target} TYPE)
+            if(${libtype} STREQUAL INTERFACE_LIBRARY)
+                target_include_directories(${target} INTERFACE ${APP_INCLUDES})
+                target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS})
+                list(APPEND DEPS_TO_LINK ${target})
+            else()
+                target_include_directories(${target} PRIVATE ${APP_INCLUDES})
+                target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS})
+                list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
+            endif()
+            add_dependencies(${BINARY_NAME} ${target})
+        endforeach()
+        list(REMOVE_DUPLICATES DEPS_TO_LINK)
+        
         # TODO add used modules
         # TODO xcommon uses rsp file for xml file list 
         set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
@@ -273,7 +288,6 @@ function(XMOS_REGISTER_APP)
       
         set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc ${DOT_BUILD_DIR}/pca.xml")
 
-        add_executable(${BINARY_NAME}) 
         target_sources(${BINARY_NAME} PRIVATE ${BINARY_SOURCES} ${PCA_FILES_PATH} ${PCA_FILE})
         target_include_directories(${BINARY_NAME} PRIVATE ${APP_INCLUDES})
         target_compile_options(${BINARY_NAME} PRIVATE ${BINARY_FLAGS} ${PCA_FLAG})
@@ -301,7 +315,7 @@ function(XMOS_REGISTER_MODULE)
     set(DEP_MODULE_LIST "")
     if(NOT TARGET ${LIB_NAME})
         if(NOT ${LIB_NAME}_SILENT_FLAG)
-            add_library(${LIB_NAME} STATIC)
+            add_library(${LIB_NAME} ${LIB_TYPE})
             set_property(TARGET ${LIB_NAME} PROPERTY VERSION ${LIB_VERSION})
         else()
             add_library(${LIB_NAME} OBJECT EXCLUDE_FROM_ALL)
@@ -324,8 +338,8 @@ function(XMOS_REGISTER_MODULE)
 
             # Add dependencies directories
             if(NOT TARGET ${DEP_NAME})
-                if(EXISTS ${XMOS_APP_MODULES_ROOT_DIR}/${DEP_NAME})
-                    add_subdirectory("${XMOS_APP_MODULES_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
+                if(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                    add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
                 else()
                     message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
                 endif()
@@ -387,8 +401,14 @@ function(XMOS_REGISTER_MODULE)
                 endforeach()
             endif()
         endif()
-        target_sources(${LIB_NAME} PUBLIC ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
-        target_include_directories(${LIB_NAME} PRIVATE ${LIB_INCLUDES})
+
+        if("${LIB_TYPE}" STREQUAL "INTERFACE")
+            target_sources(${LIB_NAME} INTERFACE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
+            target_include_directories(${LIB_NAME} INTERFACE ${LIB_INCLUDES})
+        else()
+            target_sources(${LIB_NAME} PUBLIC ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
+            target_include_directories(${LIB_NAME} PRIVATE ${LIB_INCLUDES})
+        endif()
 
         if(NOT ${LIB_NAME}_SILENT_FLAG)
             set(DEPS_TO_LINK "")
@@ -397,12 +417,13 @@ function(XMOS_REGISTER_MODULE)
                 add_dependencies(${LIB_NAME} ${module})
             endforeach()
 
-            target_link_libraries(
-                ${LIB_NAME}
-                PUBLIC
-                    ${DEPS_TO_LINK}
-            )
-            target_compile_options(${LIB_NAME} PUBLIC ${LIB_ADD_COMPILER_FLAGS})
+            if("${LIB_TYPE}" STREQUAL "INTERFACE")
+                target_link_libraries(${LIB_NAME} INTERFACE ${DEPS_TO_LINK})
+                target_compile_options(${LIB_NAME} INTERFACE ${LIB_ADD_COMPILER_FLAGS})
+            else()
+                target_link_libraries(${LIB_NAME} PUBLIC ${DEPS_TO_LINK})
+                target_compile_options(${LIB_NAME} PUBLIC ${LIB_ADD_COMPILER_FLAGS})
+            endif()
         endif()
 
         if(NOT ${LIB_NAME}_SILENT_FLAG)
