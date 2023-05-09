@@ -296,9 +296,10 @@ function(XMOS_REGISTER_APP)
         # TODO add used modules
         # TODO xcommon uses rsp file for xml file list 
         set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
+        set(PCA_USED_MODULES " ") 
         add_custom_command(
                 OUTPUT ${PCA_FILE}
-                COMMAND xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} ${PCA_FILES_PATH}              
+                COMMAND xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} ${PCA_USED_MODULES} ${PCA_FILES_PATH}              
                 DEPENDS ${PCA_FILES_PATH}
                 DEPFILE ${DOT_BUILD_DIR}/pca.d 
             )
