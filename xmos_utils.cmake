@@ -233,7 +233,20 @@ function(XMOS_REGISTER_APP)
         set(PCA_FILES_PATH "")
         file(MAKE_DIRECTORY ${DOT_BUILD_DIR})
 
-        foreach(_file ${BINARY_SOURCES})
+        # Interface library sources need to be known at this point, but they aren't resolved until
+        # the Generation stage, so populate a list here.
+        set(pca_lib_sources "")
+        foreach(target ${XMOS_TARGETS_LIST})
+            get_target_property(_tgt_type ${target} TYPE)
+            if(${_tgt_type} STREQUAL INTERFACE_LIBRARY)
+                get_target_property(_tgt_srcs ${target} INTERFACE_SOURCES)
+                list(APPEND pca_lib_sources ${_tgt_srcs})
+            endif()
+        endforeach()
+
+        add_executable(${BINARY_NAME})
+
+        foreach(_file ${BINARY_SOURCES} ${pca_lib_sources})
             get_filename_component(_file_pca ${_file} NAME)
             set(_file_pca ${_file_pca}.pca.xml)
            
@@ -245,18 +258,23 @@ function(XMOS_REGISTER_APP)
                 set(FILE_FLAGS "")
             endif()
 
+            # Turn FILE_FLAGS into a list so that xpca command treats them as separate arguments
+            string(REPLACE " " ";" FILE_FLAGS "${FILE_FLAGS}")
+
             message(STATUS FLAG__ ${_file} ${FILE_FLAGS})
+            set(pca_incdirs "$<TARGET_PROPERTY:${BINARY_NAME},INCLUDE_DIRECTORIES>")
+            # Should probably also get the compile flags/definitions similar to pca_incdirs, and pass those to PCA
             add_custom_command(
                 OUTPUT ${DOT_BUILD_DIR}/${_file_pca}
-                COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} ${FILE_FLAGS} -x none -o ${DOT_BUILD_DIR}/${_file_pca}
+                COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} "$<$<BOOL:${pca_incdirs}>:-I$<JOIN:${pca_incdirs},;-I>>" ${FILE_FLAGS} -x none -o ${DOT_BUILD_DIR}/${_file_pca}
                 DEPENDS ${_file}
+                VERBATIM
+                COMMAND_EXPAND_LISTS
             )
             
         list(APPEND PCA_FILES_PATH ${DOT_BUILD_DIR}/${_file_pca})
             set_property(SOURCE ${_file_pca} APPEND PROPERTY OBJECT_DEPENDS ${_file})
         endforeach()
-
-        add_executable(${BINARY_NAME}) 
 
         set(DEPS_TO_LINK "")
         message(STATUS XMOS_TARGETS_LIST: ${XMOS_TARGETS_LIST})
