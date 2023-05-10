@@ -226,6 +226,22 @@ function(XMOS_REGISTER_APP)
         endif()
 
         add_app_file_flags() 
+        
+    set(DEPS_TO_LINK "")
+    foreach(target ${XMOS_TARGETS_LIST})
+        get_target_property(libtype ${target} TYPE)
+        if(${libtype} STREQUAL INTERFACE_LIBRARY)
+            target_include_directories(${target} INTERFACE ${APP_INCLUDES})
+            target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+            list(APPEND DEPS_TO_LINK ${target})
+        else()
+            target_include_directories(${target} PRIVATE ${APP_INCLUDES})
+            target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+            list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
+        endif()
+        add_dependencies(${PROJECT_NAME} ${target})
+    endforeach()
+    list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
         # TODO do we need the .decouple file scheme? 
         set(PCA_FILES_PATH "")
