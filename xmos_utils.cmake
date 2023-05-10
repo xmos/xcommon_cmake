@@ -225,8 +225,6 @@ function(XMOS_REGISTER_APP)
             set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/tmp_${APP_CONFIG}/") #TODO xcommon uses .build_<config> for tmp iems
         endif()
 
-   
-        
         add_app_file_flags() 
 
         # TODO do we need the .decouple file scheme? 
@@ -261,9 +259,10 @@ function(XMOS_REGISTER_APP)
             # Turn FILE_FLAGS into a list so that xpca command treats them as separate arguments
             string(REPLACE " " ";" FILE_FLAGS "${FILE_FLAGS}")
 
-            message(STATUS FLAG__ ${_file} ${FILE_FLAGS})
             set(pca_incdirs "$<TARGET_PROPERTY:${BINARY_NAME},INCLUDE_DIRECTORIES>")
+
             # Should probably also get the compile flags/definitions similar to pca_incdirs, and pass those to PCA
+            # TODO this doesnt handle duplicate filenames 
             add_custom_command(
                 OUTPUT ${DOT_BUILD_DIR}/${_file_pca}
                 COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} "$<$<BOOL:${pca_incdirs}>:-I$<JOIN:${pca_incdirs},;-I>>" ${FILE_FLAGS} -x none -o ${DOT_BUILD_DIR}/${_file_pca}
@@ -271,19 +270,20 @@ function(XMOS_REGISTER_APP)
                 VERBATIM
                 COMMAND_EXPAND_LISTS
             )
-            
-        list(APPEND PCA_FILES_PATH ${DOT_BUILD_DIR}/${_file_pca})
+
+            list(APPEND PCA_FILES_PATH ${DOT_BUILD_DIR}/${_file_pca})
             set_property(SOURCE ${_file_pca} APPEND PROPERTY OBJECT_DEPENDS ${_file})
         endforeach()
 
         set(DEPS_TO_LINK "")
-        message(STATUS XMOS_TARGETS_LIST: ${XMOS_TARGETS_LIST})
+        set(pca_used_modules "")
         foreach(target ${XMOS_TARGETS_LIST})
             get_target_property(libtype ${target} TYPE)
             if(${libtype} STREQUAL INTERFACE_LIBRARY)
                 target_include_directories(${target} INTERFACE ${APP_INCLUDES})
                 target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS})
                 list(APPEND DEPS_TO_LINK ${target})
+                list(APPEND pca_used_modules "$<TARGET_PROPERTY:${target},SOURCE_DIR>")
             else()
                 target_include_directories(${target} PRIVATE ${APP_INCLUDES})
                 target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS})
@@ -292,16 +292,15 @@ function(XMOS_REGISTER_APP)
             add_dependencies(${BINARY_NAME} ${target})
         endforeach()
         list(REMOVE_DUPLICATES DEPS_TO_LINK)
-        
-        # TODO add used modules
-        # TODO xcommon uses rsp file for xml file list 
+
+        # TODO xcommon uses rsp file for ${PCA_FILES_PATH}
         set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
-        set(PCA_USED_MODULES " ") 
         add_custom_command(
                 OUTPUT ${PCA_FILE}
-                COMMAND xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} ${PCA_USED_MODULES} ${PCA_FILES_PATH}              
+                COMMAND xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} "\'$<1:${pca_used_modules}>\'" ${PCA_FILES_PATH}              
                 DEPENDS ${PCA_FILES_PATH}
                 DEPFILE ${DOT_BUILD_DIR}/pca.d 
+                COMMAND_EXPAND_LISTS
             )
         set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES_PATH})
       
