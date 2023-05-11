@@ -207,6 +207,21 @@ function(XMOS_REGISTER_APP)
 
     message(STATUS "Found build configs:")
 
+    set(DEPS_TO_LINK "")
+    foreach(target ${XMOS_TARGETS_LIST})
+        get_target_property(libtype ${target} TYPE)
+        if(${libtype} STREQUAL INTERFACE_LIBRARY)
+            target_include_directories(${target} INTERFACE ${APP_INCLUDES})
+            target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+            list(APPEND DEPS_TO_LINK ${target})
+        else()
+            target_include_directories(${target} PRIVATE ${APP_INCLUDES})
+            target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+            list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
+        endif()
+    endforeach()
+    list(REMOVE_DUPLICATES DEPS_TO_LINK)
+
     # Setup targets for each build config
     foreach(APP_CONFIG ${APP_CONFIGS})
         message(STATUS ${APP_CONFIG})
@@ -229,22 +244,9 @@ function(XMOS_REGISTER_APP)
         
         add_executable(${BINARY_NAME})
         
-        set(DEPS_TO_LINK "")
         foreach(target ${XMOS_TARGETS_LIST})
-            get_target_property(libtype ${target} TYPE)
-            if(${libtype} STREQUAL INTERFACE_LIBRARY)
-                target_include_directories(${target} INTERFACE ${APP_INCLUDES})
-                target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
-                list(APPEND DEPS_TO_LINK ${target})
-            else()
-                target_include_directories(${target} PRIVATE ${APP_INCLUDES})
-                target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
-                list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
-            endif()
             add_dependencies(${BINARY_NAME} ${target})
         endforeach()
-        
-        list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
         # TODO do we need the .decouple file scheme? 
         set(PCA_FILES_PATH "")
@@ -260,7 +262,6 @@ function(XMOS_REGISTER_APP)
                 list(APPEND pca_lib_sources ${_tgt_srcs})
             endif()
         endforeach()
-
 
         foreach(_file ${BINARY_SOURCES} ${pca_lib_sources})
             get_filename_component(_file_pca ${_file} NAME)
