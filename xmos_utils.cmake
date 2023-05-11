@@ -207,6 +207,21 @@ function(XMOS_REGISTER_APP)
 
     message(STATUS "Found build configs:")
 
+    set(DEPS_TO_LINK "")
+    foreach(target ${XMOS_TARGETS_LIST})
+        get_target_property(libtype ${target} TYPE)
+        if(${libtype} STREQUAL INTERFACE_LIBRARY)
+            target_include_directories(${target} INTERFACE ${APP_INCLUDES})
+            target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+            list(APPEND DEPS_TO_LINK ${target})
+        else()
+            target_include_directories(${target} PRIVATE ${APP_INCLUDES})
+            target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+            list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
+        endif()
+    endforeach()
+    list(REMOVE_DUPLICATES DEPS_TO_LINK)
+
     # Setup targets for each build config
     foreach(APP_CONFIG ${APP_CONFIGS})
         message(STATUS ${APP_CONFIG})
@@ -216,35 +231,22 @@ function(XMOS_REGISTER_APP)
             set(BINARY_SOURCES ${APP_SOURCES})
             set(BINARY_FLAGS ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
             set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/")
-            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/tmp/") #TODO xcommon uses .build for tmp items
+            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/.build/")
         else()
             set(BINARY_NAME  ${PROJECT_NAME}_${APP_CONFIG})
             remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${APP_SOURCES}" BINARY_SOURCES)
             set(BINARY_FLAGS ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS} "-DCONFIG=${APP_CONFIG}")
             set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
-            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/tmp_${APP_CONFIG}/") #TODO xcommon uses .build_<config> for tmp iems
+            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/.build_${APP_CONFIG}/")
         endif()
 
         add_app_file_flags() 
         
         add_executable(${BINARY_NAME})
         
-        set(DEPS_TO_LINK "")
         foreach(target ${XMOS_TARGETS_LIST})
-            get_target_property(libtype ${target} TYPE)
-            if(${libtype} STREQUAL INTERFACE_LIBRARY)
-                target_include_directories(${target} INTERFACE ${APP_INCLUDES})
-                target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
-                list(APPEND DEPS_TO_LINK ${target})
-            else()
-                target_include_directories(${target} PRIVATE ${APP_INCLUDES})
-                target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
-                list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
-            endif()
             add_dependencies(${BINARY_NAME} ${target})
         endforeach()
-        
-        list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
         # TODO do we need the .decouple file scheme? 
         set(PCA_FILES_PATH "")
@@ -260,7 +262,6 @@ function(XMOS_REGISTER_APP)
                 list(APPEND pca_lib_sources ${_tgt_srcs})
             endif()
         endforeach()
-
 
         foreach(_file ${BINARY_SOURCES} ${pca_lib_sources})
             get_filename_component(_file_pca ${_file} NAME)
