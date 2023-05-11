@@ -1,11 +1,11 @@
 #include <print.h>
 
 #ifdef FLAG0
-#error
+#error FLAG0 defined
 #endif
 
 #ifndef FLAG1
-#error
+#error FLAG1 not defined
 #endif
 
 #if(FLAG1 != 1)

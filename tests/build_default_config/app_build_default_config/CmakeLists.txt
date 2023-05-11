@@ -4,6 +4,8 @@ include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
 
 project(build_default_config)
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
 # Note, this will be set in XMOS SetupEnv
 if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
     message(ERROR "XMOS_CMAKE_PATH not defined")
