@@ -216,13 +216,13 @@ function(XMOS_REGISTER_APP)
             set(BINARY_SOURCES ${APP_SOURCES})
             set(BINARY_FLAGS ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS})
             set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/")
-            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/.build/") #TODO xcommon uses .build for tmp items
+            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/.build/")
         else()
             set(BINARY_NAME  ${PROJECT_NAME}_${APP_CONFIG})
             remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${APP_SOURCES}" BINARY_SOURCES)
             set(BINARY_FLAGS ${APP_COMPILER_FLAGS_${APP_CONFIG}}  ${APP_TARGET_COMPILER_FLAG} ${HEADER_EXISTS_FLAGS} "-DCONFIG=${APP_CONFIG}")
             set(BINARY_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG}")
-            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/.build_${APP_CONFIG}/") #TODO xcommon uses .build_<config> for tmp iems
+            set(DOT_BUILD_DIR "${CMAKE_SOURCE_DIR}/.build_${APP_CONFIG}/")
         endif()
 
         add_app_file_flags() 
