@@ -315,7 +315,7 @@ function(XMOS_REGISTER_APP)
         set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
         add_custom_command(
                 OUTPUT ${PCA_FILE}
-                COMMAND xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} "\'$<1:${pca_used_modules}>\'" ${PCA_FILES_PATH}              
+                COMMAND $ENV{XMOS_TOOL_PATH}/libexec/xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} "\'$<1:${pca_used_modules}>\'" ${PCA_FILES_PATH}              
                 DEPENDS ${PCA_FILES_PATH}
                 DEPFILE ${DOT_BUILD_DIR}/pca.d 
                 COMMAND_EXPAND_LISTS
