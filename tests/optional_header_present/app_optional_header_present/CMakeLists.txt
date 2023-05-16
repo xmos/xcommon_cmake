@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
 include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
 
 project(optional_header_present)

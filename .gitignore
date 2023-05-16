@@ -12,9 +12,13 @@
 *.rsp
 *.xml
 *.decouple
+*.s
+*.xi
+*.ii
 
 # XMOS binaries
 *.xe
+*.bin
 
 # Python
 *.pyc
