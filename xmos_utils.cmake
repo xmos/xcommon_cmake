@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
-# TODO remove hardcoded xs3a
-include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xs3a.cmake")
+include("$ENV{XMOS_CMAKE_PATH}/cmake_toolchain/xcore.cmake")
 
 if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
@@ -216,7 +215,7 @@ function(XMOS_REGISTER_APP)
             list(APPEND DEPS_TO_LINK ${target})
         else()
             target_include_directories(${target} PRIVATE ${APP_INCLUDES})
-            target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+            target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS} "-march=xs3a") #TODO need to know arch we are building app for
             list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
         endif()
     endforeach()
