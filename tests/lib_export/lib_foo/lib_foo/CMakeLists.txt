@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.14)
+
+set(LIB_NAME "lib_foo")
+set(LIB_VERSION 1.0.0)
+set(LIB_XC_SRCS "libsrc/foo.xc")
+set(LIB_INCLUDES "api")
+set(LIB_ADD_COMPILER_FLAGS "-DMSG=msg0")
+set(LIB_DEPENDENT_MODULES "")
+set(EXPORT_SOURCE_DIRS "api" "src")
+
+set(XMOS_DEPS_ROOT_DIR "${CMAKE_SOURCE_DIR}/..")
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
+    project(foo)
+    XMOS_REGISTER_LIBRARY()
+else()
+    set(LIB_TYPE "STATIC")
+    XMOS_REGISTER_MODULE()
+endif()
