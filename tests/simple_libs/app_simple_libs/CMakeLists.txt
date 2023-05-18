@@ -14,7 +14,7 @@ endif()
 ## Set XMOS application variables
 set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
-set(APP_DEPENDENT_MODULES "intf(>=1.0.0)" "stat(>=1.0.0)")
+set(APP_DEPENDENT_MODULES "lib_intf(>=1.0.0)" "lib_stat(>=1.0.0)")
 
 set(XMOS_DEPS_ROOT_DIR "${CMAKE_SOURCE_DIR}/..")
 

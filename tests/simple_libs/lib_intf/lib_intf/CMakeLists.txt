@@ -1,4 +1,4 @@
-set(LIB_NAME "intf")
+set(LIB_NAME "lib_intf")
 set(LIB_VERSION 1.0.0)
 set(LIB_XC_SRCS "src/intf.xc")
 set(LIB_INCLUDES "api")
