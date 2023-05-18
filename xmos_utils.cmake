@@ -96,7 +96,6 @@ function(XMOS_REGISTER_APP)
 
     ## Populate build flag for hardware target
     file(GLOB_RECURSE xn_files ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
-    message(STATUS ${xn_files})
     if(xn_files)
         list(LENGTH xn_files num_xn_files) 
         if(NOT ${num_xn_files} EQUAL 1)
