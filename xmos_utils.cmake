@@ -95,9 +95,15 @@ function(XMOS_REGISTER_APP)
     endif()
 
     ## Populate build flag for hardware target
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${APP_HW_TARGET})
-        get_filename_component(HW_ABS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${APP_HW_TARGET} ABSOLUTE)
-        set(APP_TARGET_COMPILER_FLAG ${HW_ABS_PATH})
+    if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
+        # Check specified XN file exists
+        file(GLOB_RECURSE xn_files ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
+        list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
+        list(LENGTH xn_files num_xn_files) 
+        if(NOT ${num_xn_files})
+            message(FATAL_ERROR "XN file not found")
+        endif()
+        set(APP_TARGET_COMPILER_FLAG ${xn_files})
     else()
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
     endif()
@@ -130,7 +136,15 @@ function(XMOS_REGISTER_APP)
         list(TRANSFORM APP_ASM_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
-    set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
+    if(NOT APP_XSCOPE_SRCS)
+        file(GLOB_RECURSE APP_XSCOPE_SRCS *.xscope)
+    else()
+        list(TRANSFORM APP_XSCOPE_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+    endif()
+
+    message(STATUS XSCOPE ${APP_XSCOPE_SRCS})
+
+    set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS} ${APP_XSCOPE_SRCS})
 
     set(LIB_NAME ${PROJECT_NAME}_LIB)
     set(LIB_VERSION ${PROJECT_VERSION})
