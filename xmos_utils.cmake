@@ -503,3 +503,64 @@ function(XMOS_REGISTER_MODULE)
         endif()
     endif()
 endfunction()
+
+## Registers a library and its dependencies
+function(XMOS_REGISTER_LIBRARY)
+    add_library(${LIB_NAME} STATIC)
+    set_property(TARGET ${LIB_NAME} PROPERTY VERSION ${LIB_VERSION})
+
+    if(NOT "${LIB_ADD_COMPILER_FLAGS}" STREQUAL "")
+        foreach(file ${LIB_XC_SRCS})
+            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        endforeach()
+
+        foreach(file ${LIB_CXX_SRCS})
+            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        endforeach()
+
+        foreach(file ${LIB_C_SRCS})
+            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        endforeach()
+
+        foreach(file ${LIB_ASM_SRCS})
+            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        endforeach()
+    endif()
+
+    foreach(file ${LIB_ASM_SRCS})
+        get_filename_component(ABS_PATH ${file} ABSOLUTE)
+        set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
+    endforeach()
+
+    target_sources(${LIB_NAME} PUBLIC ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
+    target_include_directories(${LIB_NAME} PRIVATE ${LIB_INCLUDES})
+    target_compile_options(${LIB_NAME} PUBLIC ${LIB_ADD_COMPILER_FLAGS})
+
+    set_property(TARGET ${LIB_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib/xs3a")
+
+    add_custom_target(export-lib
+                      COMMAND ${CMAKE_COMMAND} -E make_directory export
+                      COMMAND ${CMAKE_COMMAND} -E make_directory export/lib
+                      COMMAND ${CMAKE_COMMAND} -E copy_directory lib export/lib
+                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    set(EXPORT_DEPS "")
+    foreach(dir ${EXPORT_SOURCE_DIRS})
+        add_custom_target(export-${dir}
+                          DEPENDS export-lib
+                          COMMAND ${CMAKE_COMMAND} -E make_directory export/${dir}
+                          COMMAND ${CMAKE_COMMAND} -E copy_directory ${dir} export/${dir}
+                          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        list(APPEND EXPORT_DEPS export-${dir})
+    endforeach()
+
+    add_custom_target(export DEPENDS export-lib ${EXPORT_DEPS})
+    set_property(TARGET export PROPERTY ADDITIONAL_CLEAN_FILES "${CMAKE_SOURCE_DIR}/export")
+endfunction()
