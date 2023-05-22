@@ -9,6 +9,8 @@ if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
 endif()
 
+enable_language(CXX C ASM)
+
 # Check that supported bitstream has been specified
 #include("bitstream_src/supported_hw.cmake")
 #if(DEFINED BOARD)
