@@ -9,6 +9,8 @@ if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
 endif()
 
+enable_language(CXX C ASM)
+
 # Check that supported bitstream has been specified
 #include("bitstream_src/supported_hw.cmake")
 #if(DEFINED BOARD)
@@ -455,8 +457,19 @@ function(XMOS_REGISTER_MODULE)
                     string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
                     set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
                 endforeach()
+                
+                foreach(file ${LIB_ASM_SRCS})
+                    get_filename_component(ABS_PATH ${file} ABSOLUTE)
+                    string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+                    set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+                endforeach()
             endif()
         endif()
+
+        foreach(file ${LIB_ASM_SRCS})
+            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+            set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
+        endforeach()
 
         if("${LIB_TYPE}" STREQUAL "INTERFACE")
             target_sources(${LIB_NAME} INTERFACE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
