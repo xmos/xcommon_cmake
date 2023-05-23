@@ -1,5 +1,5 @@
-//#include "intf.h"
-//#include "stat.h"
+#include "intf.h"
+#include "stat.h"
 #include "print.h"
 
 #define STRINGIFY0(x) #x
@@ -13,8 +13,8 @@ int main()
 {
     printstrln(STRINGIFY(MSG));
     printstrln(STRINGIFY(CONFIG));
-  //  intf();
-    //intf_asm();
-    //stat();
+    intf();
+    intf_asm();
+    stat();
     return 0;
 }
