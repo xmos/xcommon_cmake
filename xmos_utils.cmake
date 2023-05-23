@@ -86,6 +86,48 @@ function(remove_srcs ALL_APP_CONFIGS APP_CONFIG ALL_SRCS RET_CONFIG_SRCS)
     set(${RET_CONFIG_SRCS} ${CONFIG_SRCS} PARENT_SCOPE) 
 endfunction()
 
+
+function(do_pca SOURCE_FILE DOT_BUILD_DIR RET_FILE_PCA)
+
+    message(STATUS "Running PCA on ${SOURCE_FILE}")
+    
+    # Shorten path just to replicate what xcommon does for now
+    # TODO should the xml files be generated into the cmake build dir?
+    file(RELATIVE_PATH file_pca ${CMAKE_SOURCE_DIR} ${SOURCE_FILE})
+    string(REPLACE "../lib_" "_l_" file_pca ${file_pca})
+    get_filename_component(file_pca_dir ${file_pca} PATH)
+    set(file_pca ${DOT_BUILD_DIR}${file_pca}.pca.xml)
+    set(file_pca_dir ${DOT_BUILD_DIR}/${file_pca_dir})
+    file(MAKE_DIRECTORY ${file_pca_dir})
+
+    # Need to pass file flags to PCA also 
+    get_source_file_property(FILE_FLAGS ${SOURCE_FILE} COMPILE_FLAGS)
+   
+    string(COMPARE EQUAL ${FILE_FLAGS} NOTFOUND _cmp)
+    if(_cmp)
+        set(FILE_FLAGS "")
+    endif()
+
+    # Turn FILE_FLAGS into a list so that xpca command treats them as separate arguments
+    string(REPLACE " " ";" FILE_FLAGS "${FILE_FLAGS}")
+
+   set(pca_incdirs "$<TARGET_PROPERTY:${BINARY_NAME},INCLUDE_DIRECTORIES>")
+   #set(pca_lib_flags "$<TARGET_PROPERTY:lib_intf,COMPILE_OPTIONS>")
+
+   # Should probably also get the compile flags/definitions similar to pca_incdirs, and pass those to PCA
+   add_custom_command(
+       OUTPUT ${file_pca}
+       COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} "$<$<BOOL:${pca_incdirs}>:-I$<JOIN:${pca_incdirs},;-I>>" ${FILE_FLAGS} -x none -o ${file_pca}
+       DEPENDS ${_file}
+       VERBATIM
+       COMMAND_EXPAND_LISTS
+    )
+
+    set_property(SOURCE ${file_pca} APPEND PROPERTY OBJECT_DEPENDS ${SOURCE_FILE})
+    set(${RET_FILE_PCA} ${file_pca} PARENT_SCOPE)
+endfunction()
+
+
 ## Registers an application and it's dependencies
 function(XMOS_REGISTER_APP)
     if(NOT APP_HW_TARGET)
@@ -278,39 +320,8 @@ function(XMOS_REGISTER_APP)
         endforeach()
 
         foreach(_file ${BINARY_SOURCES} ${pca_lib_sources})
-            # Shorten path just to replicate what xcommon does for now
-            # TODO should the xml files be generated into the cmake build dir?
-            file(RELATIVE_PATH file_pca ${CMAKE_SOURCE_DIR} ${_file})
-            string(REPLACE "../lib_" "_l_" file_pca ${file_pca})
-            get_filename_component(file_pca_dir ${file_pca} PATH)
-            set(file_pca ${DOT_BUILD_DIR}${file_pca}.pca.xml)
-            set(file_pca_dir ${DOT_BUILD_DIR}/${file_pca_dir})
-            file(MAKE_DIRECTORY ${file_pca_dir})
-
-            # Need to pass file flags to PCA also 
-            get_source_file_property(FILE_FLAGS ${_file} COMPILE_FLAGS)
-            
-            string(COMPARE EQUAL ${FILE_FLAGS} NOTFOUND _cmp)
-            if(_cmp)
-                set(FILE_FLAGS "")
-            endif()
-
-            # Turn FILE_FLAGS into a list so that xpca command treats them as separate arguments
-            string(REPLACE " " ";" FILE_FLAGS "${FILE_FLAGS}")
-
-            set(pca_incdirs "$<TARGET_PROPERTY:${BINARY_NAME},INCLUDE_DIRECTORIES>")
-
-            # Should probably also get the compile flags/definitions similar to pca_incdirs, and pass those to PCA
-            add_custom_command(
-                OUTPUT ${file_pca}
-                COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} "$<$<BOOL:${pca_incdirs}>:-I$<JOIN:${pca_incdirs},;-I>>" ${FILE_FLAGS} -x none -o ${file_pca}
-                DEPENDS ${_file}
-                VERBATIM
-                COMMAND_EXPAND_LISTS
-            )
-
+            do_pca(${_file} ${DOT_BUILD_DIR} file_pca)
             list(APPEND PCA_FILES_PATH ${file_pca})
-            set_property(SOURCE ${file_pca} APPEND PROPERTY OBJECT_DEPENDS ${_file})
         endforeach()
 
         set(DEPS_TO_LINK "")
