@@ -87,9 +87,9 @@ function(remove_srcs ALL_APP_CONFIGS APP_CONFIG ALL_SRCS RET_CONFIG_SRCS)
 endfunction()
 
 
-function(do_pca SOURCE_FILE DOT_BUILD_DIR RET_FILE_PCA)
+function(do_pca SOURCE_FILE DO_PCA_FLAGS DOT_BUILD_DIR RET_FILE_PCA)
 
-    message(STATUS "Running PCA on ${SOURCE_FILE}")
+    message(STATUS "Running PCA on ${SOURCE_FILE} with ${DO_PCA_FLAGS}")
     
     # Shorten path just to replicate what xcommon does for now
     # TODO should the xml files be generated into the cmake build dir?
@@ -111,13 +111,13 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR RET_FILE_PCA)
     # Turn FILE_FLAGS into a list so that xpca command treats them as separate arguments
     string(REPLACE " " ";" FILE_FLAGS "${FILE_FLAGS}")
 
-   set(pca_incdirs "$<TARGET_PROPERTY:${BINARY_NAME},INCLUDE_DIRECTORIES>")
-   #set(pca_lib_flags "$<TARGET_PROPERTY:lib_intf,COMPILE_OPTIONS>")
+    #TODO INTERFACE_INCLUDE_DIRECTOTIES?
+    set(pca_incdirs "$<TARGET_PROPERTY:${BINARY_NAME},INCLUDE_DIRECTORIES>")
 
    # Should probably also get the compile flags/definitions similar to pca_incdirs, and pass those to PCA
    add_custom_command(
        OUTPUT ${file_pca}
-       COMMAND xcc -pre-compilation-analysis ${_file} ${BINARY_FLAGS} "$<$<BOOL:${pca_incdirs}>:-I$<JOIN:${pca_incdirs},;-I>>" ${FILE_FLAGS} -x none -o ${file_pca}
+       COMMAND xcc -pre-compilation-analysis ${_file} ${DO_PCA_FLAGS} "$<$<BOOL:${pca_incdirs}>:-I$<JOIN:${pca_incdirs},;-I>>" ${FILE_FLAGS} -x none -o ${file_pca}
        DEPENDS ${_file}
        VERBATIM
        COMMAND_EXPAND_LISTS
@@ -308,22 +308,32 @@ function(XMOS_REGISTER_APP)
         set(PCA_FILES_PATH "")
         file(MAKE_DIRECTORY ${DOT_BUILD_DIR})
 
+        # Run application sources through PCA
+        foreach(_file ${BINARY_SOURCES})
+            do_pca(${_file} "${BINARY_FLAGS}" ${DOT_BUILD_DIR} file_pca)
+            list(APPEND PCA_FILES_PATH ${file_pca})
+        endforeach()
+
         # Interface library sources need to be known at this point, but they aren't resolved until
         # the Generation stage, so populate a list here.
-        set(pca_lib_sources "")
         foreach(target ${XMOS_TARGETS_LIST})
             get_target_property(_tgt_type ${target} TYPE)
+            set(pca_lib_sources "")
             if(${_tgt_type} STREQUAL INTERFACE_LIBRARY)
                 get_target_property(_tgt_srcs ${target} INTERFACE_SOURCES)
                 list(APPEND pca_lib_sources ${_tgt_srcs})
             endif()
-        endforeach()
 
-        foreach(_file ${BINARY_SOURCES} ${pca_lib_sources})
-            do_pca(${_file} ${DOT_BUILD_DIR} file_pca)
-            list(APPEND PCA_FILES_PATH ${file_pca})
+            # Run lib sources through PCA 
+            get_target_property(LIB_FLAGS ${target} INTERFACE_COMPILE_OPTIONS)
+            set(LIB_FLAGS ${BINARY_FLAGS} ${LIB_FLAGS})
+            #message(STATUS LIB_FLAGS ${LIB_FLAGS}) 
+            foreach(_file ${pca_lib_sources})
+                do_pca(${_file} "${LIB_FLAGS}" ${DOT_BUILD_DIR} file_pca)
+                list(APPEND PCA_FILES_PATH ${file_pca})
+            endforeach()
         endforeach()
-
+        
         set(DEPS_TO_LINK "")
         set(pca_used_modules "")
         foreach(target ${XMOS_TARGETS_LIST})
@@ -446,6 +456,7 @@ function(XMOS_REGISTER_MODULE)
         list(FILTER LIB_OPTIONAL_HEADERS EXCLUDE REGEX "^.+-NOTFOUND$")
         set_property(TARGET ${LIB_NAME} PROPERTY OPTIONAL_HEADERS ${LIB_OPTIONAL_HEADERS})
 
+        # TODO is this block actually doing anything useful?
         if(NOT ${LIB_NAME}_SILENT_FLAG)
             if("${LIB_ADD_COMPILER_FLAGS}" STREQUAL "")
             else()
@@ -500,12 +511,13 @@ function(XMOS_REGISTER_MODULE)
                 add_dependencies(${LIB_NAME} ${module})
             endforeach()
 
+            message(STATUS LIB_NAME: ${LIB_NAME}" flags: "  ${LIB_COMPILER_FLAGS})
             if("${LIB_TYPE}" STREQUAL "INTERFACE")
                 target_link_libraries(${LIB_NAME} INTERFACE ${DEPS_TO_LINK})
-                target_compile_options(${LIB_NAME} INTERFACE ${LIB_ADD_COMPILER_FLAGS})
+                target_compile_options(${LIB_NAME} INTERFACE ${LIB_COMPILER_FLAGS})
             else()
-                target_link_libraries(${LIB_NAME} PUBLIC ${DEPS_TO_LINK})
-                target_compile_options(${LIB_NAME} PUBLIC ${LIB_ADD_COMPILER_FLAGS})
+                target_link_libraries(${LIB_NAME} PRIVATE ${DEPS_TO_LINK})
+                target_compile_options(${LIB_NAME} PRIVATE ${LIB_COMPILER_FLAGS})
             endif()
         endif()
 
