@@ -62,7 +62,6 @@ macro(add_app_file_flags)
             string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
             if(_cmp)
                 set(flags ${APP_COMPILER_FLAGS_${FLAG_FILE}})
-                #message(STATUS FLAGS_${SRC_FILE_PATH} " " ${APP_COMPILER_FLAGS_${FLAG_FILE}})
                 set_source_files_properties(${SRC_FILE_PATH} PROPERTIES COMPILE_FLAGS ${flags})
             endif()
         endforeach()
@@ -83,7 +82,8 @@ function(remove_srcs ALL_APP_CONFIGS APP_CONFIG ALL_SRCS RET_CONFIG_SRCS)
             endforeach()
         endif()
     endforeach()
-    set(${RET_CONFIG_SRCS} ${CONFIG_SRCS} PARENT_SCOPE) 
+    set(${RET_CONFIG_SRCS} ${CONFIG_SRCS} PARENT_SCOPE)
+    # TODO why cant we do this here? DIRECTORY? 
 endfunction()
 
 
@@ -102,7 +102,7 @@ function(do_pca SOURCE_FILE DO_PCA_FLAGS DOT_BUILD_DIR RET_FILE_PCA)
 
     # Need to pass file flags to PCA also 
     get_source_file_property(FILE_FLAGS ${SOURCE_FILE} COMPILE_FLAGS)
-   
+  
     string(COMPARE EQUAL ${FILE_FLAGS} NOTFOUND _cmp)
     if(_cmp)
         set(FILE_FLAGS "")
@@ -114,8 +114,8 @@ function(do_pca SOURCE_FILE DO_PCA_FLAGS DOT_BUILD_DIR RET_FILE_PCA)
     #TODO INTERFACE_INCLUDE_DIRECTOTIES?
     set(pca_incdirs "$<TARGET_PROPERTY:${BINARY_NAME},INCLUDE_DIRECTORIES>")
 
-   # Should probably also get the compile flags/definitions similar to pca_incdirs, and pass those to PCA
-   add_custom_command(
+    # Should probably also get the compile flags/definitions similar to pca_incdirs, and pass those to PCA
+    add_custom_command(
        OUTPUT ${file_pca}
        COMMAND xcc -pre-compilation-analysis ${_file} ${DO_PCA_FLAGS} "$<$<BOOL:${pca_incdirs}>:-I$<JOIN:${pca_incdirs},;-I>>" ${FILE_FLAGS} -x none -o ${file_pca}
        DEPENDS ${_file}
@@ -239,8 +239,6 @@ function(XMOS_REGISTER_APP)
     # Find all build configs
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
 
-    message(STATUS ${APP_COMPILER_FLAGS_VARS})
-
     set(APP_CONFIGS "")
     set(APP_FLAG_FILES "")
     foreach(APP_FLAGS ${APP_COMPILER_FLAGS_VARS})
@@ -325,11 +323,15 @@ function(XMOS_REGISTER_APP)
             endif()
 
             # Run lib sources through PCA 
-            get_target_property(LIB_FLAGS ${target} INTERFACE_COMPILE_OPTIONS)
-            set(LIB_FLAGS ${BINARY_FLAGS} ${LIB_FLAGS})
-            #message(STATUS LIB_FLAGS ${LIB_FLAGS}) 
+            get_property(LIB_FLAGS TARGET ${target} PROPERTY INTERFACE_PCA_FLAGS)
+
+            set(LIB_APP_FLAGS ${BINARY_FLAGS} ${LIB_FLAGS})
             foreach(_file ${pca_lib_sources})
-                do_pca(${_file} "${LIB_FLAGS}" ${DOT_BUILD_DIR} file_pca)
+                # TODO we would really like to do this in REGISTER_MODULE
+                if(LIB_FLAGS)
+                    set_source_files_properties(${_file} PROPERTIES COMPILE_OPTIONS "${LIB_FLAGS}")
+                endif()
+                do_pca(${_file} "${LIB_APP_FLAGS}" ${DOT_BUILD_DIR} file_pca)
                 list(APPEND PCA_FILES_PATH ${file_pca})
             endforeach()
         endforeach()
@@ -457,34 +459,34 @@ function(XMOS_REGISTER_MODULE)
         set_property(TARGET ${LIB_NAME} PROPERTY OPTIONAL_HEADERS ${LIB_OPTIONAL_HEADERS})
 
         # TODO is this block actually doing anything useful?
-        if(NOT ${LIB_NAME}_SILENT_FLAG)
-            if("${LIB_ADD_COMPILER_FLAGS}" STREQUAL "")
-            else()
-                foreach(file ${LIB_XC_SRCS})
-                    get_filename_component(ABS_PATH ${file} ABSOLUTE)
-                    string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
-                    set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
-                endforeach()
-
-                foreach(file ${LIB_CXX_SRCS})
-                    get_filename_component(ABS_PATH ${file} ABSOLUTE)
-                    string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
-                    set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
-                endforeach()
-
-                foreach(file ${LIB_C_SRCS})
-                    get_filename_component(ABS_PATH ${file} ABSOLUTE)
-                    string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
-                    set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
-                endforeach()
-                
-                foreach(file ${LIB_ASM_SRCS})
-                    get_filename_component(ABS_PATH ${file} ABSOLUTE)
-                    string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
-                    set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
-                endforeach()
-            endif()
-        endif()
+        #if(NOT ${LIB_NAME}_SILENT_FLAG)
+        #    if("${LIB_ADD_COMPILER_FLAGS}" STREQUAL "")
+        #    else()
+        #        foreach(file ${LIB_XC_SRCS})
+        #            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+        #            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+        #            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        #        endforeach()
+        #
+        #        foreach(file ${LIB_CXX_SRCS})
+        #            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+        #            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+        #            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        #        endforeach()
+        #
+        #        foreach(file ${LIB_C_SRCS})
+        #            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+        #            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+        #            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        #        endforeach()
+        #        
+        #        foreach(file ${LIB_ASM_SRCS})
+        #            get_filename_component(ABS_PATH ${file} ABSOLUTE)
+        #            string(REPLACE ";" " " NEW_FLAGS "${LIB_ADD_COMPILER_FLAGS}")
+        #            set_source_files_properties(${ABS_PATH} PROPERTIES COMPILE_FLAGS ${NEW_FLAGS})
+        #        endforeach()
+        #    endif()
+        #endif()
 
         foreach(file ${LIB_ASM_SRCS})
             get_filename_component(ABS_PATH ${file} ABSOLUTE)
@@ -511,10 +513,20 @@ function(XMOS_REGISTER_MODULE)
                 add_dependencies(${LIB_NAME} ${module})
             endforeach()
 
-            message(STATUS LIB_NAME: ${LIB_NAME}" flags: "  ${LIB_COMPILER_FLAGS})
             if("${LIB_TYPE}" STREQUAL "INTERFACE")
                 target_link_libraries(${LIB_NAME} INTERFACE ${DEPS_TO_LINK})
-                target_compile_options(${LIB_NAME} INTERFACE ${LIB_COMPILER_FLAGS})
+                
+                # Cannot do this as options from an interface lib  will propagate to all deps 
+                #target_compile_options(${LIB_NAME} INTERFACE ${LIB_COMPILER_FLAGS})
+               
+                # Instead of the above use a custom property to get the flags to the PCA 
+                set_property(TARGET ${LIB_NAME} PROPERTY INTERFACE_PCA_FLAGS ${LIB_COMPILER_FLAGS})
+                
+                # TODO why cant we do this here? DIRECTORY?
+                #get_target_property(_lib_srcs ${LIB_NAME} INTERFACE_SOURCES)
+                #foreach(_src_file ${_lib_srcs})
+                    #set_source_files_properties(${LIB_XC_SRCS} PROPERTIES COMPILE_OPTIONS "${LIB_COMPILER_FLAGS}")
+                #endforeach()
             else()
                 target_link_libraries(${LIB_NAME} PRIVATE ${DEPS_TO_LINK})
                 target_compile_options(${LIB_NAME} PRIVATE ${LIB_COMPILER_FLAGS})
