@@ -1,5 +1,5 @@
 #include "intf.h"
-#include "stat.h"
+#include "intf2.h"
 
 #ifndef APP_OPTION
 #error APP_OPTION not defined
@@ -11,6 +11,6 @@
 
 int main() {
     intf();
-    stat();
+    intf2();
     return 0;
 }
