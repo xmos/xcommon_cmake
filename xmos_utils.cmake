@@ -40,12 +40,7 @@ set(BSP_ONLY 3 )
 define_property(TARGET PROPERTY OPTIONAL_HEADERS BRIEF_DOCS "Contains list of optional headers." FULL_DOCS "Contains a list of optional headers.  The application level should search through all app includes and define D__[header]_h_exists__ for each header that is in both the app and optional headers.")
 define_property(GLOBAL PROPERTY XMOS_TARGETS_LIST BRIEF_DOCS "brief" FULL_DOCS "full")
 
-# Setup lib build output
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/libs")
-
-# Setup build output
-file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
+set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../precompiled")
 
 function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     get_cmake_property(_vars VARIABLES)
@@ -130,6 +125,13 @@ endfunction()
 
 ## Registers an application and it's dependencies
 function(XMOS_REGISTER_APP)
+    # Setup lib build output
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/libs")
+
+    # Setup build output
+    file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${BOARD}")
+
     if(NOT APP_HW_TARGET)
         message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
     endif()
@@ -215,7 +217,7 @@ function(XMOS_REGISTER_APP)
     foreach(lib ${XMOS_TARGETS_LIST})
         get_target_property(libtype ${lib} TYPE)
         if(${libtype} MATCHES STATIC_LIBRARY)
-            get_target_property(inc ${lib} INCLUDE_DIRECTORIES)
+            get_target_property(inc ${lib} INTERFACE_INCLUDE_DIRECTORIES)
             list(APPEND APP_INCLUDES ${inc})
         endif()
     endforeach()
@@ -263,16 +265,9 @@ function(XMOS_REGISTER_APP)
 
     set(DEPS_TO_LINK "")
     foreach(target ${XMOS_TARGETS_LIST})
-        get_target_property(libtype ${target} TYPE)
-        if(${libtype} STREQUAL INTERFACE_LIBRARY)
-            target_include_directories(${target} INTERFACE ${APP_INCLUDES})
-            target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
-            list(APPEND DEPS_TO_LINK ${target})
-        else()
-            target_include_directories(${target} PRIVATE ${APP_INCLUDES})
-            target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
-            list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
-        endif()
+        target_include_directories(${target} INTERFACE ${APP_INCLUDES})
+        target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS} ${HEADER_EXIST_FLAGS})
+        list(APPEND DEPS_TO_LINK ${target})
     endforeach()
     list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
@@ -339,18 +334,13 @@ function(XMOS_REGISTER_APP)
         set(DEPS_TO_LINK "")
         set(pca_used_modules "")
         foreach(target ${XMOS_TARGETS_LIST})
+            target_include_directories(${target} INTERFACE ${APP_INCLUDES})
+            target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS})
+            list(APPEND DEPS_TO_LINK ${target})
             get_target_property(libtype ${target} TYPE)
             if(${libtype} STREQUAL INTERFACE_LIBRARY)
-                target_include_directories(${target} INTERFACE ${APP_INCLUDES})
-                target_compile_options(${target} INTERFACE ${APP_COMPILE_FLAGS})
-                list(APPEND DEPS_TO_LINK ${target})
                 list(APPEND pca_used_modules "$<TARGET_PROPERTY:${target},SOURCE_DIR>")
-            else()
-                target_include_directories(${target} PRIVATE ${APP_INCLUDES})
-                target_compile_options(${target} BEFORE PRIVATE ${APP_COMPILE_FLAGS})
-                list(APPEND DEPS_TO_LINK ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/lib${target}.a)
             endif()
-            add_dependencies(${BINARY_NAME} ${target})
         endforeach()
         list(REMOVE_DUPLICATES DEPS_TO_LINK)
 
@@ -376,7 +366,6 @@ function(XMOS_REGISTER_APP)
         # Setup build output
         file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
         set_target_properties(${BINARY_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BINARY_OUTPUT_DIR}")
-
     endforeach()
 
 endfunction()
@@ -394,7 +383,7 @@ function(XMOS_REGISTER_MODULE)
     set(DEP_MODULE_LIST "")
     if(NOT TARGET ${LIB_NAME})
         if(NOT ${LIB_NAME}_SILENT_FLAG)
-            add_library(${LIB_NAME} ${LIB_TYPE})
+            add_library(${LIB_NAME} INTERFACE)
             set_property(TARGET ${LIB_NAME} PROPERTY VERSION ${LIB_VERSION})
         else()
             add_library(${LIB_NAME} OBJECT EXCLUDE_FROM_ALL)
@@ -417,7 +406,11 @@ function(XMOS_REGISTER_MODULE)
 
             # Add dependencies directories
             if(NOT TARGET ${DEP_NAME})
-                if(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                if(IS_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${DEP_NAME})
+                    include(${CMAKE_INSTALL_PREFIX}/${DEP_NAME}/${DEP_NAME}.cmake)
+                    get_property(XMOS_TARGETS_LIST GLOBAL PROPERTY XMOS_TARGETS_LIST)
+                    set_property(GLOBAL PROPERTY XMOS_TARGETS_LIST "${XMOS_TARGETS_LIST};${DEP_NAME}")
+                elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
                     add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
                 else()
                     message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
@@ -493,15 +486,10 @@ function(XMOS_REGISTER_MODULE)
             set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
         endforeach()
 
-        if("${LIB_TYPE}" STREQUAL "INTERFACE")
+        if(NOT ${LIB_NAME}_SILENT_FLAG)
             target_sources(${LIB_NAME} INTERFACE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
             target_include_directories(${LIB_NAME} INTERFACE ${LIB_INCLUDES})
-        else()
-            target_sources(${LIB_NAME} PUBLIC ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
-            target_include_directories(${LIB_NAME} PRIVATE ${LIB_INCLUDES})
-        endif()
 
-        if(NOT ${LIB_NAME}_SILENT_FLAG)
             set(DEPS_TO_LINK "")
             foreach(module ${DEP_MODULE_LIST})
                 get_target_property(libtype ${module} TYPE)
@@ -513,28 +501,96 @@ function(XMOS_REGISTER_MODULE)
                 add_dependencies(${LIB_NAME} ${module})
             endforeach()
 
-            if("${LIB_TYPE}" STREQUAL "INTERFACE")
-                target_link_libraries(${LIB_NAME} INTERFACE ${DEPS_TO_LINK})
+            target_link_libraries(${LIB_NAME} INTERFACE ${DEPS_TO_LINK})
                 
-                # Cannot do this as options from an interface lib  will propagate to all deps 
-                #target_compile_options(${LIB_NAME} INTERFACE ${LIB_COMPILER_FLAGS})
-               
-                # Instead of the above use a custom property to get the flags to the PCA 
-                set_property(TARGET ${LIB_NAME} PROPERTY INTERFACE_PCA_FLAGS ${LIB_COMPILER_FLAGS})
-                
-                # TODO why cant we do this here? DIRECTORY?
-                #get_target_property(_lib_srcs ${LIB_NAME} INTERFACE_SOURCES)
-                #foreach(_src_file ${_lib_srcs})
-                    #set_source_files_properties(${LIB_XC_SRCS} PROPERTIES COMPILE_OPTIONS "${LIB_COMPILER_FLAGS}")
-                #endforeach()
+            # Cannot do this as options from an interface lib  will propagate to all deps
+            #target_compile_options(${LIB_NAME} INTERFACE ${LIB_COMPILER_FLAGS})
+
+            # Instead of the above use a custom property to get the flags to the PCA
+            set_property(TARGET ${LIB_NAME} PROPERTY INTERFACE_PCA_FLAGS ${LIB_COMPILER_FLAGS})
+
+            # TODO why cant we do this here? DIRECTORY?
+            #get_target_property(_lib_srcs ${LIB_NAME} INTERFACE_SOURCES)
+            #foreach(_src_file ${_lib_srcs})
+                #set_source_files_properties(${LIB_XC_SRCS} PROPERTIES COMPILE_OPTIONS "${LIB_COMPILER_FLAGS}")
+            #endforeach()
+
+            message("Added ${LIB_NAME} (${LIB_VERSION})")
+        else()
+            target_sources(${LIB_NAME} PUBLIC ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
+            target_include_directories(${LIB_NAME} PRIVATE ${LIB_INCLUDES})
+        endif()
+    endif()
+endfunction()
+
+## Registers a static library target
+function(XMOS_STATIC_LIBRARY)
+    add_library(${LIB_NAME} STATIC)
+    set_property(TARGET ${LIB_NAME} PROPERTY VERSION ${LIB_VERSION})
+    target_sources(${LIB_NAME} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRC} ${LIB_C_SRCS})
+    target_include_directories(${LIB_NAME} PRIVATE ${LIB_INCLUDES})
+    target_compile_options(${LIB_NAME} PUBLIC ${LIB_ADD_COMPILER_FLAGS})
+
+    set_property(TARGET ${LIB_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/xs3a)
+
+    set(DEP_MODULE_LIST "")
+    foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
+        string(REGEX MATCH "^[A-Za-z0-9_ -]+" DEP_NAME ${DEP_MODULE})
+        string(REGEX REPLACE "^[A-Za-z0-9_ -]+" "" DEP_FULL_REQ ${DEP_MODULE})
+
+        list(APPEND DEP_MODULE_LIST ${DEP_NAME})
+        if("${DEP_FULL_REQ}" STREQUAL "")
+            message(FATAL_ERROR "Missing dependency version requirement for ${DEP_NAME} in ${LIB_NAME}.\nA version requirement must be specified for all dependencies.")
+        endif()
+
+        string(REGEX MATCH "[0-9.]+" VERSION_REQ ${DEP_FULL_REQ} )
+        string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
+
+        # Add dependencies directories
+        if(NOT TARGET ${DEP_NAME})
+            if(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
             else()
-                target_link_libraries(${LIB_NAME} PRIVATE ${DEPS_TO_LINK})
-                target_compile_options(${LIB_NAME} PRIVATE ${LIB_COMPILER_FLAGS})
+                message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
             endif()
         endif()
 
-        if(NOT ${LIB_NAME}_SILENT_FLAG)
-            message("Added ${LIB_NAME} (${LIB_VERSION})")
+        # Check dependency version
+        get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
+
+        if(DEP_VERSION VERSION_EQUAL VERSION_REQ)
+            string(FIND ${VERSION_QUAL_REQ} "=" DEP_VERSION_CHECK)
+        elseif(DEP_VERSION VERSION_LESS VERSION_REQ)
+            string(FIND ${VERSION_QUAL_REQ} "<" DEP_VERSION_CHECK)
+        elseif(DEP_VERSION VERSION_GREATER VERSION_REQ)
+            string(FIND ${VERSION_QUAL_REQ} ">" DEP_VERSION_CHECK)
         endif()
-    endif()
+
+        if(${DEP_VERSION_CHECK} EQUAL "-1")
+            message(WARNING "${LIB_NAME} dependency ${DEP_MODULE} not met.  Found ${DEP_NAME}(${DEP_VERSION}).")
+        endif()
+    endforeach()
+
+    target_link_libraries(${LIB_NAME} PRIVATE ${DEP_MODULE_LIST})
+
+    # To statically link this library into an application or another library, a cmake file is needed which will
+    # be included in other projects to access this library. Start with a template file with exactly the content
+    # written by the file() command below; no variables are substituted.
+    file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake.in [=[
+        add_library(@LIB_NAME@ STATIC IMPORTED)
+        set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${CMAKE_INSTALL_PREFIX}/@LIB_NAME@/lib/xs3a/lib@LIB_NAME@.a)
+        set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
+        foreach(incdir @LIB_INCLUDES@)
+            target_include_directories(@LIB_NAME@ INTERFACE ${CMAKE_INSTALL_PREFIX}/@LIB_NAME@/${incdir})
+        endforeach()
+    ]=])
+
+    # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
+    configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake.in ${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake @ONLY)
+
+    install(FILES ${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_NAME})
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_NAME})
+    foreach(export_dir ${LIB_EXPORT_SOURCE_DIRS})
+        install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${export_dir} DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_NAME})
+    endforeach()
 endfunction()
