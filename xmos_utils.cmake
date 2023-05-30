@@ -55,7 +55,6 @@ endfunction()
 
 macro(add_app_file_flags)
     foreach(SRC_FILE_PATH ${ALL_SRCS_PATH})
-       
         # Over-ride file flags if APP_COMPILER_FLAGS_<source_file> is set
         get_filename_component(SRC_FILE ${SRC_FILE_PATH} NAME)
         foreach(FLAG_FILE ${APP_FLAG_FILES})
