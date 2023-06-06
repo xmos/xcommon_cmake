@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
 # TODO remove hardcoded xs3a
-include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xs3a.cmake")
+include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xcore.cmake")
 
 if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
@@ -187,6 +187,15 @@ function(XMOS_REGISTER_APP)
     endif()
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS} ${APP_XSCOPE_SRCS})
+
+    list(LENGTH ALL_SRCS_PATH num_srcs)
+    if(NOT ${num_srcs} GREATER 0)
+        message(FATAL_ERROR "No sources present to determine architecture")
+    endif()
+    list(GET ALL_SRCS_PATH 0 src0)
+    execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
+                    OUTPUT_VARIABLE APP_BUILD_ARCH
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     set(LIB_NAME ${PROJECT_NAME}_LIB)
     set(LIB_VERSION ${PROJECT_VERSION})
@@ -405,7 +414,7 @@ function(XMOS_REGISTER_MODULE)
             # Add dependencies directories
             if(NOT TARGET ${DEP_NAME})
                 if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
-                    include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib/${DEP_NAME}.cmake)
+                    include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
                     get_property(XMOS_TARGETS_LIST GLOBAL PROPERTY XMOS_TARGETS_LIST)
                     set_property(GLOBAL PROPERTY XMOS_TARGETS_LIST "${XMOS_TARGETS_LIST};${DEP_NAME}")
                 elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
@@ -523,13 +532,23 @@ endfunction()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
-    add_library(${LIB_NAME} STATIC)
-    set_property(TARGET ${LIB_NAME} PROPERTY VERSION ${LIB_VERSION})
-    target_sources(${LIB_NAME} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRC} ${LIB_C_SRCS})
-    target_include_directories(${LIB_NAME} PRIVATE ${LIB_INCLUDES})
-    target_compile_options(${LIB_NAME} PUBLIC ${LIB_ADD_COMPILER_FLAGS})
+    list(LENGTH LIB_ARCH num_arch)
+    if(${num_arch} LESS 1)
+        # If architecture not specified, assume xs3a
+        set(LIB_ARCH "xs3a")
+    endif()
 
-    set_property(TARGET ${LIB_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/xs3a)
+    foreach(lib_arch ${LIB_ARCH})
+        add_library(${LIB_NAME}-${lib_arch} STATIC)
+        set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY VERSION ${LIB_VERSION})
+        target_sources(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRC} ${LIB_C_SRCS})
+        target_include_directories(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_INCLUDES})
+        target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_ADD_COMPILER_FLAGS} "-march=${lib_arch}")
+
+        set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
+        # Set output name so that static library filename does not include architecture
+        set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
+    endforeach()
 
     set(DEP_MODULE_LIST "")
     foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
@@ -569,20 +588,22 @@ function(XMOS_STATIC_LIBRARY)
         endif()
     endforeach()
 
-    target_link_libraries(${LIB_NAME} PRIVATE ${DEP_MODULE_LIST})
+    foreach(lib_arch ${LIB_ARCH})
+        target_link_libraries(${LIB_NAME}-${lib_arch} PRIVATE ${DEP_MODULE_LIST})
 
-    # To statically link this library into an application or another library, a cmake file is needed which will
-    # be included in other projects to access this library. Start with a template file with exactly the content
-    # written by the file() command below; no variables are substituted.
-    file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake.in [=[
-        add_library(@LIB_NAME@ STATIC IMPORTED)
-        set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/lib/xs3a/lib@LIB_NAME@.a)
-        set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
-        foreach(incdir @LIB_INCLUDES@)
-            target_include_directories(@LIB_NAME@ INTERFACE ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/${incdir})
-        endforeach()
-    ]=])
+        # To statically link this library into an application, a cmake file is needed which will be included in
+        # other projects to access this library. Start with a template file with exactly the content written by
+        # the file() command below; no variables are substituted.
+        file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in [=[
+            add_library(@LIB_NAME@ STATIC IMPORTED)
+            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
+            set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
+            foreach(incdir @LIB_INCLUDES@)
+                target_include_directories(@LIB_NAME@ INTERFACE ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/${incdir})
+            endforeach()
+        ]=])
 
-    # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
-    configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake.in ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME}/lib/${LIB_NAME}.cmake @ONLY)
+        # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
+        configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
+    endforeach()
 endfunction()
