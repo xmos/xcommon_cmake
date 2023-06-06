@@ -9,9 +9,6 @@ import sys
 import pytest
 
 
-install_dir_name = "precompiled"
-
-
 def list_test_dirs():
     base_dir = Path(__file__).parent
 
@@ -27,24 +24,31 @@ def cleanup_static_lib(lib_dir):
     if build_dir.exists() and build_dir.is_dir():
         shutil.rmtree(build_dir)
 
-    install_dir = lib_dir.parent / install_dir_name
-    if install_dir.exists() and install_dir.is_dir():
-        shutil.rmtree(install_dir)
+    bin_dir = lib_dir / lib_dir.name / "lib"
+    if bin_dir.exists() and bin_dir.is_dir():
+        shutil.rmtree(bin_dir)
 
 
-def install_static_lib(lib_dir):
-    cleanup_static_lib(lib_dir)
+def cleanup_app(app_dir):
+    for d in ["build", "bin"]:
+        dir = app_dir / d
+        if dir.exists() and dir.is_dir():
+            shutil.rmtree(dir)
 
+
+def build(dir):
+    # Set XMOS_CMAKE_PATH in local environment if not set
     cmake_env = os.environ
     if "XMOS_CMAKE_PATH" not in cmake_env:
         cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
-    ret = subprocess.run(["cmake", "-B", "build", "."], cwd=lib_dir, env=cmake_env)
+    # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
+    ret = subprocess.run(["cmake", "-B", "build", "."], cwd=dir, env=cmake_env)
     assert ret.returncode == 0
 
+    # Build
     build_tool = "ninja" if platform.system() == "Windows" else "make"
-    build_dir = lib_dir / "build"
-    ret = subprocess.run([build_tool, "install"], cwd=build_dir)
+    ret = subprocess.run([build_tool], cwd=dir / "build")
     assert ret.returncode == 0
 
 
@@ -52,6 +56,7 @@ def install_static_lib(lib_dir):
 def test_cmake(test_dir):
     test_dir = Path(__file__).parent / test_dir
 
+    static_libs = []
     prebuild_file = test_dir / "prebuild.py"
     if prebuild_file.exists():
         prebuild_spec = importlib.util.spec_from_file_location(
@@ -60,61 +65,39 @@ def test_cmake(test_dir):
         prebuild = importlib.util.module_from_spec(prebuild_spec)
         sys.modules["module.name"] = prebuild
         prebuild_spec.loader.exec_module(prebuild)
-        static_libs = prebuild.static_libs
 
-        for static_lib in static_libs:
-            install_static_lib(test_dir / static_lib)
-    else:
-        static_libs = []
+        for static_lib in prebuild.static_libs:
+            static_libs.append(static_lib)
+            cleanup_static_lib(test_dir / static_lib)
+            build(test_dir / static_lib)
 
-    apps = os.listdir(test_dir)
+    apps = [
+        d.name for d in test_dir.iterdir() if d.is_dir() and d.name.startswith("app_")
+    ]
 
-    if not any(app.startswith("app_") for app in apps):
+    if not len(apps):
         assert 0, f"No app found in {test_dir}"
 
     for app in apps:
-        if app.startswith("app_"):
-            app_dir = app  # Just take the first one for now
+        cleanup_app(test_dir / app)
+        build(test_dir / app)
 
-    build_dir = test_dir / app_dir / "build"
-    bin_dir = test_dir / app_dir / "bin"
+        bin_dir = test_dir / app / "bin"
 
-    # Pre-clean
-    if bin_dir.exists() and bin_dir.is_dir():
-        shutil.rmtree(bin_dir)
-    if build_dir.exists() and build_dir.is_dir():
-        shutil.rmtree(build_dir)
+        # Run all XEs
+        # TODO we need to check that all the xe files we expect are present
+        app_xes = bin_dir.glob("**/*.xe")
+        for app_xe in app_xes:
+            print(app_xe)
+            run_expect = test_dir / f"{app_xe.stem}.expect"
 
-    # Set XMOS_CMAKE_PATH in local environment if not set
-    cmake_env = os.environ
-    if "XMOS_CMAKE_PATH" not in cmake_env:
-        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
-
-    # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
-    ret = subprocess.run(
-        ["cmake", "-B", "build", "."], cwd=test_dir / app_dir, env=cmake_env
-    )
-    assert ret.returncode == 0
-
-    # Build
-    build_tool = "ninja" if platform.system() == "Windows" else "make"
-    ret = subprocess.run([build_tool], cwd=build_dir)
-    assert ret.returncode == 0
-
-    # Run all XEs
-    # TODO we need to check that all the xe files we expect are present
-    apps = bin_dir.glob("**/*.xe")
-    for app in apps:
-        print(app)
-        run_expect = test_dir / f"{app.stem}.expect"
-
-        ret = subprocess.run(["xsim", app], capture_output=True, text=True)
-        assert ret.returncode == 0
-        with open(run_expect, "r") as f:
-            assert f.read() == ret.stdout
+            ret = subprocess.run(["xsim", app_xe], capture_output=True, text=True)
+            assert ret.returncode == 0
+            with open(run_expect, "r") as f:
+                assert f.read() == ret.stdout
 
     # Cleanup
-    shutil.rmtree(build_dir)
-    shutil.rmtree(bin_dir)
+    for app in apps:
+        cleanup_app(test_dir / app)
     for static_lib in static_libs:
         cleanup_static_lib(test_dir / static_lib)

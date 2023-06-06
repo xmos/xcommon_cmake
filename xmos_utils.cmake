@@ -40,8 +40,6 @@ set(BSP_ONLY 3 )
 define_property(TARGET PROPERTY OPTIONAL_HEADERS BRIEF_DOCS "Contains list of optional headers." FULL_DOCS "Contains a list of optional headers.  The application level should search through all app includes and define D__[header]_h_exists__ for each header that is in both the app and optional headers.")
 define_property(GLOBAL PROPERTY XMOS_TARGETS_LIST BRIEF_DOCS "brief" FULL_DOCS "full")
 
-set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../precompiled")
-
 function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     get_cmake_property(_vars VARIABLES)
     string (REGEX MATCHALL "(^|;)${_prefix}[A-Za-z0-9_\\.]*" _matchedVars "${_vars}")
@@ -406,8 +404,8 @@ function(XMOS_REGISTER_MODULE)
 
             # Add dependencies directories
             if(NOT TARGET ${DEP_NAME})
-                if(IS_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${DEP_NAME})
-                    include(${CMAKE_INSTALL_PREFIX}/${DEP_NAME}/${DEP_NAME}.cmake)
+                if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
+                    include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib/${DEP_NAME}.cmake)
                     get_property(XMOS_TARGETS_LIST GLOBAL PROPERTY XMOS_TARGETS_LIST)
                     set_property(GLOBAL PROPERTY XMOS_TARGETS_LIST "${XMOS_TARGETS_LIST};${DEP_NAME}")
                 elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
@@ -578,19 +576,13 @@ function(XMOS_STATIC_LIBRARY)
     # written by the file() command below; no variables are substituted.
     file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake.in [=[
         add_library(@LIB_NAME@ STATIC IMPORTED)
-        set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${CMAKE_INSTALL_PREFIX}/@LIB_NAME@/lib/xs3a/lib@LIB_NAME@.a)
+        set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/lib/xs3a/lib@LIB_NAME@.a)
         set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
         foreach(incdir @LIB_INCLUDES@)
-            target_include_directories(@LIB_NAME@ INTERFACE ${CMAKE_INSTALL_PREFIX}/@LIB_NAME@/${incdir})
+            target_include_directories(@LIB_NAME@ INTERFACE ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/${incdir})
         endforeach()
     ]=])
 
     # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
-    configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake.in ${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake @ONLY)
-
-    install(FILES ${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_NAME})
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_NAME})
-    foreach(export_dir ${LIB_EXPORT_SOURCE_DIRS})
-        install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${export_dir} DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_NAME})
-    endforeach()
+    configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}.cmake.in ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME}/lib/${LIB_NAME}.cmake @ONLY)
 endfunction()
