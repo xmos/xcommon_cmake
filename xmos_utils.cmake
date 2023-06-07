@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.14)
 
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
-# TODO remove hardcoded xs3a
-include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xcore.cmake")
+if(NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
+    include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xcore.cmake")
+endif()
 
 if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
