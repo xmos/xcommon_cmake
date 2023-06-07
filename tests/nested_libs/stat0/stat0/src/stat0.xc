@@ -1,5 +1,5 @@
 #include "stat0.h"
-#include "stat1.h"
+#include "intf2.h"
 void stat0() {
-    stat1();
+    intf2();
 }
