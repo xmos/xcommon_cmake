@@ -224,6 +224,7 @@ function(XMOS_REGISTER_APP)
     endforeach()
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
+    set(BUILD_ADDED_DEPS "")
     XMOS_REGISTER_DEPS()
 
     foreach(target ${BUILD_TARGETS})
@@ -288,7 +289,7 @@ function(XMOS_REGISTER_APP)
 endfunction()
 
 ## Registers a module and its dependencies
-function(XMOS_REGISTER_MODULE)
+macro(XMOS_REGISTER_MODULE)
     if(LIB_VERSION VERSION_EQUAL VERSION_REQ)
         string(FIND ${VERSION_QUAL_REQ} "=" DEP_VERSION_CHECK)
     elseif(LIB_VERSION VERSION_LESS VERSION_REQ)
@@ -320,10 +321,10 @@ function(XMOS_REGISTER_MODULE)
         list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS})
         set_target_properties(${target} PROPERTIES OPTIONAL_HEADERS "${opt_hdrs}")
     endforeach()
-endfunction()
+endmacro()
 
 ## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
-function(XMOS_REGISTER_DEPS)
+macro(XMOS_REGISTER_DEPS)
     foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
         string(REGEX MATCH "^[A-Za-z0-9_ -]+" DEP_NAME ${DEP_MODULE})
         string(REGEX REPLACE "^[A-Za-z0-9_ -]+" "" DEP_FULL_REQ ${DEP_MODULE})
@@ -335,21 +336,29 @@ function(XMOS_REGISTER_DEPS)
         string(REGEX MATCH "[0-9.]+" VERSION_REQ ${DEP_FULL_REQ} )
         string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
 
-        # Add dependencies directories
-        if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
-            include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
-            get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
-            foreach(target ${BUILD_TARGETS})
-                target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
-                target_link_libraries(${target} PRIVATE ${DEP_NAME})
-            endforeach()
-        elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
-            add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
-        else()
-            message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
+        # Check if this dependency has already been added
+        list(FIND BUILD_ADDED_DEPS ${DEP_NAME} found)
+        if(${found} EQUAL -1)
+            list(APPEND BUILD_ADDED_DEPS ${DEP_NAME})
+            # Set PARENT_SCOPE as called recursively through add_subdirectory() so value needs to return to original caller
+            set(BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS} PARENT_SCOPE)
+
+            # Add dependencies directories
+            if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
+                include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
+                get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
+                foreach(target ${BUILD_TARGETS})
+                    target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
+                    target_link_libraries(${target} PRIVATE ${DEP_NAME})
+                endforeach()
+            elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}" "${CMAKE_BINARY_DIR}/${DEP_NAME}")
+            else()
+                message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
+            endif()
         endif()
     endforeach()
-endfunction()
+endmacro()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
@@ -373,6 +382,7 @@ function(XMOS_STATIC_LIBRARY)
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
 
+    set(BUILD_ADDED_DEPS "")
     XMOS_REGISTER_DEPS()
 
     foreach(lib_arch ${LIB_ARCH})
