@@ -373,28 +373,7 @@ function(XMOS_STATIC_LIBRARY)
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
 
-    set(DEP_MODULE_LIST "")
-    foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
-        string(REGEX MATCH "^[A-Za-z0-9_ -]+" DEP_NAME ${DEP_MODULE})
-        string(REGEX REPLACE "^[A-Za-z0-9_ -]+" "" DEP_FULL_REQ ${DEP_MODULE})
-
-        list(APPEND DEP_MODULE_LIST ${DEP_NAME})
-        if("${DEP_FULL_REQ}" STREQUAL "")
-            message(FATAL_ERROR "Missing dependency version requirement for ${DEP_NAME} in ${LIB_NAME}.\nA version requirement must be specified for all dependencies.")
-        endif()
-
-        string(REGEX MATCH "[0-9.]+" VERSION_REQ ${DEP_FULL_REQ} )
-        string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
-
-        # Add dependencies directories
-        if(NOT TARGET ${DEP_NAME})
-            if(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
-                add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}"  "${CMAKE_BINARY_DIR}/${DEP_NAME}")
-            else()
-                message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
-            endif()
-        endif()
-    endforeach()
+    XMOS_REGISTER_DEPS()
 
     foreach(lib_arch ${LIB_ARCH})
         # To statically link this library into an application, a cmake file is needed which will be included in
