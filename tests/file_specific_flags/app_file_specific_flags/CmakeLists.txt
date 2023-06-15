@@ -12,7 +12,7 @@ set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 #but appended to the end of the flags
 set(APP_COMPILER_FLAGS "-DFLAG0=0")
 
-set(APP_COMPILER_FLAGS_test.xc "-UFLAG0 -DFLAG1=1")
+set(APP_COMPILER_FLAGS_test.xc "-UFLAG0" "-DFLAG1=1")
 set(APP_COMPILER_FLAGS_flag2.c "-DFLAG2=2")
 set(APP_COMPILER_FLAGS_flag3.cpp "-DFLAG3=3")
 set(APP_COMPILER_FLAGS_flag4.S "-DFLAG4=4")
