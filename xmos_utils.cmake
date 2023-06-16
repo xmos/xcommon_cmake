@@ -64,7 +64,6 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
     get_filename_component(file_pca_dir ${file_pca} PATH)
     set(file_pca ${DOT_BUILD_DIR}/${file_pca}.pca.xml)
     set(file_pca_dir ${DOT_BUILD_DIR}/${file_pca_dir})
-    file(MAKE_DIRECTORY ${file_pca_dir})
 
     # Need to pass file flags to PCA also 
     get_source_file_property(FILE_FLAGS ${SOURCE_FILE} COMPILE_OPTIONS)
@@ -246,7 +245,7 @@ function(XMOS_REGISTER_APP)
     foreach(target ${BUILD_TARGETS})
         string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
         set(DOT_BUILD_DIR ${CMAKE_SOURCE_DIR}/.build${DOT_BUILD_SUFFIX})
-        file(MAKE_DIRECTORY ${DOT_BUILD_DIR})
+        set_target_properties(${target} PROPERTIES ADDITIONAL_CLEAN_FILES ${DOT_BUILD_DIR})
 
         set(PCA_FILES_PATH "")
 
