@@ -30,7 +30,10 @@ def cleanup_static_lib(lib_dir):
 
 
 def cleanup_app(app_dir):
-    for d in ["build", "bin"]:
+    dot_build_dirs = [
+        d.name for d in app_dir.iterdir() if d.is_dir() and d.name.startswith(".build")
+    ]
+    for d in ["build", "bin", *dot_build_dirs]:
         dir = app_dir / d
         if dir.exists() and dir.is_dir():
             shutil.rmtree(dir)
