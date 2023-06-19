@@ -290,16 +290,19 @@ endfunction()
 
 ## Registers a module and its dependencies
 macro(XMOS_REGISTER_MODULE)
-    if(LIB_VERSION VERSION_EQUAL VERSION_REQ)
-        string(FIND ${VERSION_QUAL_REQ} "=" DEP_VERSION_CHECK)
-    elseif(LIB_VERSION VERSION_LESS VERSION_REQ)
-        string(FIND ${VERSION_QUAL_REQ} "<" DEP_VERSION_CHECK)
-    elseif(LIB_VERSION VERSION_GREATER VERSION_REQ)
-        string(FIND ${VERSION_QUAL_REQ} ">" DEP_VERSION_CHECK)
-    endif()
+    # Check version constraint if one was provided; DEP_FULL_REQ was set in XMOS_REGISTER_DEPS
+    if(NOT "${DEP_FULL_REQ}" STREQUAL "")
+        if(LIB_VERSION VERSION_EQUAL VERSION_REQ)
+            string(FIND ${VERSION_QUAL_REQ} "=" DEP_VERSION_CHECK)
+        elseif(LIB_VERSION VERSION_LESS VERSION_REQ)
+           string(FIND ${VERSION_QUAL_REQ} "<" DEP_VERSION_CHECK)
+        elseif(LIB_VERSION VERSION_GREATER VERSION_REQ)
+            string(FIND ${VERSION_QUAL_REQ} ">" DEP_VERSION_CHECK)
+        endif()
 
-    if(${DEP_VERSION_CHECK} EQUAL "-1")
-        message(WARNING "${LIB_NAME} dependency not met.  Found ${LIB_VERSION}.")
+        if(${DEP_VERSION_CHECK} EQUAL "-1")
+            message(WARNING "${LIB_NAME} dependency not met.  Found ${LIB_VERSION}.")
+        endif()
     endif()
 
     XMOS_REGISTER_DEPS()
@@ -329,12 +332,10 @@ macro(XMOS_REGISTER_DEPS)
         string(REGEX MATCH "^[A-Za-z0-9_ -]+" DEP_NAME ${DEP_MODULE})
         string(REGEX REPLACE "^[A-Za-z0-9_ -]+" "" DEP_FULL_REQ ${DEP_MODULE})
 
-        if("${DEP_FULL_REQ}" STREQUAL "")
-            message(FATAL_ERROR "Missing dependency version requirement for ${DEP_NAME} in ${LIB_NAME}.\nA version requirement must be specified for all dependencies.")
+        if(NOT "${DEP_FULL_REQ}" STREQUAL "")
+            string(REGEX MATCH "[0-9.]+" VERSION_REQ ${DEP_FULL_REQ} )
+            string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
         endif()
-
-        string(REGEX MATCH "[0-9.]+" VERSION_REQ ${DEP_FULL_REQ} )
-        string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
 
         # Check if this dependency has already been added
         list(FIND BUILD_ADDED_DEPS ${DEP_NAME} found)
