@@ -1,3 +1,6 @@
+#include "foo.h"
+#include "bar.h"
+
 void src0_xc();
 void src1_c();
 void src1_cxx();
@@ -8,5 +11,7 @@ int main() {
     src1_c();
     src1_cxx();
     src0_S();
+    foo();
+    bar();
     return 0;
 }
