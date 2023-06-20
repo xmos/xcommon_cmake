@@ -99,6 +99,40 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
     set(${RET_FILE_PCA} ${file_pca} PARENT_SCOPE)
 endfunction()
 
+# If source variables are blank, glob for source files; otherwise prepend the full path
+# The prefix parameter is the prefix on the list variables _XC_SRCS, _C_SRCS, etc.
+macro(glob_srcs prefix)
+    if(NOT ${prefix}_XC_SRCS)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS src/*.xc)
+    else()
+        list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+    endif()
+
+    if(NOT ${prefix}_CXX_SRCS)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS src/*.cpp)
+    else()
+        list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+    endif()
+
+    if(NOT ${prefix}_C_SRCS)
+        file(GLOB_RECURSE ${prefix}_C_SRCS src/*.c)
+    else()
+        list(TRANSFORM ${prefix}_C_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+    endif()
+
+    if(NOT ${prefix}_ASM_SRCS)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS src/*.S)
+    else()
+        list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+    endif()
+
+    if(NOT ${prefix}_XSCOPE_SRCS)
+        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS *.xscope)
+    else()
+        list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+    endif()
+endmacro()
+
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
@@ -128,35 +162,7 @@ function(XMOS_REGISTER_APP)
     #    list(APPEND APP_COMPILER_FLAGS "-DTHIS_XCORE_TILE=${THIS_XCORE_TILE}")
     #endif()
 
-    if(NOT APP_XC_SRCS)
-        file(GLOB_RECURSE APP_XC_SRCS src/*.xc)
-    else()
-        list(TRANSFORM APP_XC_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
-    endif()
-
-    if(NOT APP_CXX_SRCS)
-        file(GLOB_RECURSE APP_CXX_SRCS src/*.cpp)
-    else()
-        list(TRANSFORM APP_CXX_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
-    endif()
-
-    if(NOT APP_C_SRCS)
-        file(GLOB_RECURSE APP_C_SRCS src/*.c)
-    else()
-        list(TRANSFORM APP_C_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
-    endif()
-
-    if(NOT APP_ASM_SRCS)
-        file(GLOB_RECURSE APP_ASM_SRCS src/*.S)
-    else()
-        list(TRANSFORM APP_ASM_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
-    endif()
-
-    if(NOT APP_XSCOPE_SRCS)
-        file(GLOB_RECURSE APP_XSCOPE_SRCS *.xscope)
-    else()
-        list(TRANSFORM APP_XSCOPE_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
-    endif()
+    glob_srcs("APP")
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS} ${APP_XSCOPE_SRCS})
 
@@ -319,6 +325,8 @@ macro(XMOS_REGISTER_MODULE)
         set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
     endforeach()
 
+    glob_srcs("LIB")
+
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
                                 TARGET_DIRECTORY ${BUILD_TARGETS}
                                 PROPERTIES COMPILE_OPTIONS "${LIB_COMPILER_FLAGS}")
@@ -360,6 +368,12 @@ macro(XMOS_REGISTER_DEPS)
                     target_link_libraries(${target} PRIVATE ${DEP_NAME})
                 endforeach()
             elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                # Clear source variables to avoid inheriting from parent scope
+                # Either add_subdirectory() will populate these, otherwise we glob for them
+                set(LIB_XC_SRCS "")
+                set(LIB_C_SRCS "")
+                set(LIB_CXX_SRCS "")
+                set(LIB_ASM_SRCS "")
                 add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}" "${CMAKE_BINARY_DIR}/${DEP_NAME}")
             else()
                 message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
@@ -376,11 +390,13 @@ function(XMOS_STATIC_LIBRARY)
         set(LIB_ARCH "xs3a")
     endif()
 
+    glob_srcs("LIB")
+
     set(BUILD_TARGETS "")
     foreach(lib_arch ${LIB_ARCH})
         add_library(${LIB_NAME}-${lib_arch} STATIC)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY VERSION ${LIB_VERSION})
-        target_sources(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRC} ${LIB_C_SRCS})
+        target_sources(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
         target_include_directories(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_INCLUDES})
         target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_ADD_COMPILER_FLAGS} "-march=${lib_arch}")
 

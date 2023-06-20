@@ -36,5 +36,9 @@ set(APP_ASM_SRCS
 
 set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
+set(APP_DEPENDENT_MODULES "lib_foo" "lib_bar")
+
+set(XMOS_DEPS_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
+
 ## Register the application
 XMOS_REGISTER_APP()
