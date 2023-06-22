@@ -21,20 +21,38 @@ function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     set (${_varResult} ${_matchedVars} PARENT_SCOPE)
 endfunction()
 
-macro(add_app_file_flags)
-    foreach(SRC_FILE_PATH ${ALL_SRCS_PATH})
-       
-        # Over-ride file flags if APP_COMPILER_FLAGS_<source_file> is set
+macro(add_file_flags prefix file_srcs)
+    set(FLAG_FILES "")
+    foreach(flags ${${prefix}_COMPILER_FLAGS_VARS})
+        string(REPLACE "${prefix}_COMPILER_FLAGS_" "" flags ${flags})
+
+        # Only consider "file" flags; ignore "config" flags
+        if(flags MATCHES "\\.")
+            list(APPEND FLAG_FILES ${flags})
+        endif()
+    endforeach()
+
+    foreach(SRC_FILE_PATH ${file_srcs})
+        # Over-ride file flags if APP/LIB_COMPILER_FLAGS_<source_file> is set
         get_filename_component(SRC_FILE ${SRC_FILE_PATH} NAME)
-        foreach(FLAG_FILE ${APP_FLAG_FILES})
+        foreach(FLAG_FILE ${FLAG_FILES})
             string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
             if(_cmp)
-                set(flags ${APP_COMPILER_FLAGS_${FLAG_FILE}})
-                set_source_files_properties(${SRC_FILE_PATH} PROPERTIES COMPILE_OPTIONS "${flags}")
+                set(flags ${${prefix}_COMPILER_FLAGS_${FLAG_FILE}})
+                foreach(target ${BUILD_TARGETS})
+                    get_source_file_property(current_flags ${SRC_FILE_PATH}
+                                             TARGET_DIRECTORY ${target}
+                                             COMPILE_OPTIONS)
+                    list(FILTER current_flags EXCLUDE REGEX "NOTFOUND")
+                    list(APPEND current_flags ${flags})
+                    set_source_files_properties(${SRC_FILE_PATH}
+                                                TARGET_DIRECTORY ${target}
+                                                PROPERTIES COMPILE_OPTIONS "${current_flags}")
+                endforeach()
             endif()
         endforeach()
     endforeach()
-endmacro() 
+endmacro()
 
 # Remove src files from ALL_SRCS if they are for a different config and return source
 # file list in RET_CONFIG_SRCS
@@ -184,19 +202,14 @@ function(XMOS_REGISTER_APP)
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
 
     set(APP_CONFIGS "")
-    set(APP_FLAG_FILES "")
     foreach(APP_FLAGS ${APP_COMPILER_FLAGS_VARS})
         string(REPLACE "APP_COMPILER_FLAGS_" "" APP_FLAGS ${APP_FLAGS})
 
-        # Ignore any "file" flags
+        # Only consider "config" flags; ignore "file" flags
         if(NOT APP_FLAGS MATCHES "\\.")
             list(APPEND APP_CONFIGS ${APP_FLAGS})
-        else()
-            list(APPEND APP_FLAG_FILES ${APP_FLAGS})
         endif()
     endforeach()
-
-    add_app_file_flags()
 
     # Somewhat follow the strategy of xcommon here with a config named "Default"
     list(LENGTH APP_CONFIGS CONFIGS_COUNT)
@@ -231,6 +244,8 @@ function(XMOS_REGISTER_APP)
             list(APPEND BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
         endif()
     endforeach()
+
+    add_file_flags("APP" "${ALL_SRCS_PATH}")
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
     set(BUILD_ADDED_DEPS "")
@@ -315,7 +330,7 @@ macro(XMOS_REGISTER_MODULE)
         if(LIB_VERSION VERSION_EQUAL VERSION_REQ)
             string(FIND ${VERSION_QUAL_REQ} "=" DEP_VERSION_CHECK)
         elseif(LIB_VERSION VERSION_LESS VERSION_REQ)
-           string(FIND ${VERSION_QUAL_REQ} "<" DEP_VERSION_CHECK)
+            string(FIND ${VERSION_QUAL_REQ} "<" DEP_VERSION_CHECK)
         elseif(LIB_VERSION VERSION_GREATER VERSION_REQ)
             string(FIND ${VERSION_QUAL_REQ} ">" DEP_VERSION_CHECK)
         endif()
@@ -338,8 +353,12 @@ macro(XMOS_REGISTER_MODULE)
                                 TARGET_DIRECTORY ${BUILD_TARGETS}
                                 PROPERTIES COMPILE_OPTIONS "${LIB_COMPILER_FLAGS}")
 
+    GET_ALL_VARS_STARTING_WITH("LIB_COMPILER_FLAGS_" LIB_COMPILER_FLAGS_VARS)
+    set(ALL_LIB_SRCS_PATH ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
+    add_file_flags("LIB" "${ALL_LIB_SRCS_PATH}")
+
     foreach(target ${BUILD_TARGETS})
-        target_sources(${target} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
+        target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
         target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
 
         get_target_property(opt_hdrs ${target} OPTIONAL_HEADERS)
