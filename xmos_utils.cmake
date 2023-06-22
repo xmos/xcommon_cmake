@@ -55,12 +55,13 @@ endfunction()
 
 
 function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_PCA)
-    message(STATUS "Running PCA on ${SOURCE_FILE} with ${TARGET_FLAGS}")
+    message(VERBOSE "Running PCA on ${SOURCE_FILE} with ${TARGET_FLAGS} into ${DOT_BUILD_DIR}")
     
     # Shorten path just to replicate what xcommon does for now
     # TODO should the xml files be generated into the cmake build dir?
     file(RELATIVE_PATH file_pca ${CMAKE_SOURCE_DIR} ${SOURCE_FILE})
-    string(REPLACE "../lib_" "_l_" file_pca ${file_pca})
+    string(REPLACE "../" "" file_pca ${file_pca})
+    string(REPLACE "lib_" "_l_" file_pca ${file_pca})
     get_filename_component(file_pca_dir ${file_pca} PATH)
     set(file_pca ${DOT_BUILD_DIR}/${file_pca}.pca.xml)
     set(file_pca_dir ${DOT_BUILD_DIR}/${file_pca_dir})
@@ -166,6 +167,7 @@ function(XMOS_REGISTER_APP)
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS} ${APP_XSCOPE_SRCS})
 
+    # Automatically determine architecture 
     list(LENGTH ALL_SRCS_PATH num_srcs)
     if(NOT ${num_srcs} GREATER 0)
         message(FATAL_ERROR "No sources present to determine architecture")
