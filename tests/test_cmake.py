@@ -99,6 +99,15 @@ def test_cmake(test_dir):
             with open(run_expect, "r") as f:
                 assert f.read() == ret.stdout
 
+            binary_expect = test_dir / "binary.expect"
+            if binary_expect.exists():
+                ret = subprocess.run(
+                    ["xobjdump", "-t", app_xe], capture_output=True, text=True
+                )
+                with open(binary_expect, "r") as f:
+                    for l in f.readlines():
+                        assert l in ret.stdout
+
     # Cleanup
     for app in apps:
         cleanup_app(test_dir / app)
