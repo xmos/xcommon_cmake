@@ -18,6 +18,7 @@ set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
 set(APP_DEPENDENT_MODULES "lib_foo(>=1.0.0)")
 
+# "src" directory in APP_INCLUDES because optional header is there
 set(APP_INCLUDES "src")
 
 set(XMOS_DEPS_ROOT_DIR "${CMAKE_SOURCE_DIR}/..")

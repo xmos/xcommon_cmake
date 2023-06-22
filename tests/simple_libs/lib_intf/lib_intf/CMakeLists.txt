@@ -4,5 +4,5 @@ set(LIB_XC_SRCS "src/intf.xc")
 set(LIB_ASM_SRCS "src/intf.S")
 set(LIB_INCLUDES "api")
 set(LIB_DEPENDENT_MODULES "")
-set(LIB_TYPE "INTERFACE")
+
 XMOS_REGISTER_MODULE()
