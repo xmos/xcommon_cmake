@@ -13,7 +13,7 @@ include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
 ## Define project
 project(pca_libs)
 
-set(APP_XC_SRCS"src/pca_libs.xc")
+set(APP_XC_SRCS "src/pca_libs.xc")
 set(APP_DEPENDENT_MODULES "lib_foo")
 set(APP_DEPENDENT_MODULES "lib_foo" "lib_bar")
 set(XMOS_DEPS_ROOT_DIR "${CMAKE_SOURCE_DIR}/..")
