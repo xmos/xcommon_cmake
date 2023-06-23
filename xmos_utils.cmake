@@ -40,14 +40,9 @@ macro(add_file_flags prefix file_srcs)
             if(_cmp)
                 set(flags ${${prefix}_COMPILER_FLAGS_${FLAG_FILE}})
                 foreach(target ${BUILD_TARGETS})
-                    get_source_file_property(current_flags ${SRC_FILE_PATH}
-                                             TARGET_DIRECTORY ${target}
-                                             COMPILE_OPTIONS)
-                    list(FILTER current_flags EXCLUDE REGEX "NOTFOUND")
-                    list(APPEND current_flags ${flags})
                     set_source_files_properties(${SRC_FILE_PATH}
                                                 TARGET_DIRECTORY ${target}
-                                                PROPERTIES COMPILE_OPTIONS "${current_flags}")
+                                                PROPERTIES COMPILE_OPTIONS "${flags}")
                 endforeach()
             endif()
         endforeach()
