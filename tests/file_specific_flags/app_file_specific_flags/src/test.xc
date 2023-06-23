@@ -26,7 +26,6 @@
 
 void flag2();
 void flag3();
-void flag10();
 
 int main() 
 {
