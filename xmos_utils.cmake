@@ -68,7 +68,6 @@ endfunction()
 
 
 function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_PCA)
-    message(VERBOSE "Running PCA on ${SOURCE_FILE} with ${TARGET_FLAGS} into ${DOT_BUILD_DIR}")
     
     # Shorten path just to replicate what xcommon does for now
     # TODO should the xml files be generated into the cmake build dir?
@@ -100,6 +99,7 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
     # Turn FILE_FLAGS into a list so that xpca command treats them as separate arguments
     string(REPLACE " " ";" FILE_FLAGS "${FILE_FLAGS}")
 
+    message(VERBOSE "Running PCA on ${SOURCE_FILE} with\nfile flags: ${FILE_FLAGS}\ntarget flags: ${TARGET_FLAGS}\ninto ${DOT_BUILD_DIR}")
     list(PREPEND FILE_FLAGS "${TARGET_FLAGS}")
     list(PREPEND FILE_INCDIRS "${TARGET_INCDIRS}")
 
