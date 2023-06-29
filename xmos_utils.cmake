@@ -52,7 +52,7 @@ endmacro()
 # Remove src files from ALL_SRCS if they are for a different config and return source
 # file list in RET_CONFIG_SRCS
 function(remove_srcs ALL_APP_CONFIGS APP_CONFIG ALL_SRCS RET_CONFIG_SRCS)
-    set(CONFIG_SRCS ${ALL_SRCS}) 
+    set(CONFIG_SRCS ${ALL_SRCS})
 
     foreach(CFG ${ALL_APP_CONFIGS})
         string(COMPARE EQUAL ${CFG} ${APP_CONFIG} _cmp)
@@ -63,12 +63,12 @@ function(remove_srcs ALL_APP_CONFIGS APP_CONFIG ALL_SRCS RET_CONFIG_SRCS)
         endif()
     endforeach()
     set(${RET_CONFIG_SRCS} ${CONFIG_SRCS} PARENT_SCOPE)
-    # TODO why cant we do this here? DIRECTORY? 
+    # TODO why cant we do this here? DIRECTORY?
 endfunction()
 
 
 function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_PCA)
-    
+
     # Shorten path just to replicate what xcommon does for now
     # TODO should the xml files be generated into the cmake build dir?
     file(RELATIVE_PATH file_pca ${CMAKE_SOURCE_DIR} ${SOURCE_FILE})
@@ -82,10 +82,10 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
         COMMAND ${CMAKE_COMMAND} -E make_directory ${file_pca_dir}
     )
 
-    # Need to pass file flags to PCA also 
+    # Need to pass file flags to PCA also
     get_source_file_property(FILE_FLAGS ${SOURCE_FILE} COMPILE_OPTIONS)
     get_source_file_property(FILE_INCDIRS ${SOURCE_FILE} INCLUDE_DIRECTORIES)
-  
+
     string(COMPARE EQUAL "${FILE_FLAGS}" NOTFOUND _cmp)
     if(_cmp)
         set(FILE_FLAGS "")
@@ -161,12 +161,14 @@ function(XMOS_REGISTER_APP)
         set(APP_COMPILER_FLAGS "")
     endif()
 
+
+
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
         # Check specified XN file exists
         file(GLOB_RECURSE xn_files ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
         list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
-        list(LENGTH xn_files num_xn_files) 
+        list(LENGTH xn_files num_xn_files)
         if(NOT ${num_xn_files})
             message(FATAL_ERROR "XN file not found")
         endif()
@@ -183,7 +185,7 @@ function(XMOS_REGISTER_APP)
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
 
-    # Automatically determine architecture 
+    # Automatically determine architecture
     list(LENGTH ALL_SRCS_PATH num_srcs)
     if(NOT ${num_srcs} GREATER 0)
         message(FATAL_ERROR "No sources present to determine architecture")
@@ -243,7 +245,10 @@ function(XMOS_REGISTER_APP)
     add_file_flags("APP" "${ALL_SRCS_PATH}")
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
-    set(BUILD_ADDED_DEPS "")
+
+    #set(BUILD_ADDED_DEPS "")
+    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+
     XMOS_REGISTER_DEPS()
 
     foreach(target ${BUILD_TARGETS})
@@ -297,8 +302,8 @@ function(XMOS_REGISTER_APP)
             list(APPEND PCA_FILES_PATH ${file_pca})
         endforeach()
 
+        GET_PROPERTY(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
 
-        set(BUILD_ADDED_DEPS_PATHS ${BUILD_ADDED_DEPS})
         list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_DEPS_ROOT_DIR}/)
 
         # TODO xcommon uses rsp file for ${PCA_FILES_PATH}
@@ -373,12 +378,15 @@ macro(XMOS_REGISTER_DEPS)
             string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
         endif()
 
+        GET_PROPERTY(BUILD_ADDED_DEPS GLOBAL PROPERTY BUILD_ADDED_DEPS)
+
         # Check if this dependency has already been added
         list(FIND BUILD_ADDED_DEPS ${DEP_NAME} found)
         if(${found} EQUAL -1)
             list(APPEND BUILD_ADDED_DEPS ${DEP_NAME})
-            # Set PARENT_SCOPE as called recursively through add_subdirectory() so value needs to return to original caller
-            set(BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS} PARENT_SCOPE)
+
+            # Set GLOBAL PROPERTY rather than PARENT_SCOPE since we may have multiple directory layers
+            SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
 
             # Add dependencies directories
             if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
@@ -427,7 +435,8 @@ function(XMOS_STATIC_LIBRARY)
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
 
-    set(BUILD_ADDED_DEPS "")
+    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+
     XMOS_REGISTER_DEPS()
 
     foreach(lib_arch ${LIB_ARCH})
