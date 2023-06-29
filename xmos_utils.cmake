@@ -161,6 +161,8 @@ function(XMOS_REGISTER_APP)
         set(APP_COMPILER_FLAGS "")
     endif()
 
+
+
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
         # Check specified XN file exists
@@ -243,7 +245,10 @@ function(XMOS_REGISTER_APP)
     add_file_flags("APP" "${ALL_SRCS_PATH}")
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
-    set(BUILD_ADDED_DEPS "")
+   
+    #set(BUILD_ADDED_DEPS "")
+    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+
     XMOS_REGISTER_DEPS()
 
     foreach(target ${BUILD_TARGETS})
@@ -297,8 +302,8 @@ function(XMOS_REGISTER_APP)
             list(APPEND PCA_FILES_PATH ${file_pca})
         endforeach()
 
+        GET_PROPERTY(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
 
-        set(BUILD_ADDED_DEPS_PATHS ${BUILD_ADDED_DEPS})
         list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_DEPS_ROOT_DIR}/)
 
         # TODO xcommon uses rsp file for ${PCA_FILES_PATH}
@@ -373,12 +378,15 @@ macro(XMOS_REGISTER_DEPS)
             string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
         endif()
 
+        GET_PROPERTY(BUILD_ADDED_DEPS GLOBAL PROPERTY BUILD_ADDED_DEPS)
+
         # Check if this dependency has already been added
         list(FIND BUILD_ADDED_DEPS ${DEP_NAME} found)
         if(${found} EQUAL -1)
             list(APPEND BUILD_ADDED_DEPS ${DEP_NAME})
-            # Set PARENT_SCOPE as called recursively through add_subdirectory() so value needs to return to original caller
-            set(BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS} PARENT_SCOPE)
+
+            # Set GLOBAL PROPERTY rather than PARENT_SCOPE since we may have multiple directory layers 
+            SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
 
             # Add dependencies directories
             if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
@@ -427,7 +435,8 @@ function(XMOS_STATIC_LIBRARY)
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
 
-    set(BUILD_ADDED_DEPS "")
+    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+
     XMOS_REGISTER_DEPS()
 
     foreach(lib_arch ${LIB_ARCH})
