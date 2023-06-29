@@ -1,4 +1,4 @@
-set(LIB_NAME "lib0")
+set(LIB_NAME "lib_lib0")
 set(LIB_VERSION 1.0.0)
 set(LIB_XC_SRCS "src/lib0.xc")
 set(LIB_INCLUDES "api")
