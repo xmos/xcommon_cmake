@@ -274,53 +274,54 @@ function(XMOS_REGISTER_APP)
         endforeach()
     endforeach()
 
-    # PCA
-    foreach(target ${BUILD_TARGETS})
-        string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
-        set(DOT_BUILD_DIR ${CMAKE_SOURCE_DIR}/.build${DOT_BUILD_SUFFIX})
-        set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${DOT_BUILD_DIR})
+    if(APP_PCA_ENABLE)
+        foreach(target ${BUILD_TARGETS})
+            string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
+            set(DOT_BUILD_DIR ${CMAKE_SOURCE_DIR}/.build${DOT_BUILD_SUFFIX})
+            set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${DOT_BUILD_DIR})
 
-        set(PCA_FILES_PATH "")
+            set(PCA_FILES_PATH "")
 
-        get_target_property(target_srcs ${target} SOURCES)
+            get_target_property(target_srcs ${target} SOURCES)
 
-        get_target_property(target_link_libs ${target} LINK_LIBRARIES)
-        list(FILTER target_link_libs EXCLUDE REGEX "^.+-NOTFOUND$")
-        set(static_incdirs "")
-        foreach(lib ${target_link_libs})
-            get_target_property(lib_incdirs ${lib} INTERFACE_INCLUDE_DIRECTORIES)
-            list(APPEND static_incdirs ${lib_incdirs})
+            get_target_property(target_link_libs ${target} LINK_LIBRARIES)
+            list(FILTER target_link_libs EXCLUDE REGEX "^.+-NOTFOUND$")
+            set(static_incdirs "")
+            foreach(lib ${target_link_libs})
+                get_target_property(lib_incdirs ${lib} INTERFACE_INCLUDE_DIRECTORIES)
+                list(APPEND static_incdirs ${lib_incdirs})
+            endforeach()
+
+            get_target_property(target_flags ${target} COMPILE_OPTIONS)
+            get_target_property(target_incdirs ${target} INCLUDE_DIRECTORIES)
+            list(APPEND target_incdirs ${static_incdirs})
+            list(FILTER target_incdirs EXCLUDE REGEX "^.+-NOTFOUND$")
+
+            foreach(file ${target_srcs})
+                do_pca(${file} ${DOT_BUILD_DIR} "${target_flags}" "${target_incdirs}" file_pca)
+                list(APPEND PCA_FILES_PATH ${file_pca})
+            endforeach()
+
+            GET_PROPERTY(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
+
+            list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_DEPS_ROOT_DIR}/)
+
+            # TODO xcommon uses rsp file for ${PCA_FILES_PATH}
+            set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
+            add_custom_command(
+                    OUTPUT ${PCA_FILE}
+                    COMMAND $ENV{XMOS_TOOL_PATH}/libexec/xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} "\"${BUILD_ADDED_DEPS_PATHS} \"" ${PCA_FILES_PATH}
+                    DEPENDS ${PCA_FILES_PATH}
+                    DEPFILE ${DOT_BUILD_DIR}/pca.d
+                    COMMAND_EXPAND_LISTS
+                )
+            set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES_PATH})
+
+            set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc ${DOT_BUILD_DIR}/pca.xml")
+            target_compile_options(${target} PRIVATE ${PCA_FLAG})
+            target_sources(${target} PRIVATE ${PCA_FILE})
         endforeach()
-
-        get_target_property(target_flags ${target} COMPILE_OPTIONS)
-        get_target_property(target_incdirs ${target} INCLUDE_DIRECTORIES)
-        list(APPEND target_incdirs ${static_incdirs})
-        list(FILTER target_incdirs EXCLUDE REGEX "^.+-NOTFOUND$")
-
-        foreach(file ${target_srcs})
-            do_pca(${file} ${DOT_BUILD_DIR} "${target_flags}" "${target_incdirs}" file_pca)
-            list(APPEND PCA_FILES_PATH ${file_pca})
-        endforeach()
-
-        GET_PROPERTY(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
-
-        list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_DEPS_ROOT_DIR}/)
-
-        # TODO xcommon uses rsp file for ${PCA_FILES_PATH}
-        set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
-        add_custom_command(
-                OUTPUT ${PCA_FILE}
-                COMMAND $ENV{XMOS_TOOL_PATH}/libexec/xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} "\"${BUILD_ADDED_DEPS_PATHS} \"" ${PCA_FILES_PATH}
-                DEPENDS ${PCA_FILES_PATH}
-                DEPFILE ${DOT_BUILD_DIR}/pca.d
-                COMMAND_EXPAND_LISTS
-            )
-        set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES_PATH})
-
-        set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc ${DOT_BUILD_DIR}/pca.xml")
-        target_compile_options(${target} PRIVATE ${PCA_FLAG})
-        target_sources(${target} PRIVATE ${PCA_FILE})
-    endforeach()
+    endif()
 endfunction()
 
 ## Registers a module and its dependencies
