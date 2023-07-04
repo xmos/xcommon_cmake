@@ -446,6 +446,7 @@ function(XMOS_STATIC_LIBRARY)
         # the file() command below; no variables are substituted.
         file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in [=[
             add_library(@LIB_NAME@ STATIC IMPORTED)
+            set_property(TARGET @LIB_NAME@ PROPERTY SYSTEM OFF)
             set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
             set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
             foreach(incdir @LIB_INCLUDES@)
