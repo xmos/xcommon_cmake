@@ -325,7 +325,7 @@ function(XMOS_REGISTER_APP)
 endfunction()
 
 ## Registers a module and its dependencies
-macro(XMOS_REGISTER_MODULE)
+function(XMOS_REGISTER_MODULE)
     # Check version constraint if one was provided; DEP_FULL_REQ was set in XMOS_REGISTER_DEPS
     if(NOT "${DEP_FULL_REQ}" STREQUAL "")
         if(LIB_VERSION VERSION_EQUAL VERSION_REQ)
@@ -366,10 +366,10 @@ macro(XMOS_REGISTER_MODULE)
         list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS})
         set_target_properties(${target} PROPERTIES OPTIONAL_HEADERS "${opt_hdrs}")
     endforeach()
-endmacro()
+endfunction()
 
 ## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
-macro(XMOS_REGISTER_DEPS)
+function(XMOS_REGISTER_DEPS)
     foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
         string(REGEX MATCH "^[A-Za-z0-9_ -]+" DEP_NAME ${DEP_MODULE})
         string(REGEX REPLACE "^[A-Za-z0-9_ -]+" "" DEP_FULL_REQ ${DEP_MODULE})
@@ -410,7 +410,7 @@ macro(XMOS_REGISTER_DEPS)
             endif()
         endif()
     endforeach()
-endmacro()
+endfunction()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
