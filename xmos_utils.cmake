@@ -10,6 +10,8 @@ if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
 endif()
 
+include($ENV{XMOS_CMAKE_PATH}/CPM.cmake)
+
 enable_language(CXX C ASM)
 
 # Define XMOS-specific target properties
@@ -149,6 +151,79 @@ macro(glob_srcs prefix)
         list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 endmacro()
+
+
+function(parse_dep_string dep_str ret_repo ret_ver ret_name)
+    # Extract version and remove version string with parentheses from original
+    string(REGEX REPLACE "\\((.+)\\)" "" dep_str ${dep_str})
+
+    if(CMAKE_MATCH_COUNT EQUAL 1)
+        set(match_ver ${CMAKE_MATCH_1})
+
+        # If a three-part version number was provided, prepend a "v" to get a tag.
+        # Otherwise use the string that was given, assuming it to be a commit, branch or tag.
+        string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+$" match_tag ${match_ver})
+        if(match_tag)
+            string(PREPEND match_ver "v")
+        endif()
+    else()
+        # No version specified, so get the head of the default branch
+        set(match_ver HEAD)
+    endif()
+
+    set(${ret_ver} ${match_ver} PARENT_SCOPE)
+
+    string(REGEX MATCH "/[a-z0-9\\.-_]+$" match_name ${dep_str})
+    if(match_name)
+        string(REGEX REPLACE "/" "" match_name ${match_name})
+    else()
+        set(match_name ${dep_str})
+    endif()
+    set(${ret_name} ${match_name} PARENT_SCOPE)
+
+    string(REGEX MATCH "^http|^HTTP" match_http ${dep_str})
+    if(match_http)
+        set(${ret_repo} ${dep_str} PARENT_SCOPE)
+        return()
+    endif()
+
+    string(REGEX MATCH "^git@" match_ssh ${dep_str})
+    if(match_ssh)
+        set(${ret_repo} ${dep_str} PARENT_SCOPE)
+        return()
+    endif()
+
+    string(REGEX REPLACE "^([a-z0-9\\.-_]+):" "" dep_str ${dep_str})
+    if(CMAKE_MATCH_COUNT EQUAL 1)
+        set(match_server ${CMAKE_MATCH_1})
+    else()
+        set(match_server "github.com")
+    endif()
+
+    # Check whether SSH access is available (returns 1 on success, 255 on failure)
+    execute_process(COMMAND ssh -o "StrictHostKeyChecking no" git@${match_server}
+                    TIMEOUT 30
+                    RESULT_VARIABLE ret
+                    OUTPUT_QUIET
+                    ERROR_QUIET)
+    if(ret EQUAL 1)
+        string(PREPEND match_server "git@")
+        string(APPEND match_server ":")
+    else()
+        string(PREPEND match_server "https://")
+        string(APPEND match_server "/")
+    endif()
+
+    string(REGEX REPLACE "^([a-z0-9\\.-_]+)/" "" dep_str ${dep_str})
+    if(CMAKE_MATCH_COUNT EQUAL 1)
+        set(match_org ${CMAKE_MATCH_1})
+    else()
+        set(match_org "xmos")
+    endif()
+
+    # dep_str now just contains the repo
+    set(${ret_repo} "${match_server}${match_org}/${dep_str}" PARENT_SCOPE)
+endfunction()
 
 
 ## Registers an application and its dependencies
@@ -326,18 +401,15 @@ endfunction()
 
 ## Registers a module and its dependencies
 function(XMOS_REGISTER_MODULE)
-    # Check version constraint if one was provided; DEP_FULL_REQ was set in XMOS_REGISTER_DEPS
-    if(NOT "${DEP_FULL_REQ}" STREQUAL "")
-        if(LIB_VERSION VERSION_EQUAL VERSION_REQ)
-            string(FIND ${VERSION_QUAL_REQ} "=" DEP_VERSION_CHECK)
-        elseif(LIB_VERSION VERSION_LESS VERSION_REQ)
-            string(FIND ${VERSION_QUAL_REQ} "<" DEP_VERSION_CHECK)
-        elseif(LIB_VERSION VERSION_GREATER VERSION_REQ)
-            string(FIND ${VERSION_QUAL_REQ} ">" DEP_VERSION_CHECK)
-        endif()
-
-        if(${DEP_VERSION_CHECK} EQUAL "-1")
-            message(WARNING "${LIB_NAME} dependency not met.  Found ${LIB_VERSION}.")
+    # If major version requirement was set, warn if there is a mismatch
+    if(NOT "${DEP_MAJOR_VER}" STREQUAL "")
+        string(REGEX MATCH "^([0-9]+)\\." _m ${LIB_VERSION})
+        if(CMAKE_MATCH_COUNT EQUAL 1)
+            if(NOT ${DEP_MAJOR_VER} EQUAL ${CMAKE_MATCH_1})
+                message(WARNING "Expected major version ${DEP_MAJOR_VER} for ${LIB_NAME} but got ${CMAKE_MATCH_1}")
+            endif()
+        else()
+            message(ERROR "Invalid LIB_VERSION ${LIB_VERSION} for ${LIB_NAME}")
         endif()
     endif()
 
@@ -371,12 +443,13 @@ endfunction()
 ## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
 function(XMOS_REGISTER_DEPS)
     foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
-        string(REGEX MATCH "^[A-Za-z0-9_ -]+" DEP_NAME ${DEP_MODULE})
-        string(REGEX REPLACE "^[A-Za-z0-9_ -]+" "" DEP_FULL_REQ ${DEP_MODULE})
+        parse_dep_string(${DEP_MODULE} DEP_REPO DEP_VERSION DEP_NAME)
 
-        if(NOT "${DEP_FULL_REQ}" STREQUAL "")
-            string(REGEX MATCH "[0-9.]+" VERSION_REQ ${DEP_FULL_REQ} )
-            string(REGEX MATCH "[<>=]+" VERSION_QUAL_REQ ${DEP_FULL_REQ} )
+        string(REGEX MATCH "^v?([0-9]+)\\.[0-9]+\\.[0-9]+$" _m ${DEP_VERSION})
+        if(CMAKE_MATCH_COUNT EQUAL 1)
+            set(DEP_MAJOR_VER ${CMAKE_MATCH_1})
+        else()
+            set(DEP_MAJOR_VER "")
         endif()
 
         GET_PROPERTY(BUILD_ADDED_DEPS GLOBAL PROPERTY BUILD_ADDED_DEPS)
@@ -406,7 +479,15 @@ function(XMOS_REGISTER_DEPS)
                 set(LIB_ASM_SRCS "")
                 add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}" "${CMAKE_BINARY_DIR}/${DEP_NAME}")
             else()
-                message(FATAL_ERROR "Missing dependency ${DEP_NAME}")
+                set(LIB_XC_SRCS "")
+                set(LIB_C_SRCS "")
+                set(LIB_CXX_SRCS "")
+                set(LIB_ASM_SRCS "")
+                CPMAddPackage(
+                   NAME ${DEP_NAME}
+                   GIT_TAG ${DEP_VERSION}
+                   GIT_REPOSITORY ${DEP_REPO}
+                   SOURCE_DIR ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
             endif()
         endif()
     endforeach()
