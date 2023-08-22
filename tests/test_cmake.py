@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -113,3 +114,28 @@ def test_cmake(test_dir):
         cleanup_app(test_dir / app)
     for static_lib in static_libs:
         cleanup_static_lib(test_dir / static_lib)
+
+
+# When trying to remove git clones, there are read-only files which can't be immediately deleted
+# on Windows. This function is called from an error by shutil.rmtree to change the permissions
+# and remove the file.
+def rmtree_error(func, path, exc_info):
+    os.chmod(path, stat.S_IWRITE)
+    os.remove(path)
+
+
+# This test has extra cleanup to remove the cloned dependencies, so it is disabled from the
+# parameterisation of test_cmake.
+def test_fetch_deps():
+    test_dir = Path(__file__).parent / "_fetch_deps"
+    dep_dirs = ["lib_test0", "lib_test1"]
+
+    for dir in [test_dir / d for d in dep_dirs]:
+        if dir.exists() and dir.is_dir():
+            shutil.rmtree(dir, onerror=rmtree_error)
+
+    test_cmake(test_dir)
+
+    for dir in [test_dir / d for d in dep_dirs]:
+        if dir.exists() and dir.is_dir():
+            shutil.rmtree(dir, onerror=rmtree_error)
