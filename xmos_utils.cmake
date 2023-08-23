@@ -10,7 +10,7 @@ if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
 endif()
 
-include($ENV{XMOS_CMAKE_PATH}/CPM.cmake)
+include($ENV{XMOS_CMAKE_PATH}/cpm/cmake/CPM.cmake)
 
 enable_language(CXX C ASM)
 
