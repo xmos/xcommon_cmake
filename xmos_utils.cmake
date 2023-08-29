@@ -118,34 +118,41 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
     set(${RET_FILE_PCA} ${file_pca} PARENT_SCOPE)
 endfunction()
 
+macro(unset_lib_vars)
+    unset(LIB_XC_SRCS)
+    unset(LIB_C_SRCS)
+    unset(LIB_CXX_SRCS)
+    unset(LIB_ASM_SRCS)
+endmacro()
+
 # If source variables are blank, glob for source files; otherwise prepend the full path
 # The prefix parameter is the prefix on the list variables _XC_SRCS, _C_SRCS, etc.
 macro(glob_srcs prefix)
-    if(NOT ${prefix}_XC_SRCS)
+    if(NOT DEFINED ${prefix}_XC_SRCS)
         file(GLOB_RECURSE ${prefix}_XC_SRCS src/*.xc)
     else()
         list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
-    if(NOT ${prefix}_CXX_SRCS)
+    if(NOT DEFINED ${prefix}_CXX_SRCS)
         file(GLOB_RECURSE ${prefix}_CXX_SRCS src/*.cpp)
     else()
         list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
-    if(NOT ${prefix}_C_SRCS)
+    if(NOT DEFINED ${prefix}_C_SRCS)
         file(GLOB_RECURSE ${prefix}_C_SRCS src/*.c)
     else()
         list(TRANSFORM ${prefix}_C_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
-    if(NOT ${prefix}_ASM_SRCS)
+    if(NOT DEFINED ${prefix}_ASM_SRCS)
         file(GLOB_RECURSE ${prefix}_ASM_SRCS src/*.S)
     else()
         list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
     endif()
 
-    if(NOT ${prefix}_XSCOPE_SRCS)
+    if(NOT DEFINED ${prefix}_XSCOPE_SRCS)
         file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS *.xscope)
     else()
         list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
@@ -473,16 +480,10 @@ function(XMOS_REGISTER_DEPS)
             elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
                 # Clear source variables to avoid inheriting from parent scope
                 # Either add_subdirectory() will populate these, otherwise we glob for them
-                set(LIB_XC_SRCS "")
-                set(LIB_C_SRCS "")
-                set(LIB_CXX_SRCS "")
-                set(LIB_ASM_SRCS "")
+                unset_lib_vars()
                 add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}" "${CMAKE_BINARY_DIR}/${DEP_NAME}")
             else()
-                set(LIB_XC_SRCS "")
-                set(LIB_C_SRCS "")
-                set(LIB_CXX_SRCS "")
-                set(LIB_ASM_SRCS "")
+                unset_lib_vars()
                 CPMAddPackage(
                    NAME ${DEP_NAME}
                    GIT_TAG ${DEP_VERSION}
