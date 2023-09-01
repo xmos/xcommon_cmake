@@ -26,9 +26,8 @@ set(APP_CXX_SRCS
         "src/src1/src1.cpp"
 )
 
-set(APP_C_SRCS
-        "src/src1/src1.c"
-)
+# Empty list here so no C source files are compiled
+set(APP_C_SRCS "")
 
 set(APP_ASM_SRCS
         "src/src0/src0.S"
