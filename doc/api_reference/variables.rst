@@ -1,0 +1,293 @@
+Variables
+---------
+
+CMake XCommon relies on named variables which can be set for application and library code. These
+variables must be set before calling the :ref:`cmake-xcommon-functions`. The order in which the
+variables are set does not matter.
+
+Applications
+^^^^^^^^^^^^
+
+.. _required-application-variables:
+
+Required application variables
+""""""""""""""""""""""""""""""
+
+``APP_HW_TARGET``
+  The target name or filename of an XN file to define the target platform.
+  If a filename is provided, the full path is not required; the child directories of the application
+  directory will be searched and the first file matching this name is used. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_HW_TARGET XCORE-AI-EXPLORER)
+    set(APP_HW_TARGET xk-316-mc.xn)
+
+.. _optional-application-variables:
+
+Optional application variables
+""""""""""""""""""""""""""""""
+
+``APP_ASM_SRCS``
+  List of assembly source files to compile. File paths are relative to the application directory.
+  If not set, all ``*.S`` files in the ``src`` directory and its subdirectories will be compiled.
+  An empty string can be set to avoid compiling any assembly sources. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_ASM_SRCS src/feature0/f0.S src/feature1/f1.S)
+    set(APP_ASM_SRCS "")
+
+``APP_C_SRCS``
+  List of C source files to compile. File paths are relative to the application directory. If not
+  set, all ``*.c`` files in the ``src`` directory and its subdirectories will be compiled. An empty
+  string can be set to avoid compiling any C sources. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_C_SRCS src/feature0/f0.c src/feature1/f1.c)
+    set(APP_C_SRCS "")
+
+``APP_COMPILER_FLAGS``
+  List of options to the compiler for use when compiling all source files, except those which have
+  their own options via the ``APP_COMPILER_FLAGS_<filename>`` variable. This variable should also be
+  used for compiler definitions via the ``-D`` option. Default: empty list which provides no
+  compiler options. Example:
+
+  .. code-block:: cmake
+
+    set(APP_COMPILER_FLAGS -g -O3 -Wall -DMY_DEF=123)
+
+``APP_COMPILER_FLAGS_<config>``
+  List of options to the compiler for use when compiling all source files for the specified config,
+  except those which have their own options via the ``APP_COMPILER_FLAGS_<filename>`` variable.
+  This variable should also be used for compiler definitions via the ``-D`` option. Default: empty
+  list which provides no compiler options. Example:
+
+  .. code-block:: cmake
+  
+    set(APP_COMPILER_FLAGS_config0 -g -O2 -DMY_DEF=456)
+
+``APP_COMPILER_FLAGS_<filename>``
+  List of options to the compiler for use when compiling the specified file. Only the filename is
+  required, not a full path to the file; these compiler options will be used when compiling all
+  files in the application directory which have that filename. This variable should also be used
+  for compiler definitions via the ``-D`` option. Default: empty list which provides no compiler
+  options. Example:
+
+  .. code-block:: cmake
+
+    set(APP_COMPILER_FLAGS_feature0.c -Os -DMY_DEF=789)
+
+``APP_CXX_SRCS``
+  List of C++ source files to compile. File paths are relative to the application directory. If
+  not set, all ``*.cpp`` files in the ``src`` directory and its subdirectories will be compiled.
+  An empty string can be set to avoid compiling any C++ sources. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_CXX_SRCS src/feature0/f0.cpp src/feature1/f1.cpp)
+    set(APP_CXX_SRCS "")
+
+``APP_DEPENDENT_MODULES``
+  List of this application's dependencies, which must be present when compiling. See the separate
+  dependency management section about the dependency fetching process and the acceptable format
+  for values in this list. Default: empty list, so the application has no dependencies. Example:
+
+  .. code-block:: cmake
+
+    set(APP_DEPENDENT_MODULES "lib_i2c(6.1.1)"
+                              "lib_i2s(5.0.0)")
+
+``APP_INCLUDES``
+  List of directories to add to the compiler's include search path when compiling sources.
+  Default: empty list, so no directories are added. Example:
+
+  .. code-block:: cmake
+
+    set(APP_INCLUDES src src/feature0)
+
+``APP_PCA_ENABLE``
+  Boolean option to enable Pre-Compilation Analysis for XC source files. Default: ``OFF``. Example:
+
+  .. code-block:: cmake
+
+    set(APP_PCA_ENABLE ON)
+
+``APP_XC_SRCS``
+  List of XC source files to compile. File paths are relative to the application directory. If
+  not set, all ``*.xc`` files in the ``src`` directory and its subdirectories will be compiled.
+  An empty string can be set to avoid compiling any XC sources. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_XC_SRCS src/feature0/f0.xc src/feature1/f1.xc)
+    set(APP_XC_SRCS "")
+
+``APP_XSCOPE_SRCS``
+  List of xscope configuration files to use in the application. File paths are relative to the
+  application directory. If not set, all ``*.xscope`` files in the ``src`` directory and its
+  subdirectories will be used. An empty string can be set to avoid using any xscope configuration
+  files. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_XSCOPE_SRCS src/config.xscope)
+    set(APP_XSCOPE_SRCS "")
+
+Modules
+^^^^^^^
+
+.. _required-module-variables:
+
+Required module variables
+"""""""""""""""""""""""""
+
+``LIB_DEPENDENT_MODULES``
+  List of this module's dependencies, which must be present when compiling. See the separate
+  dependency management section about the dependency fetching process and the acceptable format
+  for values in this list. If this module has no dependencies, this variable must be set as
+  an empty string. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_DEPENDENT_MODULES "lib_logging(3.1.1)"
+                              "lib_xassert(4.1.0)")
+    set(LIB_DEPENDENT_MODULES "")
+
+``LIB_INCLUDES``
+  List of directories to add to the compiler's include search path when compiling sources.
+  Example:
+
+  .. code-block:: cmake
+
+    set(LIB_INCLUDES api src/feature0)
+
+``LIB_NAME``
+  String of the name for this module. This string will be the name used by the dependent
+  modules list variables for any applications/modules that require this module. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_NAME lib_logging)
+
+``LIB_VERSION``
+  String of the three-part version number for this module. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_VERSION 3.1.1)
+
+.. _optional-module-variables:
+
+Optional module variables
+"""""""""""""""""""""""""
+
+``LIB_ASM_SRCS``
+  List of assembly source files to compile. File paths are relative to the module directory.
+  If not set, all ``*.S`` files in the ``src`` directory and its subdirectories will be compiled.
+  An empty string can be set to avoid compiling any assembly sources. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ASM_SRCS src/feature0/f0.S src/feature1/f1.S)
+    set(LIB_ASM_SRCS "")
+
+``LIB_C_SRCS``
+  List of C source files to compile. File paths are relative to the module directory. If not
+  set, all ``*.c`` files in the ``src`` directory and its subdirectories will be compiled. An
+  empty string can be set to avoid compiling any C sources. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_C_SRCS src/feature0/f0.c src/feature1/f1.c)
+    set(LIB_C_SRCS "")
+
+``LIB_COMPILER_FLAGS``
+  List of options to the compiler for use when compiling all source files, except those which have
+  their own options via the ``LIB_COMPILER_FLAGS_<filename>`` variable. This variable should also be
+  used for compiler definitions via the ``-D`` option. Default: empty list which provides no
+  compiler options. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_COMPILER_FLAGS -g -O3 -Wall -DMY_DEF=123)
+
+``LIB_COMPILER_FLAGS_<filename>``
+  List of options to the compiler for use when compiling the specified file. Only the filename is
+  required, not a full path to the file; these compiler options will be used when compiling all
+  files in the module directory which have that filename. This variable should also be used for
+  compiler definitions via the ``-D`` option. Default: empty list which provides no compiler options.
+  Example:
+
+  .. code-block:: cmake
+
+    set(APP_COMPILER_FLAGS_feature0.c -Os -DMY_DEF=456)
+
+``LIB_CXX_SRCS``
+  List of C++ source files to compile. File paths are relative to the module directory. If not
+  set, all ``*.cpp`` files in the ``src`` directory and its subdirectories will be compiled.
+  An empty string can be set to avoid compiling any C++ sources. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_CXX_SRCS src/feature0/f0.cpp src/feature1/f1.cpp)
+    set(LIB_CXX_SRCS "")
+
+``LIB_OPTIONAL_HEADERS``
+  List of header files that can optionally be present in an application or module which requires
+  this module. These files are not present in this module. If they are present in an application
+  or module, the preprocessor macro ``__<name>_h_exists__`` will be set. Files within this module
+  can then contain code which is conditionally compiled based on the presence of these optional
+  headers in other applications. Default: empty list which provides no optional headers. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_OPTIONAL_HEADERS abc_conf.h)
+
+``LIB_XC_SRCS``
+  List of XC source files to compile. File paths are relative to the module directory. If not
+  set, all ``*.xc`` files in the ``src`` directory and its subdirectories will be compiled. An
+  empty string can be set to avoid compiling any XC sources. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_XC_SRCS src/feature0/f0.xc src/feature1/f1.xc)
+    set(LIB_XC_SRCS "")
+
+``LIB_XSCOPE_SRCS``
+  List of xscope configuration files to use for this module. File paths are relative to the module
+  directory. If not set, all ``*.xscope`` files in the ``src`` directory and its subdirectories will
+  be used. An empty string can be set to avoid using any xscope configuration files for this module.
+  Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_XSCOPE_SRCS src/config.xscope)
+    set(LIB_XSCOPE_SRCS "")
+
+Static Libraries
+^^^^^^^^^^^^^^^^
+
+.. _required-staticlib-variables:
+
+Required static library variables
+"""""""""""""""""""""""""""""""""
+
+The same as the :ref:`required-module-variables`.
+
+.. _optional-staticlib-variables:
+
+Optional static library variables
+"""""""""""""""""""""""""""""""""
+
+The same as the :ref:`optional-module-variables`, and also:
+
+``LIB_ARCH``
+  List of xcore architectures for which to build static libraries. For each architecture, a separate
+  static library archive will be built. If empty or undefined, the default is ``xs3a``. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCH xs2a)
+    set(LIB_ARCH xs2a xs3a)
