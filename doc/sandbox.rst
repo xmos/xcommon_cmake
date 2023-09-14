@@ -10,18 +10,22 @@ Definitions
 There are three types of top-level directories that are present in a sandbox.
 
 Application
-  Contains source code that is specific to the application, and can depend on modules.
+  Contains source code that is specific to the application, and can depend on modules. The
+  application directory is prefixed with ``sw_``, and each set of application-specific code
+  within is in a directory prefixed with ``app_``.
 
 Module
   Contains module source code, which can depend on other modules. Module code is compiled
-  into objects which are directly linked into the application binary.
+  into objects which are directly linked into the application executable. The module
+  directory is prefixed with ``lib_``.
 
 Static Library
   Contains source code and (optionally) a pre-built static library archive, which can be
-  linked into the application binary.
+  linked into the application executable. The static library directory is prefixed with
+  ``lib_``.
 
-Repo Layout
-^^^^^^^^^^^
+Repository Layout
+^^^^^^^^^^^^^^^^^
 
 All the source code repositories are placed in the root of the sandbox; there is no nesting
 of applications and modules. Each directory in the sandbox is a separate git repository.

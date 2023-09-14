@@ -17,11 +17,11 @@ The minimum versions of required tools are listed in the :ref:`software-requirem
 Overview
 ^^^^^^^^
 
-An application binary is built from separate components: application sources, module sources
+An application executable is built from separate components: application sources, module sources
 and static libraries.
 
 Each component sets some cmake variables to define its own properties and its dependency
-relationships to other components.
+relationships with other components.
 
 Then CMake XCommon utility functions provide a CMake implementation to create a build environment
 with the properties as defined in the components.
@@ -36,9 +36,3 @@ XCommon is able to fetch missing dependencies.
   ./doc/sandbox
   ./doc/examples/index
   ./doc/api_reference/index
-
-|XMOS copyright|
-
-|XMOS disclaimer|
-
-|XMOS trademarks|

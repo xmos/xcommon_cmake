@@ -46,12 +46,14 @@ Create the following file structure, with the contents shown below:
         return 0;
     }
 
-Build the binary and run it using the simulator:
+Build the executable and run it using the simulator:
 
 .. code-block:: console
 
     cmake -G Ninja -B build
-    ninja -C build
+    cd build
+    ninja
+    cd ..
     xsim bin/hello_world.xe
 
 The message "Hello world" is displayed.

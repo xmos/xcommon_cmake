@@ -1,7 +1,7 @@
 Application Configs
 ^^^^^^^^^^^^^^^^^^^
 
-Application ``my_app`` has two build configs, which in this trivial case change the value
+Application ``app_cfgs`` has two build configs, which in this trivial case change the value
 of a printed message. When using multiple configs in your application, the same source files
 are compiled for each config, but different compiler flags can be supplied to each config.
 
@@ -11,21 +11,22 @@ Directory structure
 .. code-block::
 
     sandbox/
-           |-- my_app/
-                     |-- CMakeLists.txt
-                     |-- src/
-                            |-- main.c
+           |-- sw_cfgs/
+                      |-- app_cfgs/
+                                  |-- CMakeLists.txt
+                                  |-- src/
+                                         |-- main.c
 
 CMake and source file contents
 """"""""""""""""""""""""""""""
 
-`sandbox/my_app/CMakeLists.txt`
+`sandbox/sw_cfgs/app_cfgs/CMakeLists.txt`
 
 .. code-block:: cmake
 
     cmake_minimum_required(VERSION 3.21)
     include($ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake)
-    project(my_app)
+    project(cfgs)
 
     set(APP_HW_TARGET XCORE-AI-EXPLORER)
     set(APP_COMPILER_FLAGS_config0 -DMSG_NUM=0)
@@ -33,7 +34,7 @@ CMake and source file contents
 
     XMOS_REGISTER_APP()
 
-`sandbox/my_app/src/main.c`
+`sandbox/sw_cfgs/app_cfgs/src/main.c`
 
 .. code-block:: c
 
@@ -47,31 +48,33 @@ CMake and source file contents
 Build instructions
 """"""""""""""""""
 
-Commands to build and run app, from working directory ``sandbox/my_app``:
+Commands to build and run app, from working directory ``sandbox/sw_cfgs/app_cfgs``:
 
 .. code-block:: console
 
     cmake -G Ninja -B build
-    ninja -C build
+    cd build
+    ninja
 
 The build products are:
 
-- ``bin/config0/my_app_config0.xe``
-- ``bin/config1/my_app_config1.xe``
+- ``bin/config0/cfgs_config0.xe``
+- ``bin/config1/cfgs_config1.xe``
 
 These binaries can be run with xsim to see the difference in their printed output.
 
 .. code-block:: console
 
-    $> xsim bin/config0/my_app_config0.xe
+    $> xsim bin/config0/cfgs_config0.xe
     config0
 
-    $> xsim bin/config1/my_app_config1.xe
+    $> xsim bin/config1/cfgs_config1.xe
     config1
 
-Instead of building all the binaries, an individual target can be built.
+An individual executable target can be built, so to build only ``cfgs_config1.xe`` and not
+``cfgs_config0.xe``:
 
 .. code-block:: console
 
-    # Just build my_app_config1.xe, not my_app_config0.xe
-    ninja -C build config1
+    cd build
+    ninja config1

@@ -17,23 +17,24 @@ Directory structure
 .. code-block::
 
     sandbox/
-           |-- my_app/
-                     |-- CMakeLists.txt
-                     |-- src/
-                            |-- flag0.c
-                            |-- flag1.c
-                            |-- main.c
+           |-- sw_cflags/
+                        |-- app_cflags/
+                                      |-- CMakeLists.txt
+                                      |-- src/
+                                             |-- flag0.c
+                                             |-- flag1.c
+                                             |-- main.c
 
 CMake and source file contents
 """"""""""""""""""""""""""""""
 
-`sandbox/my_app/CMakeLists.txt`
+`sandbox/sw_cflags/app_cflags/CMakeLists.txt`
 
 .. code-block:: cmake
 
     cmake_minimum_required(VERSION 3.21)
     include($ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake)
-    project(my_app)
+    project(cflags)
 
     set(APP_HW_TARGET XCORE-AI-EXPLORER)
 
@@ -45,7 +46,7 @@ CMake and source file contents
 
     XMOS_REGISTER_APP()
 
-`sandbox/my_app/src/flag0.c`
+`sandbox/sw_cflags/app_cflags/src/flag0.c`
 
 .. code-block:: c
 
@@ -63,7 +64,7 @@ CMake and source file contents
         printf("%d:%d\n", MSG_NUM, FLAG0);
     }
 
-`sandbox/my_app/src/flag1.c`
+`sandbox/sw_cflags/app_cflags/src/flag1.c`
 
 .. code-block:: c
 
@@ -81,7 +82,7 @@ CMake and source file contents
         printf("%d:%d\n", MSG_NUM, FLAG1);
     }
 
-`sandbox/my_app/src/main.c`
+`sandbox/sw_cflags/app_cflags/src/main.c`
 
 .. code-block:: c
 
@@ -108,28 +109,29 @@ CMake and source file contents
 Build instructions
 """"""""""""""""""
 
-Commands to build and run app, from working directory ``sandbox/my_app``:
+Commands to build and run app, from working directory ``sandbox/sw_cflags/app_cflags``:
 
 .. code-block:: console
 
     cmake -G Ninja -B build
-    ninja -C build
+    cd build
+    ninja
 
 The build products are:
 
-- ``bin/config0/my_app_config0.xe``
-- ``bin/config1/my_app_config1.xe``
+- ``bin/config0/cflags_config0.xe``
+- ``bin/config1/cflags_config1.xe``
 
 These binaries can be run with xsim to see the difference in their printed output.
 
 .. code-block:: console
 
-    $> xsim bin/config0/my_app_config0.xe
+    $> xsim bin/config0/cflags_config0.xe
     config0
     0:0
     0:1
 
-    $> xsim bin/config1/my_app_config1.xe
+    $> xsim bin/config1/cflags_config1.xe
     config1
     1:0
     1:1
