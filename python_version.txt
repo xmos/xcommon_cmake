@@ -1,0 +1,2 @@
+# python_version 3.11.6
+# pip_version 23.2.1
