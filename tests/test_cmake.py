@@ -40,24 +40,25 @@ def cleanup_app(app_dir):
             shutil.rmtree(dir)
 
 
-def build(dir):
+def build(dir, cmake):
     # Set XMOS_CMAKE_PATH in local environment if not set
     cmake_env = os.environ
     if "XMOS_CMAKE_PATH" not in cmake_env:
         cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
-    # Run cmake; assumes that default generator is Ninja on Windows, otherwise Unix Makefiles
-    ret = subprocess.run(["cmake", "-B", "build", "."], cwd=dir, env=cmake_env)
+    ret = subprocess.run(
+        [cmake, "-G", "Unix Makefiles", "-B", "build", "-DCMAKE_MAKE_PROGRAM=xmake"],
+        cwd=dir,
+        env=cmake_env,
+    )
     assert ret.returncode == 0
 
-    # Build
-    build_tool = "ninja" if platform.system() == "Windows" else "make"
-    ret = subprocess.run([build_tool], cwd=dir / "build")
+    ret = subprocess.run(["xmake"], cwd=dir / "build")
     assert ret.returncode == 0
 
 
 @pytest.mark.parametrize("test_dir", list_test_dirs())
-def test_cmake(test_dir):
+def test_cmake(cmake, test_dir):
     test_dir = Path(__file__).parent / test_dir
 
     static_libs = []
@@ -73,7 +74,7 @@ def test_cmake(test_dir):
         for static_lib in prebuild.static_libs:
             static_libs.append(static_lib)
             cleanup_static_lib(test_dir / static_lib)
-            build(test_dir / static_lib)
+            build(test_dir / static_lib, cmake)
 
     apps = [
         d.name for d in test_dir.iterdir() if d.is_dir() and d.name.startswith("app_")
@@ -84,7 +85,7 @@ def test_cmake(test_dir):
 
     for app in apps:
         cleanup_app(test_dir / app)
-        build(test_dir / app)
+        build(test_dir / app, cmake)
 
         bin_dir = test_dir / app / "bin"
 
@@ -126,7 +127,7 @@ def rmtree_error(func, path, exc_info):
 
 # This test has extra cleanup to remove the cloned dependencies, so it is disabled from the
 # parameterisation of test_cmake.
-def test_fetch_deps():
+def test_fetch_deps(cmake):
     test_dir = Path(__file__).parent / "_fetch_deps"
     dep_dirs = ["lib_test0", "lib_test1"]
 
@@ -134,7 +135,7 @@ def test_fetch_deps():
         if dir.exists() and dir.is_dir():
             shutil.rmtree(dir, onerror=rmtree_error)
 
-    test_cmake(test_dir)
+    test_cmake(cmake, test_dir)
 
     for dir in [test_dir / d for d in dep_dirs]:
         if dir.exists() and dir.is_dir():
