@@ -10,6 +10,12 @@ if(PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
 endif()
 
+# If Unix Makefiles are being generated, but a version of make is not present, set xmake as the
+# make program as it will definitely be available.
+if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" AND NOT DEFINED CMAKE_MAKE_PROGRAM)
+    set(CMAKE_MAKE_PROGRAM xmake)
+endif()
+
 include($ENV{XMOS_CMAKE_PATH}/cpm/cmake/CPM.cmake)
 
 enable_language(CXX C ASM)

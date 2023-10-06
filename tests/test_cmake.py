@@ -47,7 +47,7 @@ def build(dir, cmake):
         cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
     ret = subprocess.run(
-        [cmake, "-G", "Unix Makefiles", "-B", "build", "-DCMAKE_MAKE_PROGRAM=xmake"],
+        [cmake, "-G", "Unix Makefiles", "-B", "build"],
         cwd=dir,
         env=cmake_env,
     )
