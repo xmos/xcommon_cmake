@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 
 # Note, this will be set in XMOS SetupEnv
 if(NOT DEFINED ENV{XMOS_CMAKE_PATH})

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 
 ## Import XMOS configurations
 include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")

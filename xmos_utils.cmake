@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
