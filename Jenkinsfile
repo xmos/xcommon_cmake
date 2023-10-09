@@ -1,7 +1,6 @@
 @Library('xmos_jenkins_shared_library@v0.27.0') _
 
 def run_tests(cmake_ver) {
-  sh 'git submodule update --init'
   createVenv('python_version.txt')
   withVenv {
     sh 'pip install -r requirements.txt'

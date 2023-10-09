@@ -16,7 +16,7 @@ if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" AND NOT DEFINED CMAKE_MAKE_PROGRAM)
     set(CMAKE_MAKE_PROGRAM xmake)
 endif()
 
-include($ENV{XMOS_CMAKE_PATH}/cpm/cmake/CPM.cmake)
+include(FetchContent)
 
 enable_language(CXX C ASM)
 
@@ -483,18 +483,21 @@ function(XMOS_REGISTER_DEPS)
                     target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
                     target_link_libraries(${target} PRIVATE ${DEP_NAME})
                 endforeach()
-            elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+            else()
                 # Clear source variables to avoid inheriting from parent scope
                 # Either add_subdirectory() will populate these, otherwise we glob for them
                 unset_lib_vars()
-                add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}" "${CMAKE_BINARY_DIR}/${DEP_NAME}")
-            else()
-                unset_lib_vars()
-                CPMAddPackage(
-                   NAME ${DEP_NAME}
-                   GIT_TAG ${DEP_VERSION}
-                   GIT_REPOSITORY ${DEP_REPO}
-                   SOURCE_DIR ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                if(NOT EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO}")
+                    FetchContent_Declare(
+                        ${DEP_NAME}
+                        GIT_REPOSITORY ${DEP_REPO}
+                        GIT_TAG ${DEP_VERSION}
+                        SOURCE_DIR ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}
+                    )
+                    FetchContent_Populate(${DEP_NAME})
+                endif()
+                add_subdirectory(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME} ${CMAKE_BINARY_DIR}/${DEP_NAME})
             endif()
         endif()
     endforeach()
