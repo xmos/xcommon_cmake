@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
 if(NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
-    include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xcore.cmake")
+    include($ENV{XMOS_CMAKE_PATH}/xcore_xs.cmake)
 endif()
 
 if(PROJECT_SOURCE_DIR)
