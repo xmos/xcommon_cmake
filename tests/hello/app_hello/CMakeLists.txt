@@ -8,7 +8,7 @@ else()
 endif()
 
 ## Import XMOS configurations
-include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 

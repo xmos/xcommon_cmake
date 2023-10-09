@@ -9,7 +9,7 @@ else()
 endif()
 
 ## Import XMOS configurations
-include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 
 ## Define project
 project(xscope_src)

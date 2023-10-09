@@ -7,7 +7,7 @@ if(NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
 endif()
 
 if(PROJECT_SOURCE_DIR)
-    message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
+    message(FATAL_ERROR "xcommon.cmake must be included before a project definition")
 endif()
 
 # If Unix Makefiles are being generated, but a version of make is not present, set xmake as the
