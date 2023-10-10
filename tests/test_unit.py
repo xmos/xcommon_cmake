@@ -6,8 +6,15 @@ import subprocess
 import pytest
 
 
-def test_unit_parse_dep_string(cmake):
-    test_dir = Path(__file__).parent / "_unit_parse_dep_string"
+def list_units():
+    base_dir = Path(__file__).parent
+    dirs = [d.name for d in base_dir.iterdir() if d.is_dir()]
+    return [d for d in dirs if d.startswith("_unit_")]
+
+
+@pytest.mark.parametrize("unit", list_units())
+def test_unit(cmake, unit):
+    test_dir = Path(__file__).parent / unit
     build_dir = test_dir / "build"
 
     # Remove any pre-existing build directory
