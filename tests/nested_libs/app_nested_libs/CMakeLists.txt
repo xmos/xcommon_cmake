@@ -3,7 +3,7 @@ include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 project(nested_libs)
 
 set(APP_HW_TARGET XCORE-AI-EXPLORER)
-set(APP_DEPENDENT_MODULES intf0 stat0)
+set(APP_DEPENDENT_MODULES lib_intf0 lib_stat0)
 
 set(XMOS_DEPS_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
 
