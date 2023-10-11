@@ -9,10 +9,10 @@ Some CMake function calls are required in the application or static library CMak
 ``cmake_minimum_required``
   This is used to set the minimum version of CMake based on the language features used. Your version of
   CMake must not be lower than the version set in this function call. An appropriate value is the minimum
-  version of CMake supported by CMake XCommon, as reported in the Quick Start Guide.
+  version of CMake supported by XCommon CMake, as reported in the Quick Start Guide.
 
-``include($ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake)``
-  This is the inclusion of the xcore toolchain and the functions provided by CMake XCommon. The environment
+``include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)``
+  This is the inclusion of the xcore toolchain and the functions provided by XCommon CMake. The environment
   variable XMOS_CMAKE_PATH will be set by enabling the XTC Tools environment.
 
 ``project``
@@ -25,14 +25,14 @@ file.
 .. code-block:: cmake
 
     cmake_minimum_required(VERSION 3.21)
-    include($ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake)
+    include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
     project(my_app)
 
-    # Now you can write the rest of your CMake for CMake XCommon
+    # Now ready for the XCommon CMake code for the application or static library
 
-.. _cmake-xcommon-functions:
+.. _xcommon-cmake-functions:
 
-CMake XCommon Functions
+XCommon CMake Functions
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 ``XMOS_REGISTER_APP()``

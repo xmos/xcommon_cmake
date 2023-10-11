@@ -1,8 +1,8 @@
 Variables
 ---------
 
-CMake XCommon relies on named variables which can be set for application and library code. These
-variables must be set before calling the :ref:`cmake-xcommon-functions`. The order in which the
+XCommon CMake relies on named variables which can be set for application and library code. These
+variables must be set before calling the :ref:`xcommon-cmake-functions`. The order in which the
 variables are set does not matter.
 
 Applications

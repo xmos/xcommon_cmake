@@ -12,7 +12,7 @@ Software Requirements
 Hello World Example
 ^^^^^^^^^^^^^^^^^^^
 
-This example is a simple "Hello world" application to demonstrate a minimal project using CMake XCommon.
+This example is a simple "Hello world" application to demonstrate a minimal project using XCommon CMake.
 
 Create the following file structure, with the contents shown below:
 
@@ -28,7 +28,7 @@ Create the following file structure, with the contents shown below:
 .. code-block:: cmake
 
     cmake_minimum_required(VERSION 3.21)
-    include($ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake)
+    include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
     project(hello_world)
 
     set(APP_HW_TARGET XCORE-AI-EXPLORER)

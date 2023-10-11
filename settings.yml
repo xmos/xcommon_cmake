@@ -1,9 +1,9 @@
-title: CMake XCommon
-project: cmake_xcommon
-version: 1.0.0
+title: XCommon CMake
+project: xcommon_cmake
+version: 0.1.0
 exclude_patterns_path: .doc_exclude
 documentation:
     pdfs:
         index:
-            pdf_title: "CMake XCommon"
-            pdf_filename: "cmake_xcommon"
+            pdf_title: "XCommon CMake"
+            pdf_filename: "xcommon_cmake"

@@ -1,5 +1,5 @@
 #############
-CMake XCommon
+XCommon CMake
 #############
 
 .. toctree::
