@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
+project(stat0)
 
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-    include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-    project("stat0")
-endif()
-
-add_subdirectory("stat0")
+add_subdirectory(stat0)

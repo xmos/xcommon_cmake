@@ -1,1 +1,1 @@
-add_subdirectory("./lib_intf")
+add_subdirectory(lib_intf)

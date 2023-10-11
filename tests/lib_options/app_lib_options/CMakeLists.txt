@@ -1,13 +1,11 @@
 cmake_minimum_required(VERSION 3.21)
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-
 project(lib_options)
 
-## Set XMOS application variables
-set(APP_HW_TARGET "XCORE-AI-EXPLORER")
-set(APP_DEPENDENT_MODULES "lib_intf(>=1.0.0)" "lib_intf2(>=1.0.0)" "lib_stat(>=1.0.0)")
-set(APP_COMPILER_FLAGS "-DAPP_OPTION=1")
+set(APP_HW_TARGET XCORE-AI-EXPLORER)
+set(APP_DEPENDENT_MODULES lib_intf lib_intf2 lib_stat)
+set(APP_COMPILER_FLAGS -DAPP_OPTION=1)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
-set(XMOS_DEPS_ROOT_DIR "${CMAKE_SOURCE_DIR}/..")
+set(XMOS_DEPS_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
+
 XMOS_REGISTER_APP()

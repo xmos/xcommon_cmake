@@ -1,27 +1,19 @@
 cmake_minimum_required(VERSION 3.21)
-
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-
 project(unit_parse_dep_string)
-
-# Note, this will be set in XMOS SetupEnv
-if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
-    message(ERROR "XMOS_CMAKE_PATH not defined")
-else()
-    message(STATUS "Using cmake scripts from $ENV{XMOS_CMAKE_PATH}")
-endif()
 
 function(unit_test input_str exp_repo exp_ver)
     parse_dep_string(${input_str} ret_repo ret_ver ret_name)
 
-    if(NOT ${ret_repo} STREQUAL ${exp_repo})
+    if(NOT ret_repo STREQUAL exp_repo)
         message(FATAL_ERROR "expected: ${exp_repo}, got: ${ret_repo}")
     endif()
 
-    if(NOT ${ret_ver} STREQUAL ${exp_ver})
+    if(NOT ret_ver STREQUAL exp_ver)
         message(FATAL_ERROR "expected: ${exp_ver}, got: ${ret_ver}")
     endif()
 endfunction()
+
 
 # Each grouped set of tests includes all the ways of choosing the version
 # These repos don't exist, nothing is cloned. This is just to test the string outputs

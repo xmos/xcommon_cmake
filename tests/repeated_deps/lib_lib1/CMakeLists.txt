@@ -1,1 +1,1 @@
-add_subdirectory("./lib_lib1")
+add_subdirectory(lib_lib1)

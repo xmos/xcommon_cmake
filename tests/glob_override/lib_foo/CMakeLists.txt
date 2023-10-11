@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
+project(lib_foo)
 
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-    include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-    project("lib_foo")
-endif()
-
-add_subdirectory("lib_foo")
+add_subdirectory(lib_foo)

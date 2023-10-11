@@ -1,21 +1,8 @@
 cmake_minimum_required(VERSION 3.21)
-
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-
 project(build_default_config)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
-
-# Note, this will be set in XMOS SetupEnv
-if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
-    message(ERROR "XMOS_CMAKE_PATH not defined")
-else()
-    message(STATUS "Using cmake scripts from $ENV{XMOS_CMAKE_PATH}")
-endif()
-
-## Set XMOS application variables
-set(APP_HW_TARGET "XCORE-AI-EXPLORER")
-
-set(APP_COMPILER_FLAGS "-DMSG=DefaultConfig")
+set(APP_HW_TARGET XCORE-AI-EXPLORER)
+set(APP_COMPILER_FLAGS -DMSG=DefaultConfig)
 
 XMOS_REGISTER_APP()
