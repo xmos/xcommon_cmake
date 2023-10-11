@@ -37,6 +37,11 @@ pipeline {
       defaultValue: '15.2.1',
       description: 'The XTC Tools version'
     )
+    string(
+      name: 'XMOSDOC_VERSION',
+      defaultValue: 'v4.0.0',
+      description: 'The xmosdoc version'
+    )
   }
 
   stages {
@@ -58,6 +63,7 @@ pipeline {
               label "${PLATFORM} && x86_64"
             }
             steps {
+              println "Stage running on ${env.NODE_NAME}"
               run_tests("${CMAKE_VERSION}")
             }
             post {
@@ -70,6 +76,20 @@ pipeline {
             }
           }
         }
+      }
+    }
+    stage('Documentation') {
+      agent {
+        label 'docker'
+      }
+      steps {
+        println "Stage running on ${env.NODE_NAME}"
+        sh "docker pull ghcr.io/xmos/xmosdoc:${params.XMOSDOC_VERSION}"
+        sh """docker run -u "\$(id -u):\$(id -g)" \
+              --rm \
+              -v ${WORKSPACE}:/build \
+              ghcr.io/xmos/xmosdoc:${params.XMOSDOC_VERSION} -v"""
+        archiveArtifacts artifacts: 'doc/_build/**', allowEmptyArchive: false
       }
     }
   }
