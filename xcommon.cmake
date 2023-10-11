@@ -630,7 +630,7 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY VERSION ${LIB_VERSION})
         target_sources(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
         target_include_directories(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_INCLUDES})
-        target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_ADD_COMPILER_FLAGS} "-march=${lib_arch}")
+        target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_COMPILER_FLAGS} "-march=${lib_arch}")
 
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
         # Set output name so that static library filename does not include architecture
