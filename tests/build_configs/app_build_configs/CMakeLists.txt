@@ -1,10 +1,8 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 
-include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 
-project(build_default_config)
-
-set(CMAKE_VERBOSE_MAKEFILE ON)
+project(build_configs)
 
 # Note, this will be set in XMOS SetupEnv
 if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
@@ -16,6 +14,8 @@ endif()
 ## Set XMOS application variables
 set(APP_HW_TARGET "XCORE-AI-EXPLORER")
 
-set(APP_COMPILER_FLAGS "-DMSG=DefaultConfig")
+set(APP_COMPILER_FLAGS "-DMSG=ERROR") # We expect this to be ignored
+set(APP_COMPILER_FLAGS_config2 "-DMSG=config2")
+set(APP_COMPILER_FLAGS_config1 "-DMSG=config1")
 
 XMOS_REGISTER_APP()

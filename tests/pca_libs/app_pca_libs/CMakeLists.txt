@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 
 # Note, this will be set in XMOS SetupEnv
 if(NOT DEFINED ENV{XMOS_CMAKE_PATH})
@@ -8,7 +8,7 @@ else()
 endif()
 
 ## Import XMOS configurations
-include("$ENV{XMOS_CMAKE_PATH}/xmos_utils.cmake")
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 
 ## Define project
 project(pca_libs)

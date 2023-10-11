@@ -1,7 +1,0 @@
-# To regenerate requirements.txt, pip install pip-tools and then run
-#   pip-compile -o requirements.txt requirements-in.txt
-#
-# To support all platforms, this should be run on all OSes and the
-# union taken of the dependencies.
-#
-pytest

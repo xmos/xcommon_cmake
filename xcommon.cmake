@@ -1,21 +1,32 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 
 # Set up compiler
 # This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
 if(NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
-    include("$ENV{XMOS_CMAKE_PATH}/xmos_cmake_toolchain/xcore.cmake")
+    include($ENV{XMOS_CMAKE_PATH}/xcore_xs.cmake)
 endif()
 
 if(PROJECT_SOURCE_DIR)
-    message(FATAL_ERROR "xmos_utils.cmake must be included before a project definition")
+    message(FATAL_ERROR "xcommon.cmake must be included before a project definition")
 endif()
 
-include($ENV{XMOS_CMAKE_PATH}/cpm/cmake/CPM.cmake)
+# If Unix Makefiles are being generated, but a version of make is not present, set xmake as the
+# make program as it will definitely be available.
+if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" AND NOT DEFINED CMAKE_MAKE_PROGRAM)
+    set(CMAKE_MAKE_PROGRAM xmake)
+endif()
+
+include(FetchContent)
 
 enable_language(CXX C ASM)
 
 # Define XMOS-specific target properties
 define_property(TARGET PROPERTY OPTIONAL_HEADERS BRIEF_DOCS "Contains list of optional headers." FULL_DOCS "Contains a list of optional headers.  The application level should search through all app includes and define D__[header]_h_exists__ for each header that is in both the app and optional headers.")
+
+set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
+set(MANIFEST_HEADER
+        "Name                    | Location                                        | Branch/tag             | Changeset\n"
+        "------------------------+-------------------------------------------------+------------------------+-----------------------------------------\n")
 
 function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     get_cmake_property(_vars VARIABLES)
@@ -232,6 +243,106 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
     set(${ret_repo} "${match_server}${match_org}/${dep_str}" PARENT_SCOPE)
 endfunction()
 
+# Append spaces to a string to pad it to the given length, returning the result in the ret_str variable
+function(pad_string str total_len ret_str)
+    string(LENGTH ${str} str_len)
+    math(EXPR pad_len "${total_len} - ${str_len}")
+    if(pad_len GREATER 0)
+        string(REPEAT " " ${pad_len} pad_str)
+        set(${ret_str} "${str}${pad_str}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+function(form_manifest_string name version repo branch commit_hash status ret_str)
+    if(NOT commit_hash)
+        # Must not be in a git repo, so unset other variables
+        set(commit_hash "-")
+        unset(branch)
+        unset(repo)
+        unset(status)
+    endif()
+
+    if(NOT repo)
+        set(repo "-")
+    endif()
+
+    if(NOT name)
+        string(REGEX REPLACE "\\.git$" "" name ${repo})
+        string(REGEX MATCH "/([a-zA-Z0-9\\._-]+)$" _m ${name})
+        if(CMAKE_MATCH_COUNT EQUAL 1)
+            set(name ${CMAKE_MATCH_1})
+        else()
+            set(name "-")
+        endif()
+    endif()
+
+    # Depending on the git version, a branch might be checked out by detaching the HEAD of that branch
+    string(REGEX MATCH "^HEAD detached at ([a-zA-Z0-9\\._-]+/)?([a-zA-Z0-9\\._-]+)\n" _m "${status}")
+    if(CMAKE_MATCH_COUNT GREATER 1)
+        set(detached ${CMAKE_MATCH_${CMAKE_MATCH_COUNT}})
+        if(commit_hash MATCHES "^${detached}")
+            set(branch "-")
+        else()
+            set(branch "${detached}")
+        endif()
+    endif()
+
+    if(NOT branch)
+        set(branch "-")
+    endif()
+
+    set(manifest_str "${name}")
+    pad_string(${manifest_str} 25 manifest_str)
+    string(APPEND manifest_str " ${repo}")
+    pad_string(${manifest_str} 75 manifest_str)
+    string(APPEND manifest_str " ${branch}")
+    pad_string(${manifest_str} 100 manifest_str)
+    string(APPEND manifest_str " ${commit_hash}")
+
+    set(${ret_str} ${manifest_str} PARENT_SCOPE)
+endfunction()
+
+# Called for the top-level app/lib and each module, this takes a name and version (either blank for the
+# top-level app or provided by the module dependency specification), checks the git repo status to work out
+# changeset hashes and tags, and then appends an entry in the manifest file for the module.
+function(manifest_git_status name version)
+    if(NOT name)
+        set(working_dir ${CMAKE_SOURCE_DIR})
+    else()
+        set(working_dir ${XMOS_DEPS_ROOT_DIR}/${name})
+    endif()
+
+    execute_process(COMMAND git remote get-url origin
+                    TIMEOUT 5
+                    WORKING_DIRECTORY ${working_dir}
+                    OUTPUT_VARIABLE repo
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+
+    execute_process(COMMAND git branch --show-current
+                    TIMEOUT 5
+                    WORKING_DIRECTORY ${working_dir}
+                    OUTPUT_VARIABLE branch
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+
+    execute_process(COMMAND git rev-parse HEAD
+                    TIMEOUT 5
+                    WORKING_DIRECTORY ${working_dir}
+                    OUTPUT_VARIABLE commit_hash
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+
+    execute_process(COMMAND git status
+                    TIMEOUT 5
+                    WORKING_DIRECTORY ${working_dir}
+                    OUTPUT_VARIABLE status
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+
+    form_manifest_string("${name}" "${version}" "${repo}" "${branch}" "${commit_hash}" "${status}" manifest_str)
+    file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
+endfunction()
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
@@ -330,6 +441,10 @@ function(XMOS_REGISTER_APP)
 
     #set(BUILD_ADDED_DEPS "")
     SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+
+    # Overwrites file if already present and then record manifest entry for application repo
+    file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
+    manifest_git_status("" "")
 
     XMOS_REGISTER_DEPS()
 
@@ -477,19 +592,24 @@ function(XMOS_REGISTER_DEPS)
                     target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
                     target_link_libraries(${target} PRIVATE ${DEP_NAME})
                 endforeach()
-            elseif(EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+            else()
                 # Clear source variables to avoid inheriting from parent scope
                 # Either add_subdirectory() will populate these, otherwise we glob for them
                 unset_lib_vars()
-                add_subdirectory("${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}" "${CMAKE_BINARY_DIR}/${DEP_NAME}")
-            else()
-                unset_lib_vars()
-                CPMAddPackage(
-                   NAME ${DEP_NAME}
-                   GIT_TAG ${DEP_VERSION}
-                   GIT_REPOSITORY ${DEP_REPO}
-                   SOURCE_DIR ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                if(NOT EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO}")
+                    FetchContent_Declare(
+                        ${DEP_NAME}
+                        GIT_REPOSITORY ${DEP_REPO}
+                        GIT_TAG ${DEP_VERSION}
+                        SOURCE_DIR ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}
+                    )
+                    FetchContent_Populate(${DEP_NAME})
+                endif()
+                add_subdirectory(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME} ${CMAKE_BINARY_DIR}/${DEP_NAME})
             endif()
+
+            manifest_git_status(${DEP_NAME} ${DEP_VERSION})
         endif()
     endforeach()
 endfunction()
@@ -519,6 +639,10 @@ function(XMOS_STATIC_LIBRARY)
     endforeach()
 
     SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+
+    # Overwrites file if already present and then record manifest entry for application repo
+    file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
+    manifest_git_status("" "")
 
     XMOS_REGISTER_DEPS()
 
