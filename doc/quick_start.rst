@@ -7,7 +7,6 @@ Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 - `CMake <https://cmake.org>`_ (minimum version 3.21)
 - `Git <https://git-scm.com>`_ (minimum version 2.25)
-- `Ninja <https://ninja-build.org>`_ (minimum version 1.11.0)
 
 Hello World Example
 ^^^^^^^^^^^^^^^^^^^
@@ -50,9 +49,9 @@ Build the executable and run it using the simulator:
 
 .. code-block:: console
 
-    cmake -G Ninja -B build
+    cmake -G "Unix Makefiles" -B build
     cd build
-    ninja
+    xmake
     cd ..
     xsim bin/hello_world.xe
 

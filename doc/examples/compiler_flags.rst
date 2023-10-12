@@ -113,9 +113,9 @@ Commands to build and run app, from working directory ``sandbox/sw_cflags/app_cf
 
 .. code-block:: console
 
-    cmake -G Ninja -B build
+    cmake -G "Unix Makefiles" -B build
     cd build
-    ninja
+    xmake
 
 The build products are:
 

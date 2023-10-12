@@ -52,9 +52,9 @@ Commands to build and run app, from working directory ``sandbox/sw_cfgs/app_cfgs
 
 .. code-block:: console
 
-    cmake -G Ninja -B build
+    cmake -G "Unix Makefiles" -B build
     cd build
-    ninja
+    xmake
 
 The build products are:
 
@@ -77,4 +77,4 @@ An individual executable target can be built, so to build only ``cfgs_config1.xe
 .. code-block:: console
 
     cd build
-    ninja config1
+    xmake config1

@@ -65,9 +65,9 @@ Commands to build the static libraries, from working directory ``sandbox/lib_abc
 
 .. code-block:: console
 
-    cmake -G Ninja -B build
+    cmake -G "Unix Makefiles" -B build
     cd build
-    ninja
+    xmake
 
 A static library archive is created for each architecture, with a cmake include file
 so that it can be added to an application project and linked into an executable.

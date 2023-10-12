@@ -69,6 +69,6 @@ Commands to configure and build the app, from working directory ``sandbox/sw_opt
 
 .. code-block:: console
 
-    cmake -G Ninja -B build
+    cmake -G "Unix Makefiles" -B build
     cd build
-    ninja
+    xmake

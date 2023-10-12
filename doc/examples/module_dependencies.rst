@@ -88,8 +88,8 @@ Commands to build and run app, from working directory ``sandbox/sw_moddeps/app_m
 
 .. code-block:: console
 
-    cmake -G Ninja -B build
+    cmake -G "Unix Makefiles" -B build
     cd build
-    ninja
+    xmake
 
 The build product is ``bin/moddeps.xe``.
