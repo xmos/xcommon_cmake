@@ -5,7 +5,7 @@
 #endif
 
 #ifndef LIB_INTF2_OPTION
-#error LIB_INTF2_OPTION not defined 
+#error LIB_INTF2_OPTION not defined
 #endif
 
 #ifndef APP_OPTION

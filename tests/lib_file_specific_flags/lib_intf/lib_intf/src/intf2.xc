@@ -1,7 +1,7 @@
 #include "intf.h"
 
 #ifndef LIB_INTF_OPTION
-#error LIB_INTF_OPTION not defined 
+#error LIB_INTF_OPTION not defined
 #endif
 
 #ifdef INTF_FILE_FLAG

@@ -9,7 +9,7 @@
 #error MSG not defined
 #endif
 
-int main() 
+int main()
 {
     printstrln(STRINGIFY(MSG));
     printstrln(STRINGIFY(CONFIG));

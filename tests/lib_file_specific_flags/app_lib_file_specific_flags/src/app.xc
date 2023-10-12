@@ -8,7 +8,7 @@
 #error LIB_INTF_OPTION defined
 #endif
 
-int main() 
+int main()
 {
     intf();
     intf2();

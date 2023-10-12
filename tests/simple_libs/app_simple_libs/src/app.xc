@@ -1,7 +1,7 @@
 #include "intf.h"
 #include "stat.h"
 
-int main() 
+int main()
 {
     intf();
     intf_asm();

@@ -7,7 +7,7 @@
 #error MSG not defined
 #endif
 
-void intf() 
+void intf()
 {
     printstrln(STRINGIFY(MSG));
 }

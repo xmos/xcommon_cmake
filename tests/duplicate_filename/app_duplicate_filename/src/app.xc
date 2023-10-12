@@ -1,7 +1,7 @@
 #include "intf.h"
 #include "intf2.h"
 
-int main() 
+int main()
 {
     intf();
     intf2();
