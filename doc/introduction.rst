@@ -1,8 +1,8 @@
 Introduction
 ------------
 
-XCommon CMake is a build system for xcore applications and libraries. It uses ``git`` to
-fetch dependencies, followed by ``cmake`` to configure and generate a build environment,
+XCommon CMake is a build system for xcore applications and libraries. It uses ``cmake`` to
+configure and generate a build environment, using ``git`` to fetch any missing dependencies,
 which can then be built with ``xmake``.
 
 The aim of XCommon CMake is to use a standard tool (CMake) to accelerate the development of
