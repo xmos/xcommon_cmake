@@ -45,6 +45,20 @@ pipeline {
   }
 
   stages {
+    stage('Documentation') {
+      agent {
+        label 'docker'
+      }
+      steps {
+        println "Stage running on ${env.NODE_NAME}"
+        sh "docker pull ghcr.io/xmos/xmosdoc:${params.XMOSDOC_VERSION}"
+        sh """docker run -u "\$(id -u):\$(id -g)" \
+              --rm \
+              -v ${WORKSPACE}:/build \
+              ghcr.io/xmos/xmosdoc:${params.XMOSDOC_VERSION} -v"""
+        archiveArtifacts artifacts: 'doc/_build/**', allowEmptyArchive: false
+      }
+    }
     stage('Test') {
       matrix {
         axes {
@@ -76,20 +90,6 @@ pipeline {
             }
           }
         }
-      }
-    }
-    stage('Documentation') {
-      agent {
-        label 'docker'
-      }
-      steps {
-        println "Stage running on ${env.NODE_NAME}"
-        sh "docker pull ghcr.io/xmos/xmosdoc:${params.XMOSDOC_VERSION}"
-        sh """docker run -u "\$(id -u):\$(id -g)" \
-              --rm \
-              -v ${WORKSPACE}:/build \
-              ghcr.io/xmos/xmosdoc:${params.XMOSDOC_VERSION} -v"""
-        archiveArtifacts artifacts: 'doc/_build/**', allowEmptyArchive: false
       }
     }
   }
