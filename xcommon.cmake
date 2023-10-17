@@ -476,7 +476,7 @@ function(XMOS_REGISTER_APP)
         endforeach()
     endforeach()
 
-    if(APP_PCA_ENABLE)
+    if(APP_PCA_ENABLE AND NOT BUILD_NATIVE)
         foreach(target ${BUILD_TARGETS})
             string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
             set(DOT_BUILD_DIR ${CMAKE_SOURCE_DIR}/.build${DOT_BUILD_SUFFIX})
