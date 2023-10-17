@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
 
+option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
+
 # Set up compiler
-# This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
-if(NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
+if(NOT BUILD_NATIVE AND NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
     include($ENV{XMOS_CMAKE_PATH}/xcore_xs.cmake)
 endif()
 
@@ -11,9 +12,9 @@ if(PROJECT_SOURCE_DIR)
 endif()
 
 # If Unix Makefiles are being generated, but a version of make is not present, set xmake as the
-# make program as it will definitely be available.
+# make program in the variable cache as it will definitely be available.
 if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" AND NOT DEFINED CMAKE_MAKE_PROGRAM)
-    set(CMAKE_MAKE_PROGRAM xmake)
+    set(CMAKE_MAKE_PROGRAM xmake CACHE STRING "")
 endif()
 
 include(FetchContent)
@@ -346,7 +347,7 @@ endfunction()
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
-    if(NOT APP_HW_TARGET)
+    if(NOT BUILD_NATIVE AND NOT APP_HW_TARGET)
         message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
     endif()
 
@@ -366,7 +367,7 @@ function(XMOS_REGISTER_APP)
             message(FATAL_ERROR "XN file not found")
         endif()
         set(APP_TARGET_COMPILER_FLAG ${xn_files})
-    else()
+    elseif(NOT BUILD_NATIVE)
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
     endif()
 
@@ -378,15 +379,19 @@ function(XMOS_REGISTER_APP)
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
 
-    # Automatically determine architecture
-    list(LENGTH ALL_SRCS_PATH num_srcs)
-    if(NOT ${num_srcs} GREATER 0)
-        message(FATAL_ERROR "No sources present to determine architecture")
+    if(NOT BUILD_NATIVE)
+        # Automatically determine architecture
+        list(LENGTH ALL_SRCS_PATH num_srcs)
+        if(NOT ${num_srcs} GREATER 0)
+            message(FATAL_ERROR "No sources present to determine architecture")
+        endif()
+        list(GET ALL_SRCS_PATH 0 src0)
+        execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
+                        OUTPUT_VARIABLE APP_BUILD_ARCH
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    else()
+        set(APP_BUILD_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
-    list(GET ALL_SRCS_PATH 0 src0)
-    execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
-                    OUTPUT_VARIABLE APP_BUILD_ARCH
-                    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     # Find all build configs
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
@@ -616,10 +621,14 @@ endfunction()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
-    list(LENGTH LIB_ARCH num_arch)
-    if(${num_arch} LESS 1)
-        # If architecture not specified, assume xs3a
-        set(LIB_ARCH "xs3a")
+    if(NOT BUILD_NATIVE)
+        list(LENGTH LIB_ARCH num_arch)
+        if(${num_arch} LESS 1)
+            # If architecture not specified, assume xs3a
+            set(LIB_ARCH "xs3a")
+        endif()
+    else()
+        set(LIB_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
 
     glob_srcs("LIB")
@@ -630,7 +639,9 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY VERSION ${LIB_VERSION})
         target_sources(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
         target_include_directories(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_INCLUDES})
-        target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_COMPILER_FLAGS} "-march=${lib_arch}")
+        if(NOT BUILD_NATIVE)
+            target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_COMPILER_FLAGS} "-march=${lib_arch}")
+        endif()
 
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
         # Set output name so that static library filename does not include architecture
