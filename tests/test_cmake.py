@@ -140,3 +140,56 @@ def test_fetch_deps(cmake):
     for dir in [test_dir / d for d in dep_dirs]:
         if dir.exists() and dir.is_dir():
             shutil.rmtree(dir, onerror=rmtree_error)
+
+
+def test_native_build(cmake):
+    test_dir = Path(__file__).parent / "_native_build"
+    app_dir = test_dir / "app_native_build"
+    build_dir = app_dir / "build"
+    bin_dir = app_dir / "bin"
+    lib_dir = test_dir / "lib_abc"
+    lib_build_dir = lib_dir / "build"
+
+    cleanup_app(app_dir)
+    cleanup_static_lib(lib_dir)
+
+    cmake_env = os.environ
+    if "XMOS_CMAKE_PATH" not in cmake_env:
+        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+
+    cmake_native_cmd = [
+        cmake,
+        "-G",
+        "Unix Makefiles",
+        "-B",
+        "build",
+        "-D",
+        "BUILD_NATIVE=ON",
+    ]
+
+    ret = subprocess.run(cmake_native_cmd, cwd=lib_dir, env=cmake_env)
+    assert ret.returncode == 0
+
+    ret = subprocess.run(["xmake"], cwd=lib_build_dir)
+    assert ret.returncode == 0
+
+    ret = subprocess.run(cmake_native_cmd, cwd=app_dir, env=cmake_env)
+    assert ret.returncode == 0
+
+    ret = subprocess.run(["xmake"], cwd=build_dir)
+    assert ret.returncode == 0
+
+    exe_name = "native_build.exe" if platform.system() == "Windows" else "native_build"
+    exe_path = Path(bin_dir) / exe_name
+    ret = subprocess.run(
+        [exe_path],
+        capture_output=True,
+        text=True,
+        shell=True,
+    )
+    assert ret.returncode == 0
+    with open(test_dir / "native_build.expect", "r") as f:
+        assert f.read() == ret.stdout
+
+    cleanup_app(app_dir)
+    cleanup_static_lib(lib_dir)

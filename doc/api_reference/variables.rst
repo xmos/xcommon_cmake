@@ -23,6 +23,8 @@ Required application variables
     set(APP_HW_TARGET XCORE-AI-EXPLORER)
     set(APP_HW_TARGET xk-316-mc.xn)
 
+  Advanced: this variable is not required if exclusively performing :ref:`native-builds`.
+
 .. _optional-application-variables:
 
 Optional application variables
