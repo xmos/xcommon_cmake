@@ -13,7 +13,7 @@ Directory structure
            |-- lib_mod0/
            |           |-- lib_mod0/
            |                       |-- api/
-           |                       |-- CMakeLists.txt
+           |                       |-- lib_build_info.cmake
            |                       |-- src/
            |-- lib_abc/
                       |-- CMakeLists.txt
@@ -47,7 +47,7 @@ CMake file contents
 
     XMOS_STATIC_LIBRARY()
 
-`sandbox/lib_mod0/lib_mod0/CMakeLists.txt`
+`sandbox/lib_mod0/lib_mod0/lib_build_info.cmake`
 
 .. code-block:: cmake
 

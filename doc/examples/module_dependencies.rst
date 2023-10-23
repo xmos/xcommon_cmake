@@ -13,17 +13,17 @@ Directory structure
            |-- lib_mod0/
            |           |-- lib_mod0/
            |                       |-- api/
-           |                       |-- CMakeLists.txt
+           |                       |-- lib_build_info.cmake
            |                       |-- src/
            |-- lib_mod1/
            |           |-- lib_mod1/
            |                       |-- api/
-           |                       |-- CMakeLists.txt
+           |                       |-- lib_build_info.cmake
            |                       |-- src/
            |-- lib_mod2/
            |           |-- lib_mod2/
            |                       |-- api/
-           |                       |-- CMakeLists.txt
+           |                       |-- lib_build_info.cmake
            |                       |-- src/
            |-- sw_moddeps/
                          |-- app_moddeps/
@@ -47,7 +47,7 @@ CMake file contents
 
     XMOS_REGISTER_APP()
 
-`sandbox/lib_mod0/lib_mod0/CMakeLists.txt`
+`sandbox/lib_mod0/lib_mod0/lib_build_info.cmake`
 
 .. code-block:: cmake
 
@@ -58,7 +58,7 @@ CMake file contents
 
     XMOS_REGISTER_MODULE()
 
-`sandbox/lib_mod1/lib_mod1/CMakeLists.txt`
+`sandbox/lib_mod1/lib_mod1/lib_build_info.cmake`
 
 .. code-block:: cmake
 
@@ -69,7 +69,7 @@ CMake file contents
 
     XMOS_REGISTER_MODULE()
 
-`sandbox/lib_mod2/lib_mod2/CMakeLists.txt`
+`sandbox/lib_mod2/lib_mod2/lib_build_info.cmake`
 
 .. code-block:: cmake
 
