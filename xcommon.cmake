@@ -139,35 +139,35 @@ endmacro()
 
 # If source variables are blank, glob for source files; otherwise prepend the full path
 # The prefix parameter is the prefix on the list variables _XC_SRCS, _C_SRCS, etc.
-macro(glob_srcs prefix)
+macro(glob_srcs prefix src_dir)
     if(NOT DEFINED ${prefix}_XC_SRCS)
-        file(GLOB_RECURSE ${prefix}_XC_SRCS src/*.xc)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/src/*.xc)
     else()
-        list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS src/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/src/*.cpp)
     else()
-        list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_C_SRCS)
-        file(GLOB_RECURSE ${prefix}_C_SRCS src/*.c)
+        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/src/*.c)
     else()
-        list(TRANSFORM ${prefix}_C_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_C_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_ASM_SRCS)
-        file(GLOB_RECURSE ${prefix}_ASM_SRCS src/*.S)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/src/*.S)
     else()
-        list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_XSCOPE_SRCS)
-        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS *.xscope)
+        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS ${src_dir}/*.xscope)
     else()
-        list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${src_dir}/)
     endif()
 endmacro()
 
@@ -375,7 +375,7 @@ function(XMOS_REGISTER_APP)
     #    list(APPEND APP_COMPILER_FLAGS "-DTHIS_XCORE_TILE=${THIS_XCORE_TILE}")
     #endif()
 
-    glob_srcs("APP")
+    glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR})
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
 
@@ -547,7 +547,7 @@ function(XMOS_REGISTER_MODULE)
         set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
     endforeach()
 
-    glob_srcs("LIB")
+    glob_srcs("LIB" ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME})
 
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
                                 TARGET_DIRECTORY ${BUILD_TARGETS}
@@ -556,6 +556,8 @@ function(XMOS_REGISTER_MODULE)
     GET_ALL_VARS_STARTING_WITH("LIB_COMPILER_FLAGS_" LIB_COMPILER_FLAGS_VARS)
     set(ALL_LIB_SRCS_PATH ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
     add_file_flags("LIB" "${ALL_LIB_SRCS_PATH}")
+
+    list(TRANSFORM LIB_INCLUDES PREPEND ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME}/)
 
     foreach(target ${BUILD_TARGETS})
         target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
@@ -611,7 +613,7 @@ function(XMOS_REGISTER_DEPS)
                     )
                     FetchContent_Populate(${DEP_NAME})
                 endif()
-                add_subdirectory(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME} ${CMAKE_BINARY_DIR}/${DEP_NAME})
+                include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib_build_info.cmake)
             endif()
 
             manifest_git_status(${DEP_NAME} ${DEP_VERSION})
@@ -631,7 +633,7 @@ function(XMOS_STATIC_LIBRARY)
         set(LIB_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
 
-    glob_srcs("LIB")
+    glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
 
     set(BUILD_TARGETS "")
     foreach(lib_arch ${LIB_ARCH})
