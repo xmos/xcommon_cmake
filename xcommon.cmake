@@ -547,7 +547,7 @@ function(XMOS_REGISTER_MODULE)
         set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
     endforeach()
 
-    glob_srcs("LIB" ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME})
+    glob_srcs("LIB" ${module_dir})
 
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
                                 TARGET_DIRECTORY ${BUILD_TARGETS}
@@ -557,7 +557,7 @@ function(XMOS_REGISTER_MODULE)
     set(ALL_LIB_SRCS_PATH ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
     add_file_flags("LIB" "${ALL_LIB_SRCS_PATH}")
 
-    list(TRANSFORM LIB_INCLUDES PREPEND ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME}/)
+    list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
     foreach(target ${BUILD_TARGETS})
         target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
@@ -591,9 +591,19 @@ function(XMOS_REGISTER_DEPS)
             # Set GLOBAL PROPERTY rather than PARENT_SCOPE since we may have multiple directory layers
             SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
 
+            if(DEFINED XMOS_DEP_DIR_${DEP_NAME})
+                set(dep_dir ${XMOS_DEP_DIR_${DEP_NAME}})
+
+                if(NOT EXISTS ${dep_dir})
+                    message(FATAL_ERROR "Dependency ${DEP_NAME} not present at ${dep_dir}")
+                endif()
+            else()
+                set(dep_dir ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+            endif()
+
             # Add dependencies directories
-            if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
-                include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
+            if(IS_DIRECTORY ${dep_dir}/${DEP_NAME}/lib)
+                include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
                 get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
                 foreach(target ${BUILD_TARGETS})
                     target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
@@ -601,19 +611,22 @@ function(XMOS_REGISTER_DEPS)
                 endforeach()
             else()
                 # Clear source variables to avoid inheriting from parent scope
-                # Either add_subdirectory() will populate these, otherwise we glob for them
+                # Either lib_build_info.cmake will populate these, otherwise we glob for them
                 unset_lib_vars()
-                if(NOT EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+
+                if(NOT EXISTS ${dep_dir})
                     message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO}")
                     FetchContent_Declare(
                         ${DEP_NAME}
                         GIT_REPOSITORY ${DEP_REPO}
                         GIT_TAG ${DEP_VERSION}
-                        SOURCE_DIR ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}
+                        SOURCE_DIR ${dep_dir}
                     )
                     FetchContent_Populate(${DEP_NAME})
                 endif()
-                include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib_build_info.cmake)
+
+                set(module_dir ${dep_dir}/${DEP_NAME})
+                include(${module_dir}/lib_build_info.cmake)
             endif()
 
             manifest_git_status(${DEP_NAME} ${DEP_VERSION})
@@ -666,14 +679,21 @@ function(XMOS_STATIC_LIBRARY)
         file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in [=[
             add_library(@LIB_NAME@ STATIC IMPORTED)
             set_property(TARGET @LIB_NAME@ PROPERTY SYSTEM OFF)
-            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
+
+            if(DEFINED XMOS_DEP_DIR_@LIB_NAME@)
+                set(dep_dir ${XMOS_DEP_DIR_@LIB_NAME@})
+            else()
+                set(dep_dir ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@)
+            endif()
+
+            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
             set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
             foreach(incdir @LIB_INCLUDES@)
-                target_include_directories(@LIB_NAME@ INTERFACE ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/${incdir})
+                target_include_directories(@LIB_NAME@ INTERFACE ${dep_dir}/@LIB_NAME@/${incdir})
             endforeach()
         ]=])
 
         # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
-        configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
+        configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${CMAKE_SOURCE_DIR}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
     endforeach()
 endfunction()
