@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
+include_guard(GLOBAL)
+
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
 
 # Set up compiler
