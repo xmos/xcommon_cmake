@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
+include_guard(GLOBAL)
+
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
 
 # Set up compiler
@@ -85,7 +87,7 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
 
     # Shorten path just to replicate what xcommon does for now
     # TODO should the xml files be generated into the cmake build dir?
-    file(RELATIVE_PATH file_pca ${CMAKE_SOURCE_DIR} ${SOURCE_FILE})
+    file(RELATIVE_PATH file_pca ${CMAKE_CURRENT_LIST_DIR} ${SOURCE_FILE})
     string(REPLACE "../" "" file_pca ${file_pca})
     string(REPLACE "lib_" "_l_" file_pca ${file_pca})
     get_filename_component(file_pca_dir ${file_pca} PATH)
@@ -422,7 +424,7 @@ function(XMOS_REGISTER_APP)
         if(${APP_CONFIG} STREQUAL "DEFAULT")
             add_executable(${PROJECT_NAME})
             target_sources(${PROJECT_NAME} PRIVATE ${ALL_SRCS_PATH})
-            set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+            set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
             target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
             target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
@@ -432,7 +434,7 @@ function(XMOS_REGISTER_APP)
             add_custom_target(${APP_CONFIG} DEPENDS ${PROJECT_NAME}_${APP_CONFIG})
             remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${ALL_SRCS_PATH}" config_srcs)
             target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${config_srcs})
-            set_target_properties(${PROJECT_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG})
+            set_target_properties(${PROJECT_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin/${APP_CONFIG})
             target_include_directories(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
             target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} "-DCONFIG=${APP_CONFIG}" ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
@@ -479,7 +481,7 @@ function(XMOS_REGISTER_APP)
     if(APP_PCA_ENABLE AND NOT BUILD_NATIVE)
         foreach(target ${BUILD_TARGETS})
             string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
-            set(DOT_BUILD_DIR ${CMAKE_SOURCE_DIR}/.build${DOT_BUILD_SUFFIX})
+            set(DOT_BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.build${DOT_BUILD_SUFFIX})
             set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${DOT_BUILD_DIR})
 
             set(PCA_FILES_PATH "")
