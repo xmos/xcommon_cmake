@@ -59,10 +59,10 @@ def build(dir, cmake):
 
 def run_xes(bin_dir, exp_dir):
     # TODO we need to check that all the xe files we expect are present
-    app_xes = bin_dir.glob("**/*.xe")
+    app_xes = list(bin_dir.glob("**/*.xe"))
 
     # Always expect at least one application
-    assert len(list(app_xes)) > 0
+    assert len(app_xes) > 0
 
     for app_xe in app_xes:
         run_expect = exp_dir / f"{app_xe.stem}.expect"
