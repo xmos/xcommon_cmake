@@ -431,7 +431,11 @@ function(XMOS_REGISTER_APP)
             list(APPEND BUILD_TARGETS ${PROJECT_NAME})
         else()
             add_executable(${PROJECT_NAME}_${APP_CONFIG})
-            add_custom_target(${APP_CONFIG} DEPENDS ${PROJECT_NAME}_${APP_CONFIG})
+            # If a single app is being configured, build targets can be named after the app configs; in the case of a multi-app
+            # build, config names could coincide between applications, so these shorter named targets can't be used.
+            if(CMAKE_CURRENT_LIST_DIR STREQUAL CMAKE_SOURCE_DIR)
+                add_custom_target(${APP_CONFIG} DEPENDS ${PROJECT_NAME}_${APP_CONFIG})
+            endif()
             remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${ALL_SRCS_PATH}" config_srcs)
             target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${config_srcs})
             set_target_properties(${PROJECT_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin/${APP_CONFIG})
