@@ -26,6 +26,10 @@ enable_language(CXX C ASM)
 # Define XMOS-specific target properties
 define_property(TARGET PROPERTY OPTIONAL_HEADERS BRIEF_DOCS "Contains list of optional headers." FULL_DOCS "Contains a list of optional headers.  The application level should search through all app includes and define D__[header]_h_exists__ for each header that is in both the app and optional headers.")
 
+# Global properties to record hosts that can/cannot be accessed via an SSH key to avoid repeatedly checking
+set_property(GLOBAL PROPERTY SSH_HOST_SUCCESS "")
+set_property(GLOBAL PROPERTY SSH_HOST_FAILURE "")
+
 set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
 set(MANIFEST_HEADER
         "Name                    | Location                                        | Branch/tag             | Changeset\n"
@@ -221,13 +225,40 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
         set(match_server "github.com")
     endif()
 
-    # Check whether SSH access is available (returns 1 on success, 255 on failure)
-    execute_process(COMMAND ssh -o "StrictHostKeyChecking no" git@${match_server}
-                    TIMEOUT 30
-                    RESULT_VARIABLE ret
-                    OUTPUT_QUIET
-                    ERROR_QUIET)
-    if(ret EQUAL 1)
+    unset(ssh_host_status)
+
+    get_property(SSH_HOST_SUCCESS GLOBAL PROPERTY SSH_HOST_SUCCESS)
+    list(FIND SSH_HOST_SUCCESS ${match_server} found)
+    if(NOT ${found} EQUAL -1)
+        set(ssh_host_status TRUE)
+    endif()
+
+    get_property(SSH_HOST_FAILURE GLOBAL PROPERTY SSH_HOST_FAILURE)
+    list(FIND SSH_HOST_FAILURE ${match_server} found)
+    if(NOT ${found} EQUAL -1)
+        set(ssh_host_status FALSE)
+    endif()
+
+    if(NOT DEFINED ssh_host_status)
+        # This host isn't in either the success or failure list
+        # Check whether SSH access is available (returns 1 on success, 255 on failure)
+        execute_process(COMMAND ssh -o "StrictHostKeyChecking no" git@${match_server}
+                        TIMEOUT 30
+                        RESULT_VARIABLE ret
+                        OUTPUT_QUIET
+                        ERROR_QUIET)
+        if(ret EQUAL 1)
+            set(ssh_host_status TRUE)
+            list(APPEND SSH_HOST_SUCCESS ${match_server})
+            set_property(GLOBAL PROPERTY SSH_HOST_SUCCESS ${SSH_HOST_SUCCESS})
+        else()
+            set(ssh_host_status FALSE)
+            list(APPEND SSH_HOST_FAILURE ${match_server})
+            set_property(GLOBAL PROPERTY SSH_HOST_FAILURE ${SSH_HOST_FAILURE})
+        endif()
+    endif()
+
+    if(ssh_host_status)
         string(PREPEND match_server "git@")
         string(APPEND match_server ":")
     else()
@@ -450,8 +481,7 @@ function(XMOS_REGISTER_APP)
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
 
-    #set(BUILD_ADDED_DEPS "")
-    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+    set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
@@ -510,7 +540,7 @@ function(XMOS_REGISTER_APP)
                 list(APPEND PCA_FILES_PATH ${file_pca})
             endforeach()
 
-            GET_PROPERTY(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
+            get_property(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
 
             list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_DEPS_ROOT_DIR}/)
 
@@ -587,7 +617,7 @@ function(XMOS_REGISTER_DEPS)
             set(DEP_MAJOR_VER "")
         endif()
 
-        GET_PROPERTY(BUILD_ADDED_DEPS GLOBAL PROPERTY BUILD_ADDED_DEPS)
+        get_property(BUILD_ADDED_DEPS GLOBAL PROPERTY BUILD_ADDED_DEPS)
 
         # Check if this dependency has already been added
         list(FIND BUILD_ADDED_DEPS ${DEP_NAME} found)
@@ -595,7 +625,7 @@ function(XMOS_REGISTER_DEPS)
             list(APPEND BUILD_ADDED_DEPS ${DEP_NAME})
 
             # Set GLOBAL PROPERTY rather than PARENT_SCOPE since we may have multiple directory layers
-            SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
+            set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
 
             if(DEFINED XMOS_DEP_DIR_${DEP_NAME})
                 set(dep_dir ${XMOS_DEP_DIR_${DEP_NAME}})
@@ -670,7 +700,7 @@ function(XMOS_STATIC_LIBRARY)
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
 
-    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+    set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
