@@ -241,10 +241,24 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
 
     if(NOT DEFINED ssh_host_status)
         # This host isn't in either the success or failure list
+
+        if(CMAKE_HOST_WIN32)
+            # To avoid printing artifacts, provide an input file to the ssh command below.
+            # This input file is an empty file which will be left in the CMAKE_BINARY_DIR.
+            # The Windows NUL didn't work as an input.
+            execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/ssh-in.tmp
+                            OUTPUT_QUIET
+                            ERROR_QUIET)
+            set(tmp_input_file ${CMAKE_BINARY_DIR}/ssh-in.tmp)
+        else()
+            set(tmp_input_file "/dev/null")
+        endif()
+
         # Check whether SSH access is available (returns 1 on success, 255 on failure)
         execute_process(COMMAND ssh -o "StrictHostKeyChecking no" git@${match_server}
                         TIMEOUT 30
                         RESULT_VARIABLE ret
+                        INPUT_FILE ${tmp_input_file}
                         OUTPUT_QUIET
                         ERROR_QUIET)
         if(ret EQUAL 1)
