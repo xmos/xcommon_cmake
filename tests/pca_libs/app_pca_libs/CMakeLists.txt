@@ -7,6 +7,6 @@ set(APP_XC_SRCS src/pca_libs.xc)
 set(APP_DEPENDENT_MODULES lib_foo lib_bar)
 set(APP_PCA_ENABLE ON)
 
-set(XMOS_DEPS_ROOT_DIR "${CMAKE_SOURCE_DIR}/..")
+set(XMOS_SANDBOX_DIR ${CMAKE_SOURCE_DIR}/..)
 
 XMOS_REGISTER_APP()

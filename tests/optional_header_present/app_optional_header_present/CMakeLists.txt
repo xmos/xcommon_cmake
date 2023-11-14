@@ -8,6 +8,6 @@ set(APP_DEPENDENT_MODULES lib_foo)
 # "src" directory in APP_INCLUDES because optional header is there
 set(APP_INCLUDES src)
 
-set(XMOS_DEPS_ROOT_DIR ${CMAKE_SOURCE_DIR}/..)
+set(XMOS_SANDBOX_DIR ${CMAKE_SOURCE_DIR}/..)
 
 XMOS_REGISTER_APP()
