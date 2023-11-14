@@ -343,7 +343,7 @@ function(manifest_git_status name version)
     if(NOT name)
         set(working_dir ${CMAKE_SOURCE_DIR})
     else()
-        set(working_dir ${XMOS_DEPS_ROOT_DIR}/${name})
+        set(working_dir ${XMOS_SANDBOX_DIR}/${name})
     endif()
 
     execute_process(COMMAND git remote get-url origin
@@ -387,8 +387,6 @@ function(XMOS_REGISTER_APP)
     if(NOT APP_COMPILER_FLAGS)
         set(APP_COMPILER_FLAGS "")
     endif()
-
-
 
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
@@ -481,6 +479,16 @@ function(XMOS_REGISTER_APP)
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
 
+    if(DEFINED XMOS_DEPS_ROOT_DIR)
+        message(WARNING "XMOS_DEPS_ROOT_DIR is deprecated; please use XMOS_SANDBOX_DIR instead")
+    endif()
+    if(NOT DEFINED XMOS_SANDBOX_DIR)
+        set(XMOS_SANDBOX_DIR "${XMOS_DEPS_ROOT_DIR}")
+    endif()
+    if(LIB_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
+        message(FATAL_ERROR "XMOS_SANDBOX_DIR must be set as the root directory of the sandbox")
+    endif()
+
     set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
     # Overwrites file if already present and then record manifest entry for application repo
@@ -542,7 +550,7 @@ function(XMOS_REGISTER_APP)
 
             get_property(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
 
-            list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_DEPS_ROOT_DIR}/)
+            list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_SANDBOX_DIR}/)
 
             string(REPLACE ";" " " PCA_FILES_PATH_STR "${PCA_FILES_PATH}")
             set(PCA_FILES_RESP ${DOT_BUILD_DIR}/_pca.rsp)
@@ -637,7 +645,7 @@ function(XMOS_REGISTER_DEPS)
                     message(FATAL_ERROR "Dependency ${DEP_NAME} not present at ${dep_dir}")
                 endif()
             else()
-                set(dep_dir ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
+                set(dep_dir ${XMOS_SANDBOX_DIR}/${DEP_NAME})
             endif()
 
             # Add dependencies directories
@@ -703,6 +711,16 @@ function(XMOS_STATIC_LIBRARY)
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
 
+    if(DEFINED XMOS_DEPS_ROOT_DIR)
+        message(WARNING "XMOS_DEPS_ROOT_DIR is deprecated; please use XMOS_SANDBOX_DIR instead")
+    endif()
+    if(NOT DEFINED XMOS_SANDBOX_DIR)
+        set(XMOS_SANDBOX_DIR "${XMOS_DEPS_ROOT_DIR}")
+    endif()
+    if(LIB_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
+        message(FATAL_ERROR "XMOS_SANDBOX_DIR must be set as the root directory of the sandbox")
+    endif()
+
     set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
     # Overwrites file if already present and then record manifest entry for application repo
@@ -722,7 +740,7 @@ function(XMOS_STATIC_LIBRARY)
             if(DEFINED XMOS_DEP_DIR_@LIB_NAME@)
                 set(dep_dir ${XMOS_DEP_DIR_@LIB_NAME@})
             else()
-                set(dep_dir ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@)
+                set(dep_dir ${XMOS_SANDBOX_DIR}/@LIB_NAME@)
             endif()
 
             set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
