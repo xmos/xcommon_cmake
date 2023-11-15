@@ -1,3 +1,5 @@
+.. _`dependency-format`:
+
 Dependency Format
 -----------------
 

@@ -1,3 +1,5 @@
+.. _`sandbox-structure`:
+
 Sandbox Structure
 -----------------
 
