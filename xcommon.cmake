@@ -265,10 +265,12 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
             set(ssh_host_status TRUE)
             list(APPEND SSH_HOST_SUCCESS ${match_server})
             set_property(GLOBAL PROPERTY SSH_HOST_SUCCESS ${SSH_HOST_SUCCESS})
+            message(VERBOSE "SSH access to ${match_server} succeeded")
         else()
             set(ssh_host_status FALSE)
             list(APPEND SSH_HOST_FAILURE ${match_server})
             set_property(GLOBAL PROPERTY SSH_HOST_FAILURE ${SSH_HOST_FAILURE})
+            message(VERBOSE "SSH access to ${match_server} failed")
         endif()
     endif()
 
@@ -394,6 +396,8 @@ endfunction()
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
+    message(STATUS "Configuring application: ${PROJECT_NAME}")
+
     if(NOT BUILD_NATIVE AND NOT APP_HW_TARGET)
         message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
     endif()
@@ -412,13 +416,11 @@ function(XMOS_REGISTER_APP)
             message(FATAL_ERROR "XN file not found")
         endif()
         set(APP_TARGET_COMPILER_FLAG ${xn_files})
+        message(VERBOSE "XN file: ${xn_files}")
     elseif(NOT BUILD_NATIVE)
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
+        message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
     endif()
-
-    #if(DEFINED THIS_XCORE_TILE)
-    #    list(APPEND APP_COMPILER_FLAGS "-DTHIS_XCORE_TILE=${THIS_XCORE_TILE}")
-    #endif()
 
     glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -437,6 +439,7 @@ function(XMOS_REGISTER_APP)
     else()
         set(APP_BUILD_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
+    message(VERBOSE "Building for architecture: ${APP_BUILD_ARCH}")
 
     # Find all build configs
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
@@ -457,12 +460,9 @@ function(XMOS_REGISTER_APP)
         list(APPEND APP_CONFIGS "DEFAULT")
     endif()
 
-    message(STATUS "Found build configs:")
-
-    # Create app targets with config-specific options
+        # Create app targets with config-specific options
     set(BUILD_TARGETS "")
     foreach(APP_CONFIG ${APP_CONFIGS})
-        message(STATUS ${APP_CONFIG})
         # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "DEFAULT")
             add_executable(${PROJECT_NAME})
@@ -489,6 +489,17 @@ function(XMOS_REGISTER_APP)
         endif()
     endforeach()
 
+    if(${CONFIGS_COUNT} EQUAL 0)
+        # Only print the default-only config at the verbose log level
+        message(VERBOSE "Found build config:")
+        message(VERBOSE "DEFAULT")
+    else()
+        message(STATUS "Found build configs:")
+        foreach(cfg ${APP_CONFIGS})
+            message(STATUS "${cfg}")
+        endforeach()
+    endif()
+
     add_file_flags("APP" "${ALL_SRCS_PATH}")
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
@@ -502,6 +513,8 @@ function(XMOS_REGISTER_APP)
     if(LIB_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
         message(FATAL_ERROR "XMOS_SANDBOX_DIR must be set as the root directory of the sandbox")
     endif()
+    cmake_path(SET XMOS_SANDBOX_DIR NORMALIZE "${XMOS_SANDBOX_DIR}")
+    message(VERBOSE "XMOS_SANDBOX_DIR: ${XMOS_SANDBOX_DIR}")
 
     set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
@@ -509,6 +522,7 @@ function(XMOS_REGISTER_APP)
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
     manifest_git_status("" "")
 
+    set(current_module ${PROJECT_NAME})
     XMOS_REGISTER_DEPS()
 
     foreach(target ${BUILD_TARGETS})
@@ -535,6 +549,7 @@ function(XMOS_REGISTER_APP)
     endforeach()
 
     if(APP_PCA_ENABLE AND NOT BUILD_NATIVE)
+        message(STATUS "Generating commands for Pre-Compilation Analysis (PCA)")
         foreach(target ${BUILD_TARGETS})
             string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
             set(DOT_BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.build${DOT_BUILD_SUFFIX})
@@ -601,6 +616,7 @@ function(XMOS_REGISTER_MODULE)
         endif()
     endif()
 
+    set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
 
     foreach(file ${LIB_ASM_SRCS})
@@ -632,8 +648,14 @@ endfunction()
 
 ## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
 function(XMOS_REGISTER_DEPS)
+    if(LIB_DEPENDENT_MODULES)
+        # Only print if the LIB_DEPENDENT_MODULES list is non-empty
+        message(VERBOSE "Registering dependencies of ${current_module}: ${LIB_DEPENDENT_MODULES}")
+    endif()
+
     foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
         parse_dep_string(${DEP_MODULE} DEP_REPO DEP_VERSION DEP_NAME)
+        message(VERBOSE "Dependency: ${DEP_NAME}, repository ${DEP_REPO}, version ${DEP_VERSION}")
 
         string(REGEX MATCH "^v?([0-9]+)\\.[0-9]+\\.[0-9]+$" _m ${DEP_VERSION})
         if(CMAKE_MATCH_COUNT EQUAL 1)
@@ -653,6 +675,7 @@ function(XMOS_REGISTER_DEPS)
             set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
 
             if(DEFINED XMOS_DEP_DIR_${DEP_NAME})
+                message(VERBOSE "${DEP_NAME} location overridden to ${XMOS_DEP_DIR_${DEP_NAME}}")
                 set(dep_dir ${XMOS_DEP_DIR_${DEP_NAME}})
 
                 if(NOT EXISTS ${dep_dir})
@@ -661,9 +684,11 @@ function(XMOS_REGISTER_DEPS)
             else()
                 set(dep_dir ${XMOS_SANDBOX_DIR}/${DEP_NAME})
             endif()
+            cmake_path(SET dep_dir NORMALIZE ${dep_dir})
 
             # Add dependencies directories
             if(IS_DIRECTORY ${dep_dir}/${DEP_NAME}/lib)
+                message(VERBOSE "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
                 include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
                 get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
                 foreach(target ${BUILD_TARGETS})
@@ -676,7 +701,7 @@ function(XMOS_REGISTER_DEPS)
                 unset_lib_vars()
 
                 if(NOT EXISTS ${dep_dir})
-                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO}")
+                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
                     FetchContent_Declare(
                         ${DEP_NAME}
                         GIT_REPOSITORY ${DEP_REPO}
@@ -687,6 +712,7 @@ function(XMOS_REGISTER_DEPS)
                 endif()
 
                 set(module_dir ${dep_dir}/${DEP_NAME})
+                message(STATUS "Adding module ${DEP_NAME}")
                 include(${module_dir}/lib_build_info.cmake)
             endif()
 
@@ -697,6 +723,8 @@ endfunction()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
+    message(STATUS "Configuring static library: ${LIB_NAME}")
+
     if(NOT BUILD_NATIVE)
         list(LENGTH LIB_ARCH num_arch)
         if(${num_arch} LESS 1)
@@ -706,6 +734,7 @@ function(XMOS_STATIC_LIBRARY)
     else()
         set(LIB_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
+    message(VERBOSE "Building for architecture: ${LIB_ARCH}")
 
     glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -734,6 +763,8 @@ function(XMOS_STATIC_LIBRARY)
     if(LIB_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
         message(FATAL_ERROR "XMOS_SANDBOX_DIR must be set as the root directory of the sandbox")
     endif()
+    cmake_path(SET XMOS_SANDBOX_DIR NORMALIZE "${XMOS_SANDBOX_DIR}")
+    message(VERBOSE "XMOS_SANDBOX_DIR: ${XMOS_SANDBOX_DIR}")
 
     set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
@@ -741,6 +772,7 @@ function(XMOS_STATIC_LIBRARY)
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
     manifest_git_status("" "")
 
+    set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
 
     foreach(lib_arch ${LIB_ARCH})
