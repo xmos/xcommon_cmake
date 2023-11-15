@@ -9,7 +9,7 @@ dependencies of the application. When each ``lib_build_info.cmake`` file is incl
 ``LIB_DEPENDENT_MODULES`` variables define the sub-dependency relationships. This builds up a tree which is
 traversed depth-first to populate the sandbox.
 
-As an example, suppose that an application's ``CMakLists.txt`` contains ``set(APP_DEPENDENT_MODULES lib_mod0 lib_mod1)``
+As an example, suppose that an application's ``CMakeLists.txt`` contains ``set(APP_DEPENDENT_MODULES lib_mod0 lib_mod1)``
 and then the modules have the following in their ``lib_build_info.cmake`` files:
 
 ========  ====================================================
