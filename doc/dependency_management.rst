@@ -85,12 +85,6 @@ and ``lib_build_info.cmake`` files when using ``XMOS_DEP_DIR_lib_mod1`` to speci
            |                       |-- src/
            |                       |-- lib_build_info.cmake
            |
-           |-- lib_mod1/
-           |           |-- lib_mod1/
-           |                       |-- api/
-           |                       |-- src/
-           |                       |-- lib_build_info.cmake
-           |
            |-- sw_app0/
            |          |-- app_app0_xcoreai/
            |                              |-- src/
@@ -129,7 +123,7 @@ and ``lib_build_info.cmake`` files when using ``XMOS_DEP_DIR_lib_mod1`` to speci
 
     XMOS_REGISTER_MODULE()
 
-`sandbox/lib_mod1/lib_mod1/lib_build_info.cmake`
+`other_srcs/lib_mod1/lib_mod1/lib_build_info.cmake`
 
 .. code-block:: cmake
 
@@ -139,10 +133,3 @@ and ``lib_build_info.cmake`` files when using ``XMOS_DEP_DIR_lib_mod1`` to speci
     set(LIB_DEPENDENT_MODULES "")
 
     XMOS_REGISTER_MODULE()
-
-In this example, ``cmake`` will have already been run in ``sandbox/sw_app0/app_app0_xcoreai`` without the line
-``set(XMOS_DEP_DIR_lib_mod1 ${CMAKE_CURRENT_LIST_DIR}/../../../other_srcs/lib_mod1)``. This will have fetched
-``lib_mod0`` and ``lib_mod1`` into the ``sandbox`` directory. Then the developer has a different copy of ``lib_mod1``
-that they wish to use. Then that line can be added back into the ``CMakeLists.txt`` file and ``cmake build`` is run.
-The sources for ``lib_mod1``, required as a dependency of ``lib_mod0``, will be used from the directory
-``other_srcs/lib_mod1/`` instead of ``sandbox/lib_mod1/``.
