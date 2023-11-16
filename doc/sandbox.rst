@@ -40,7 +40,9 @@ All the source code repositories are placed in the root of the sandbox; there is
 of applications and modules. This allows for the possibility of merging designs and using shared
 dependencies. It also removes the issues relating to dependency loops etc.
 
-Each directory in the sandbox typically represents a separate git repository.
+Each directory in the sandbox typically represents a separate git repository. Each application is
+expected to include a ``CMakeLists.txt`` file. Each module is expected to contain a
+``lib_build_info.cmake`` file.  These files configure the use of XCommon CMake.
 
 .. code-block::
 
@@ -49,29 +51,36 @@ Each directory in the sandbox typically represents a separate git repository.
            |           |-- lib_mod0/
            |                       |-- api/
            |                       |-- src/
+           |                       |-- lib_build_info.cmake
            |
            |-- lib_mod1/
            |           |-- lib_mod1/
            |                       |-- api/
            |                       |-- src/
+           |                       |-- lib_build_info.cmake
            |
            |-- lib_mod2/
            |           |-- lib_mod2/
            |                       |-- api/
            |                       |-- src/
+           |                       |-- lib_build_info.cmake
            |
            |-- sw_app0/
            |          |-- app_app0_xcore200/
            |          |                    |-- src/
+           |          |                    |-- CMakeLists.txt
            |          |-- app_app0_xcoreai/
            |                              |-- src/
+           |                              |-- CMakeLists.txt
            |
            |-- sw_app1/
            |          |-- app_app1/
            |                      |-- src/
+           |                      |-- CMakeLists.txt
            |
 
 In this example sandbox, ``sw_app0`` and ``sw_app1`` could be unrelated applications which
 share some common module dependencies. This layout would allow an engineer to develop and
 test multiple applications with a set of shared modules including some local modifications,
 without having to replicate those changes across multiple sandboxes.
+

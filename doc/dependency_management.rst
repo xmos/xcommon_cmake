@@ -43,10 +43,12 @@ change to the desired version and then run ``cmake build`` in the application di
 Sandbox Manifest
 ^^^^^^^^^^^^^^^^
 
+It is often useful to record the actual version that was used for each module, especially when tracking a branch.
+
 Whenever ``cmake`` generates the build environment for an application or static library, a file called ``manifest.txt``
-is created in the build directory. This file contains a list of the application and module dependencies, with the columns in
-a table for the location from which the module was cloned, and the branch/tag and git commit hash for the current checked
-out changeset. If any columns are not applicable, they will contain a hyphen.
+is created in the ``build`` directory. This "manifest" contains a list of the application and module dependencies, with the
+columns in a table for the location from which the module was cloned, and the branch/tag and git commit hash for the
+current checked out changeset. If any columns are not applicable, they will contain a hyphen.
 
 Dependency Location
 ^^^^^^^^^^^^^^^^^^^
@@ -69,6 +71,10 @@ too have an override named variable with their module name.
 
 CMake file contents
 """""""""""""""""""
+
+Returning to the previous example sandbox structure we will now examine the contents of the ``CMakeLists.txt``
+and ``lib_build_info.cmake`` files when using ``XMOS_DEP_DIR_lib_mod1`` to specify an non-standard location for
+``lib_mod1``.
 
 .. code-block::
 

@@ -13,7 +13,6 @@ Software Requirements
 Setup
 ^^^^^
 
-
 .. Note:: XCommon Cmake is not yet distributed with the XMOS XTC Tools (correct at version 15.2.1). Once integrated
    this step can be omitted.
 
@@ -82,3 +81,7 @@ Build the executable and run it using the simulator:
     xsim bin/hello_world.xe
 
 The message "Hello world!" is displayed.
+
+.. Note:: ``xmake`` is a build of GNU Make (https://www.gnu.org/software/make/) provided with the XMOS XTC tools for convenience.
+
+.. Note:: ``xsim`` provides a near cycle-accurate model of systems built from one of more xcore devices. It is supplied with the XMOS XTC tools.
