@@ -3,34 +3,44 @@
 Sandbox Structure
 -----------------
 
-A sandbox is a collection of source code repositories which can be used to build one or
+A sandbox is a fully contained collection of source code modules which can be used to build one or
 more applications.
 
 Definitions
 ^^^^^^^^^^^
 
-There are three types of top-level directories that are present in a sandbox.
+There are three types of top-level directories that can be present in a sandbox.
 
 Application
   Contains source code that is specific to the application, and can depend on modules. The
   application directory is prefixed with ``sw_``, and each set of application-specific code
   within is in a directory prefixed with ``app_``.
 
+  For example, an application may implement a USB Audio Device.
+
 Module
   Contains module source code, which can depend on other modules. Module code is compiled
-  into objects which are directly linked into the application executable. The module
-  directory is prefixed with ``lib_``.
+  into objects which are directly linked into the application executable. XMOS module
+  directories are typically prefixed with ``lib_``.
+
+  For example, a source module may implement an IO function such as I2C
 
 Static Library
   Contains source code and (optionally) a pre-built static library archive, which can be
-  linked into the application executable. The static library directory is prefixed with
-  ``lib_``.
+  linked into the application executable. XMOS modules containing a static library are typically
+  prefixed with ``lib_``.
+
+  For example, a static library module my implement a large stack such as Tensorflow or protected
+  third party IP.
 
 Repository Layout
 ^^^^^^^^^^^^^^^^^
 
 All the source code repositories are placed in the root of the sandbox; there is no nesting
-of applications and modules. Each directory in the sandbox is a separate git repository.
+of applications and modules. This allows for the possibility of merging designs and using shared
+dependencies. It also removes the issues relating to dependency loops etc.
+
+Each directory in the sandbox typically represents a separate git repository.
 
 .. code-block::
 
