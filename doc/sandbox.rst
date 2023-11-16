@@ -30,7 +30,7 @@ Static Library
   linked into the application executable. XMOS modules containing a static library are typically
   prefixed with ``lib_``.
 
-  For example, a static library module my implement a large stack such as Tensorflow or protected
+  For example, a static library module may implement a large stack such as Tensorflow or protected
   third party IP.
 
 Repository Layout

@@ -13,7 +13,7 @@ Software Requirements
 Setup
 ^^^^^
 
-.. Note:: XCommon Cmake is not yet distributed with the XMOS XTC Tools (correct at version 15.2.1). Once integrated
+.. Note:: XCommon CMake is not yet distributed with the XMOS XTC Tools (correct at version 15.2.1). Once integrated
    this step can be omitted.
 
 Before using XCommon CMake, the environment variable ``XMOS_CMAKE_PATH`` must be set to the location of

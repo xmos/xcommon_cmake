@@ -4,7 +4,7 @@ project(file_specific_flags)
 
 set(APP_HW_TARGET XCORE-AI-EXPLORER)
 
-# Note, unlike the original xcommon the file specific flags will not be completely over-witten for the 
+# Note, unlike the original xcommon the file specific flags will not be completely over-written for the
 # files listed below but instead, appended to the end of APP_COMPILER_FLAGS
 set(APP_COMPILER_FLAGS -DFLAG0=0)
 
