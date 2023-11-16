@@ -440,6 +440,7 @@ function(XMOS_REGISTER_APP)
         set(APP_BUILD_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
     message(VERBOSE "Building for architecture: ${APP_BUILD_ARCH}")
+    set(APP_BUILD_ARCH ${APP_BUILD_ARCH} PARENT_SCOPE)
 
     # Find all build configs
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
@@ -488,6 +489,7 @@ function(XMOS_REGISTER_APP)
             list(APPEND BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
         endif()
     endforeach()
+    set(APP_BUILD_TARGETS ${BUILD_TARGETS} PARENT_SCOPE)
 
     if(${CONFIGS_COUNT} EQUAL 0)
         # Only print the default-only config at the verbose log level
@@ -753,6 +755,7 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
+    set(APP_BUILD_TARGETS ${BUILD_TARGETS} PARENT_SCOPE)
 
     if(DEFINED XMOS_DEPS_ROOT_DIR)
         message(WARNING "XMOS_DEPS_ROOT_DIR is deprecated; please use XMOS_SANDBOX_DIR instead")
