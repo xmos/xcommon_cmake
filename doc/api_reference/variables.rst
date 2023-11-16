@@ -317,3 +317,17 @@ The same as the :ref:`optional-module-variables`, and also:
 
     set(LIB_ARCH xs2a)
     set(LIB_ARCH xs2a xs3a)
+
+Output Variables
+^^^^^^^^^^^^^^^^
+
+Experienced CMake users are able to add custom CMake code around the XCommon CMake build system. To
+support this, some variables are exposed from the ``XMOS_REGISTER_APP`` function.
+
+``APP_BUILD_TARGETS``
+  List of the target names for the applications which have been configured. This allows relationships to
+  be defined with custom CMake targets that a user may create.
+
+``APP_BUILD_ARCH``
+  String of the architecture of the application being built. This variable allows the CMake code for a
+  module to be conditionally configured based on the target architecture.
