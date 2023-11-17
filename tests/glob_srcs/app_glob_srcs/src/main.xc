@@ -1,5 +1,5 @@
-#include "foo.h"
-#include "bar.h"
+#include "mod0.h"
+#include "static0.h"
 
 void src0_xc();
 void src1_xc();
@@ -19,7 +19,7 @@ int main() {
     src1_cxx();
     src0_S();
     src1_S();
-    foo();
-    bar();
+    mod0();
+    static0();
     return 0;
 }

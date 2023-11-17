@@ -1,7 +1,7 @@
 #include <xs1.h>
 #include <print.h>
-#include "foo.h"
-#include "bar.h"
+#include "mod0.h"
+#include "mod1.h"
 
 int add_1(int a)
 {

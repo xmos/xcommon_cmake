@@ -1,6 +1,6 @@
-#include "foo.h"
+#include "mod0.h"
 
 int main() {
-    foo();
+    mod0();
     return 0;
 }

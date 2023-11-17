@@ -1,1 +1,1 @@
-Application that requires libintf (compiled as an interface library) and libstat (static library).
+Application that requires a module (lib_mod0) and a static library (lib_static0).

@@ -1,1 +1,1 @@
-static_libs = ["lib_stat0"]
+static_libs = ["lib_static0"]

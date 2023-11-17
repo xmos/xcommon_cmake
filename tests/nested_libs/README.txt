@@ -1,6 +1,6 @@
 Application that tests nested library dependencies:
- - app requires libintf0 and libstat0
- - libintf0 requires libintf1
- - libstat0 is compiled as a static library
- - libstat0 requires libintf2
- - libintf2 requires libintf3
+ - app requires lib_mod0 and lib_static0
+ - lib_mod0 requires lib_mod1
+ - lib_static0 is compiled as a static library
+ - lib_static0 requires lib_mod2
+ - lib_mod2 requires lib_mod3

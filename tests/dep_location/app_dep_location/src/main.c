@@ -1,8 +1,8 @@
-#include "foo.h"
-#include "bar.h"
+#include "mod0.h"
+#include "static0.h"
 
 int main() {
-    foo();
-    bar();
+    mod0();
+    static0();
     return 0;
 }

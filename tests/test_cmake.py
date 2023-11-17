@@ -153,7 +153,7 @@ def test_native_build(cmake):
     app_dir = test_dir / "app_native_build"
     build_dir = app_dir / "build"
     bin_dir = app_dir / "bin"
-    lib_dir = test_dir / "lib_abc"
+    lib_dir = test_dir / "lib_static0"
     lib_build_dir = lib_dir / "build"
 
     cleanup_app(app_dir)

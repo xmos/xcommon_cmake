@@ -1,8 +1,8 @@
-#include "intf0.h"
-#include "stat0.h"
+#include "mod0.h"
+#include "static0.h"
 
 int main() {
-    intf0();
-    stat0();
+    mod0();
+    static0();
     return 0;
 }

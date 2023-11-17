@@ -1,16 +1,16 @@
-#include "intf.h"
-#include "intf2.h"
+#include "mod0.h"
+#include "mod1.h"
 
 #ifndef APP_OPTION
 #error APP_OPTION not defined
 #endif
 
-#ifdef LIB_INTF_OPTION
-#error LIB_INTF_OPTION defined
+#ifdef LIB_MOD0_OPTION
+#error LIB_MOD0_OPTION defined
 #endif
 
 int main() {
-    intf();
-    intf2();
+    mod0();
+    mod1();
     return 0;
 }
