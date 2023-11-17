@@ -1,1 +1,1 @@
-static_libs = ["app_dep_location/deps/lib_bar"]
+static_libs = ["app_dep_location/deps/lib_static0"]

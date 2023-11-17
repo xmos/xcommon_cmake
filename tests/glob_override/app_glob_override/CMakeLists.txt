@@ -3,7 +3,7 @@ include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 project(glob_override)
 
 set(APP_HW_TARGET XCORE-AI-EXPLORER)
-set(APP_DEPENDENT_MODULES lib_foo lib_bar)
+set(APP_DEPENDENT_MODULES lib_mod0 lib_static0)
 
 set(APP_XC_SRCS src/main.xc src/src0/src0.xc)
 set(APP_CXX_SRCS src/src1/src1.cpp)

@@ -1,7 +1,7 @@
-#include "stat.h"
+#include "static0.h"
 
 int main() 
 {
-    stat();
+    static0();
     return 0;
 }

@@ -1,7 +1,7 @@
-#include "foo.h"
-#include "foo_conf.h"
+#include "mod0.h"
+#include "mod0_conf.h"
 
 int main() {
-    foo();
+    mod0();
     return 0;
 }

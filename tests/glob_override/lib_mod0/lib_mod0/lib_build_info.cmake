@@ -1,0 +1,10 @@
+set(LIB_NAME lib_mod0)
+set(LIB_VERSION 1.0.0)
+set(LIB_XC_SRCS src/mod0.xc src/srcA/mod0A.xc)
+set(LIB_C_SRCS src/srcB/mod0B.c)
+set(LIB_CXX_SRCS src/srcB/mod0B.cpp)
+set(LIB_ASM_SRCS "")
+set(LIB_INCLUDES api)
+set(LIB_DEPENDENT_MODULES "")
+
+XMOS_REGISTER_MODULE()

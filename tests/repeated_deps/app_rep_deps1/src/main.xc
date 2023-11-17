@@ -1,8 +1,8 @@
-#include "lib1.h"
-#include "lib2.h"
+#include "mod1.h"
+#include "mod2.h"
 
 int main() {
-    lib1();
-    lib2();
+    mod1();
+    mod2();
     return 0;
 }

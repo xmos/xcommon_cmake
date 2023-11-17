@@ -3,7 +3,7 @@ include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 project(optional_header_present)
 
 set(APP_HW_TARGET XCORE-AI-EXPLORER)
-set(APP_DEPENDENT_MODULES lib_foo)
+set(APP_DEPENDENT_MODULES lib_mod0)
 
 # "src" directory in APP_INCLUDES because optional header is there
 set(APP_INCLUDES src)
