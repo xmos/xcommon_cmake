@@ -48,6 +48,11 @@ XCommon CMake Functions
   - check presence of optional headers
   - create commands for PCA, if enabled
 
+.. note::
+
+   Pre-compilation Analysis (PCA) provides whole program optimisation but is only applicable to XC
+   source files.
+
 ``XMOS_REGISTER_MODULE()``
   This function is called after setting the :ref:`required-module-variables` and any
   :ref:`optional-application-variables`, to perform the following:
