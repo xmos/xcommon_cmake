@@ -1,8 +1,8 @@
 Dependency Management
 ---------------------
 
-XCommon CMake provides a dependency management solution which can fetch modules to be used in an application.
-These modules are cloned from git repositories and placed in the root of the sandbox.
+XCommon CMake provides a dependency management solution which can fetch modules to be used in an
+application. These modules are cloned from git repositories and placed in the root of the sandbox.
 
 Starting from the application's CMakeLists.txt, the ``APP_DEPENDENT_MODULES`` variable defines the immediate
 dependencies of the application. When each ``lib_build_info.cmake`` file is included for each dependency, their
@@ -62,8 +62,8 @@ location.
     location should only be done in exceptional circumstances.
 
 A variable named ``XMOS_DEP_DIR_<module>`` can be used to override the location of dependency ``<module>``.
-For example, ``XMOS_DEP_DIR_lib_i2c`` could be set to the path of the root of a copy of the lib_i2c module in
-a location other than the root of the sandbox. Then the build system will search for source code for lib_i2c in
+For example, ``XMOS_DEP_DIR_lib_i2c`` could be set to the path of the root of a copy of the ``lib_i2c`` module in
+a location other than the root of the sandbox. Then the build system will search for source code for ``lib_i2c`` in
 this location, instead of in a ``lib_i2c`` directory in the root of the sandbox.
 
 Any sub-dependencies of this module will be found in their default location in ``XMOS_SANDBOX_DIR`` unless they

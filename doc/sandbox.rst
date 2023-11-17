@@ -12,8 +12,12 @@ Definitions
 There are three types of top-level directories that can be present in a sandbox.
 
 Application
-  Contains source code that is specific to the application, and can depend on modules. The
-  application directory is prefixed with ``sw_``, and each set of application-specific code
+  Contains a set of source files that is specific to the application that builds into one or more
+  executables (.xe file). This may represent a simple example or a verified Reference Design.
+  These executables are made by compiling the application's source files and the source files of
+  any modules it uses.
+
+  An application directory is prefixed with ``sw_``, and each set of application-specific code
   within is in a directory prefixed with ``app_``.
 
   For example, an application may implement a USB Audio Device.
@@ -36,13 +40,13 @@ Static Library
 Repository Layout
 ^^^^^^^^^^^^^^^^^
 
-All the source code repositories are placed in the root of the sandbox; there is no nesting
-of applications and modules. This allows for the possibility of merging designs and using shared
-dependencies. It also removes the issues relating to dependency loops etc.
+All the items defined in the `Definitions`_ section are placed in the root of the sandbox, each
+typically representing a separate git repository with no nesting of applications and modules. This
+allows for the possibility of merging applications and the use of shared dependencies. It also
+removes issues relating to dependency loops etc.
 
-Each directory in the sandbox typically represents a separate git repository. Each application is
-expected to include a ``CMakeLists.txt`` file. Each module is expected to contain a
-``lib_build_info.cmake`` file.  These files configure the use of XCommon CMake.
+Each application is expected to include a ``CMakeLists.txt`` file. Each module is expected to
+contain a ``lib_build_info.cmake`` file.  These files configure the use of XCommon CMake.
 
 .. code-block::
 
