@@ -4,7 +4,7 @@ Functions
 CMake Boilerplate
 ^^^^^^^^^^^^^^^^^
 
-Some CMake function calls are required in the application or static library CMakeLists.txt file.
+Some CMake function calls are required in the application or static library ``CMakeLists.txt`` file.
 
 ``cmake_minimum_required``
   This is used to set the minimum version of CMake based on the language features used. Your version of
@@ -19,7 +19,7 @@ Some CMake function calls are required in the application or static library CMak
   This function takes an argument which will be used as the base name for the application. If ``my_app``
   is set here, the XE executable for the default config build will be called ``my_app.xe``.
 
-These three lines should be present at the beginning of an application or static library CMakeLists.txt
+These three lines should be present at the beginning of an application or static library ``CMakeLists.txt``
 file.
 
 .. code-block:: cmake
