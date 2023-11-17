@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.21)
 
+include_guard(GLOBAL)
+
+option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
+
 # Set up compiler
-# This env var should be setup by tools, or we can potentially infer from XMOS_MAKE_PATH
-if(NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
+if(NOT BUILD_NATIVE AND NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
     include($ENV{XMOS_CMAKE_PATH}/xcore_xs.cmake)
 endif()
 
@@ -11,9 +14,9 @@ if(PROJECT_SOURCE_DIR)
 endif()
 
 # If Unix Makefiles are being generated, but a version of make is not present, set xmake as the
-# make program as it will definitely be available.
+# make program in the variable cache as it will definitely be available.
 if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" AND NOT DEFINED CMAKE_MAKE_PROGRAM)
-    set(CMAKE_MAKE_PROGRAM xmake)
+    set(CMAKE_MAKE_PROGRAM xmake CACHE STRING "")
 endif()
 
 include(FetchContent)
@@ -22,6 +25,10 @@ enable_language(CXX C ASM)
 
 # Define XMOS-specific target properties
 define_property(TARGET PROPERTY OPTIONAL_HEADERS BRIEF_DOCS "Contains list of optional headers." FULL_DOCS "Contains a list of optional headers.  The application level should search through all app includes and define D__[header]_h_exists__ for each header that is in both the app and optional headers.")
+
+# Global properties to record hosts that can/cannot be accessed via an SSH key to avoid repeatedly checking
+set_property(GLOBAL PROPERTY SSH_HOST_SUCCESS "")
+set_property(GLOBAL PROPERTY SSH_HOST_FAILURE "")
 
 set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
 set(MANIFEST_HEADER
@@ -84,7 +91,7 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
 
     # Shorten path just to replicate what xcommon does for now
     # TODO should the xml files be generated into the cmake build dir?
-    file(RELATIVE_PATH file_pca ${CMAKE_SOURCE_DIR} ${SOURCE_FILE})
+    file(RELATIVE_PATH file_pca ${CMAKE_CURRENT_LIST_DIR} ${SOURCE_FILE})
     string(REPLACE "../" "" file_pca ${file_pca})
     string(REPLACE "lib_" "_l_" file_pca ${file_pca})
     get_filename_component(file_pca_dir ${file_pca} PATH)
@@ -138,35 +145,35 @@ endmacro()
 
 # If source variables are blank, glob for source files; otherwise prepend the full path
 # The prefix parameter is the prefix on the list variables _XC_SRCS, _C_SRCS, etc.
-macro(glob_srcs prefix)
+macro(glob_srcs prefix src_dir)
     if(NOT DEFINED ${prefix}_XC_SRCS)
-        file(GLOB_RECURSE ${prefix}_XC_SRCS src/*.xc)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/src/*.xc)
     else()
-        list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS src/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/src/*.cpp)
     else()
-        list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_C_SRCS)
-        file(GLOB_RECURSE ${prefix}_C_SRCS src/*.c)
+        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/src/*.c)
     else()
-        list(TRANSFORM ${prefix}_C_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_C_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_ASM_SRCS)
-        file(GLOB_RECURSE ${prefix}_ASM_SRCS src/*.S)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/src/*.S)
     else()
-        list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_XSCOPE_SRCS)
-        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS *.xscope)
+        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS ${src_dir}/*.xscope)
     else()
-        list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+        list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${src_dir}/)
     endif()
 endmacro()
 
@@ -218,13 +225,56 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
         set(match_server "github.com")
     endif()
 
-    # Check whether SSH access is available (returns 1 on success, 255 on failure)
-    execute_process(COMMAND ssh -o "StrictHostKeyChecking no" git@${match_server}
-                    TIMEOUT 30
-                    RESULT_VARIABLE ret
-                    OUTPUT_QUIET
-                    ERROR_QUIET)
-    if(ret EQUAL 1)
+    unset(ssh_host_status)
+
+    get_property(SSH_HOST_SUCCESS GLOBAL PROPERTY SSH_HOST_SUCCESS)
+    list(FIND SSH_HOST_SUCCESS ${match_server} found)
+    if(NOT ${found} EQUAL -1)
+        set(ssh_host_status TRUE)
+    endif()
+
+    get_property(SSH_HOST_FAILURE GLOBAL PROPERTY SSH_HOST_FAILURE)
+    list(FIND SSH_HOST_FAILURE ${match_server} found)
+    if(NOT ${found} EQUAL -1)
+        set(ssh_host_status FALSE)
+    endif()
+
+    if(NOT DEFINED ssh_host_status)
+        # This host isn't in either the success or failure list
+
+        if(CMAKE_HOST_WIN32)
+            # To avoid printing artifacts, provide an input file to the ssh command below.
+            # This input file is an empty file which will be left in the CMAKE_BINARY_DIR.
+            # The Windows NUL didn't work as an input.
+            execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/ssh-in.tmp
+                            OUTPUT_QUIET
+                            ERROR_QUIET)
+            set(tmp_input_file ${CMAKE_BINARY_DIR}/ssh-in.tmp)
+        else()
+            set(tmp_input_file "/dev/null")
+        endif()
+
+        # Check whether SSH access is available (returns 1 on success, 255 on failure)
+        execute_process(COMMAND ssh -o "StrictHostKeyChecking no" git@${match_server}
+                        TIMEOUT 30
+                        RESULT_VARIABLE ret
+                        INPUT_FILE ${tmp_input_file}
+                        OUTPUT_QUIET
+                        ERROR_QUIET)
+        if(ret EQUAL 1)
+            set(ssh_host_status TRUE)
+            list(APPEND SSH_HOST_SUCCESS ${match_server})
+            set_property(GLOBAL PROPERTY SSH_HOST_SUCCESS ${SSH_HOST_SUCCESS})
+            message(VERBOSE "SSH access to ${match_server} succeeded")
+        else()
+            set(ssh_host_status FALSE)
+            list(APPEND SSH_HOST_FAILURE ${match_server})
+            set_property(GLOBAL PROPERTY SSH_HOST_FAILURE ${SSH_HOST_FAILURE})
+            message(VERBOSE "SSH access to ${match_server} failed")
+        endif()
+    endif()
+
+    if(ssh_host_status)
         string(PREPEND match_server "git@")
         string(APPEND match_server ":")
     else()
@@ -309,7 +359,7 @@ function(manifest_git_status name version)
     if(NOT name)
         set(working_dir ${CMAKE_SOURCE_DIR})
     else()
-        set(working_dir ${XMOS_DEPS_ROOT_DIR}/${name})
+        set(working_dir ${XMOS_SANDBOX_DIR}/${name})
     endif()
 
     execute_process(COMMAND git remote get-url origin
@@ -346,15 +396,15 @@ endfunction()
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
-    if(NOT APP_HW_TARGET)
+    message(STATUS "Configuring application: ${PROJECT_NAME}")
+
+    if(NOT BUILD_NATIVE AND NOT APP_HW_TARGET)
         message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
     endif()
 
     if(NOT APP_COMPILER_FLAGS)
         set(APP_COMPILER_FLAGS "")
     endif()
-
-
 
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
@@ -366,27 +416,31 @@ function(XMOS_REGISTER_APP)
             message(FATAL_ERROR "XN file not found")
         endif()
         set(APP_TARGET_COMPILER_FLAG ${xn_files})
-    else()
+        message(VERBOSE "XN file: ${xn_files}")
+    elseif(NOT BUILD_NATIVE)
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
+        message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
     endif()
 
-    #if(DEFINED THIS_XCORE_TILE)
-    #    list(APPEND APP_COMPILER_FLAGS "-DTHIS_XCORE_TILE=${THIS_XCORE_TILE}")
-    #endif()
-
-    glob_srcs("APP")
+    glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR})
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
 
-    # Automatically determine architecture
-    list(LENGTH ALL_SRCS_PATH num_srcs)
-    if(NOT ${num_srcs} GREATER 0)
-        message(FATAL_ERROR "No sources present to determine architecture")
+    if(NOT BUILD_NATIVE)
+        # Automatically determine architecture
+        list(LENGTH ALL_SRCS_PATH num_srcs)
+        if(NOT ${num_srcs} GREATER 0)
+            message(FATAL_ERROR "No sources present to determine architecture")
+        endif()
+        list(GET ALL_SRCS_PATH 0 src0)
+        execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
+                        OUTPUT_VARIABLE APP_BUILD_ARCH
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    else()
+        set(APP_BUILD_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
-    list(GET ALL_SRCS_PATH 0 src0)
-    execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
-                    OUTPUT_VARIABLE APP_BUILD_ARCH
-                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(VERBOSE "Building for architecture: ${APP_BUILD_ARCH}")
+    set(APP_BUILD_ARCH ${APP_BUILD_ARCH} PARENT_SCOPE)
 
     # Find all build configs
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
@@ -407,45 +461,70 @@ function(XMOS_REGISTER_APP)
         list(APPEND APP_CONFIGS "DEFAULT")
     endif()
 
-    message(STATUS "Found build configs:")
-
-    # Create app targets with config-specific options
+        # Create app targets with config-specific options
     set(BUILD_TARGETS "")
     foreach(APP_CONFIG ${APP_CONFIGS})
-        message(STATUS ${APP_CONFIG})
         # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "DEFAULT")
             add_executable(${PROJECT_NAME})
             target_sources(${PROJECT_NAME} PRIVATE ${ALL_SRCS_PATH})
-            set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+            set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
             target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
             target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             list(APPEND BUILD_TARGETS ${PROJECT_NAME})
         else()
             add_executable(${PROJECT_NAME}_${APP_CONFIG})
-            add_custom_target(${APP_CONFIG} DEPENDS ${PROJECT_NAME}_${APP_CONFIG})
+            # If a single app is being configured, build targets can be named after the app configs; in the case of a multi-app
+            # build, config names could coincide between applications, so these shorter named targets can't be used.
+            if(CMAKE_CURRENT_LIST_DIR STREQUAL CMAKE_SOURCE_DIR)
+                add_custom_target(${APP_CONFIG} DEPENDS ${PROJECT_NAME}_${APP_CONFIG})
+            endif()
             remove_srcs("${APP_CONFIGS}" ${APP_CONFIG} "${ALL_SRCS_PATH}" config_srcs)
             target_sources(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${config_srcs})
-            set_target_properties(${PROJECT_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${APP_CONFIG})
+            set_target_properties(${PROJECT_NAME}_${APP_CONFIG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin/${APP_CONFIG})
             target_include_directories(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
             target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} "-DCONFIG=${APP_CONFIG}" ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             list(APPEND BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
         endif()
     endforeach()
+    set(APP_BUILD_TARGETS ${BUILD_TARGETS} PARENT_SCOPE)
+
+    if(${CONFIGS_COUNT} EQUAL 0)
+        # Only print the default-only config at the verbose log level
+        message(VERBOSE "Found build config:")
+        message(VERBOSE "DEFAULT")
+    else()
+        message(STATUS "Found build configs:")
+        foreach(cfg ${APP_CONFIGS})
+            message(STATUS "${cfg}")
+        endforeach()
+    endif()
 
     add_file_flags("APP" "${ALL_SRCS_PATH}")
 
     set(LIB_DEPENDENT_MODULES ${APP_DEPENDENT_MODULES})
 
-    #set(BUILD_ADDED_DEPS "")
-    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+    if(DEFINED XMOS_DEPS_ROOT_DIR)
+        message(WARNING "XMOS_DEPS_ROOT_DIR is deprecated; please use XMOS_SANDBOX_DIR instead")
+        if(NOT DEFINED XMOS_SANDBOX_DIR)
+            set(XMOS_SANDBOX_DIR "${XMOS_DEPS_ROOT_DIR}")
+        endif()
+    endif()
+    if(LIB_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
+        message(FATAL_ERROR "XMOS_SANDBOX_DIR must be set as the root directory of the sandbox")
+    endif()
+    cmake_path(SET XMOS_SANDBOX_DIR NORMALIZE "${XMOS_SANDBOX_DIR}")
+    message(VERBOSE "XMOS_SANDBOX_DIR: ${XMOS_SANDBOX_DIR}")
+
+    set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
     manifest_git_status("" "")
 
+    set(current_module ${PROJECT_NAME})
     XMOS_REGISTER_DEPS()
 
     foreach(target ${BUILD_TARGETS})
@@ -471,10 +550,11 @@ function(XMOS_REGISTER_APP)
         endforeach()
     endforeach()
 
-    if(APP_PCA_ENABLE)
+    if(APP_PCA_ENABLE AND NOT BUILD_NATIVE)
+        message(STATUS "Generating commands for Pre-Compilation Analysis (PCA)")
         foreach(target ${BUILD_TARGETS})
             string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
-            set(DOT_BUILD_DIR ${CMAKE_SOURCE_DIR}/.build${DOT_BUILD_SUFFIX})
+            set(DOT_BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.build${DOT_BUILD_SUFFIX})
             set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${DOT_BUILD_DIR})
 
             set(PCA_FILES_PATH "")
@@ -499,15 +579,18 @@ function(XMOS_REGISTER_APP)
                 list(APPEND PCA_FILES_PATH ${file_pca})
             endforeach()
 
-            GET_PROPERTY(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
+            get_property(BUILD_ADDED_DEPS_PATH GLOBAL PROPERTY BUILD_ADDED_DEPS)
 
-            list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_DEPS_ROOT_DIR}/)
+            list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_SANDBOX_DIR}/)
 
-            # TODO xcommon uses rsp file for ${PCA_FILES_PATH}
+            string(REPLACE ";" " " PCA_FILES_PATH_STR "${PCA_FILES_PATH}")
+            set(PCA_FILES_RESP ${DOT_BUILD_DIR}/_pca.rsp)
+            file(WRITE ${PCA_FILES_RESP} ${PCA_FILES_PATH_STR})
+
             set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
             add_custom_command(
                     OUTPUT ${PCA_FILE}
-                    COMMAND $ENV{XMOS_TOOL_PATH}/libexec/xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} "\"${BUILD_ADDED_DEPS_PATHS} \"" ${PCA_FILES_PATH}
+                    COMMAND $ENV{XMOS_TOOL_PATH}/libexec/xpca ${PCA_FILE} -deps ${DOT_BUILD_DIR}/pca.d ${DOT_BUILD_DIR} "\"${BUILD_ADDED_DEPS_PATHS} \"" @${PCA_FILES_RESP}
                     DEPENDS ${PCA_FILES_PATH}
                     DEPFILE ${DOT_BUILD_DIR}/pca.d
                     COMMAND_EXPAND_LISTS
@@ -535,6 +618,7 @@ function(XMOS_REGISTER_MODULE)
         endif()
     endif()
 
+    set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
 
     foreach(file ${LIB_ASM_SRCS})
@@ -542,7 +626,7 @@ function(XMOS_REGISTER_MODULE)
         set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
     endforeach()
 
-    glob_srcs("LIB")
+    glob_srcs("LIB" ${module_dir})
 
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
                                 TARGET_DIRECTORY ${BUILD_TARGETS}
@@ -551,6 +635,8 @@ function(XMOS_REGISTER_MODULE)
     GET_ALL_VARS_STARTING_WITH("LIB_COMPILER_FLAGS_" LIB_COMPILER_FLAGS_VARS)
     set(ALL_LIB_SRCS_PATH ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
     add_file_flags("LIB" "${ALL_LIB_SRCS_PATH}")
+
+    list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
     foreach(target ${BUILD_TARGETS})
         target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
@@ -564,8 +650,14 @@ endfunction()
 
 ## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
 function(XMOS_REGISTER_DEPS)
+    if(LIB_DEPENDENT_MODULES)
+        # Only print if the LIB_DEPENDENT_MODULES list is non-empty
+        message(VERBOSE "Registering dependencies of ${current_module}: ${LIB_DEPENDENT_MODULES}")
+    endif()
+
     foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
         parse_dep_string(${DEP_MODULE} DEP_REPO DEP_VERSION DEP_NAME)
+        message(VERBOSE "Dependency: ${DEP_NAME}, repository ${DEP_REPO}, version ${DEP_VERSION}")
 
         string(REGEX MATCH "^v?([0-9]+)\\.[0-9]+\\.[0-9]+$" _m ${DEP_VERSION})
         if(CMAKE_MATCH_COUNT EQUAL 1)
@@ -574,7 +666,7 @@ function(XMOS_REGISTER_DEPS)
             set(DEP_MAJOR_VER "")
         endif()
 
-        GET_PROPERTY(BUILD_ADDED_DEPS GLOBAL PROPERTY BUILD_ADDED_DEPS)
+        get_property(BUILD_ADDED_DEPS GLOBAL PROPERTY BUILD_ADDED_DEPS)
 
         # Check if this dependency has already been added
         list(FIND BUILD_ADDED_DEPS ${DEP_NAME} found)
@@ -582,11 +674,24 @@ function(XMOS_REGISTER_DEPS)
             list(APPEND BUILD_ADDED_DEPS ${DEP_NAME})
 
             # Set GLOBAL PROPERTY rather than PARENT_SCOPE since we may have multiple directory layers
-            SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
+            set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS ${BUILD_ADDED_DEPS})
+
+            if(DEFINED XMOS_DEP_DIR_${DEP_NAME})
+                message(VERBOSE "${DEP_NAME} location overridden to ${XMOS_DEP_DIR_${DEP_NAME}}")
+                set(dep_dir ${XMOS_DEP_DIR_${DEP_NAME}})
+
+                if(NOT EXISTS ${dep_dir})
+                    message(FATAL_ERROR "Dependency ${DEP_NAME} not present at ${dep_dir}")
+                endif()
+            else()
+                set(dep_dir ${XMOS_SANDBOX_DIR}/${DEP_NAME})
+            endif()
+            cmake_path(SET dep_dir NORMALIZE ${dep_dir})
 
             # Add dependencies directories
-            if(IS_DIRECTORY ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib)
-                include(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
+            if(IS_DIRECTORY ${dep_dir}/${DEP_NAME}/lib)
+                message(VERBOSE "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
+                include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
                 get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
                 foreach(target ${BUILD_TARGETS})
                     target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
@@ -594,19 +699,23 @@ function(XMOS_REGISTER_DEPS)
                 endforeach()
             else()
                 # Clear source variables to avoid inheriting from parent scope
-                # Either add_subdirectory() will populate these, otherwise we glob for them
+                # Either lib_build_info.cmake will populate these, otherwise we glob for them
                 unset_lib_vars()
-                if(NOT EXISTS ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME})
-                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO}")
+
+                if(NOT EXISTS ${dep_dir})
+                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
                     FetchContent_Declare(
                         ${DEP_NAME}
                         GIT_REPOSITORY ${DEP_REPO}
                         GIT_TAG ${DEP_VERSION}
-                        SOURCE_DIR ${XMOS_DEPS_ROOT_DIR}/${DEP_NAME}
+                        SOURCE_DIR ${dep_dir}
                     )
                     FetchContent_Populate(${DEP_NAME})
                 endif()
-                add_subdirectory(${XMOS_DEPS_ROOT_DIR}/${DEP_NAME} ${CMAKE_BINARY_DIR}/${DEP_NAME})
+
+                set(module_dir ${dep_dir}/${DEP_NAME})
+                message(STATUS "Adding module ${DEP_NAME}")
+                include(${module_dir}/lib_build_info.cmake)
             endif()
 
             manifest_git_status(${DEP_NAME} ${DEP_VERSION})
@@ -616,13 +725,20 @@ endfunction()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
-    list(LENGTH LIB_ARCH num_arch)
-    if(${num_arch} LESS 1)
-        # If architecture not specified, assume xs3a
-        set(LIB_ARCH "xs3a")
-    endif()
+    message(STATUS "Configuring static library: ${LIB_NAME}")
 
-    glob_srcs("LIB")
+    if(NOT BUILD_NATIVE)
+        list(LENGTH LIB_ARCH num_arch)
+        if(${num_arch} LESS 1)
+            # If architecture not specified, assume xs3a
+            set(LIB_ARCH "xs3a")
+        endif()
+    else()
+        set(LIB_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+    endif()
+    message(VERBOSE "Building for architecture: ${LIB_ARCH}")
+
+    glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
 
     set(BUILD_TARGETS "")
     foreach(lib_arch ${LIB_ARCH})
@@ -630,20 +746,36 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY VERSION ${LIB_VERSION})
         target_sources(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
         target_include_directories(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_INCLUDES})
-        target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_COMPILER_FLAGS} "-march=${lib_arch}")
+        if(NOT BUILD_NATIVE)
+            target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_COMPILER_FLAGS} "-march=${lib_arch}")
+        endif()
 
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
         # Set output name so that static library filename does not include architecture
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
         list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
+    set(APP_BUILD_TARGETS ${BUILD_TARGETS} PARENT_SCOPE)
 
-    SET_PROPERTY(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
+    if(DEFINED XMOS_DEPS_ROOT_DIR)
+        message(WARNING "XMOS_DEPS_ROOT_DIR is deprecated; please use XMOS_SANDBOX_DIR instead")
+        if(NOT DEFINED XMOS_SANDBOX_DIR)
+            set(XMOS_SANDBOX_DIR "${XMOS_DEPS_ROOT_DIR}")
+        endif()
+    endif()
+    if(LIB_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
+        message(FATAL_ERROR "XMOS_SANDBOX_DIR must be set as the root directory of the sandbox")
+    endif()
+    cmake_path(SET XMOS_SANDBOX_DIR NORMALIZE "${XMOS_SANDBOX_DIR}")
+    message(VERBOSE "XMOS_SANDBOX_DIR: ${XMOS_SANDBOX_DIR}")
+
+    set_property(GLOBAL PROPERTY BUILD_ADDED_DEPS "")
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
     manifest_git_status("" "")
 
+    set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
 
     foreach(lib_arch ${LIB_ARCH})
@@ -653,14 +785,21 @@ function(XMOS_STATIC_LIBRARY)
         file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in [=[
             add_library(@LIB_NAME@ STATIC IMPORTED)
             set_property(TARGET @LIB_NAME@ PROPERTY SYSTEM OFF)
-            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
+
+            if(DEFINED XMOS_DEP_DIR_@LIB_NAME@)
+                set(dep_dir ${XMOS_DEP_DIR_@LIB_NAME@})
+            else()
+                set(dep_dir ${XMOS_SANDBOX_DIR}/@LIB_NAME@)
+            endif()
+
+            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
             set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
             foreach(incdir @LIB_INCLUDES@)
-                target_include_directories(@LIB_NAME@ INTERFACE ${XMOS_DEPS_ROOT_DIR}/@LIB_NAME@/@LIB_NAME@/${incdir})
+                target_include_directories(@LIB_NAME@ INTERFACE ${dep_dir}/@LIB_NAME@/${incdir})
             endforeach()
         ]=])
 
         # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
-        configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${XMOS_DEPS_ROOT_DIR}/${LIB_NAME}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
+        configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${CMAKE_SOURCE_DIR}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
     endforeach()
 endfunction()

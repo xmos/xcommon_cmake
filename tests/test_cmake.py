@@ -57,6 +57,31 @@ def build(dir, cmake):
     assert ret.returncode == 0
 
 
+def run_xes(bin_dir, exp_dir):
+    # TODO we need to check that all the xe files we expect are present
+    app_xes = list(bin_dir.glob("**/*.xe"))
+
+    # Always expect at least one application
+    assert len(app_xes) > 0
+
+    for app_xe in app_xes:
+        run_expect = exp_dir / f"{app_xe.stem}.expect"
+
+        ret = subprocess.run(["xsim", app_xe], capture_output=True, text=True)
+        assert ret.returncode == 0
+        with open(run_expect, "r") as f:
+            assert f.read() == ret.stdout
+
+        binary_expect = exp_dir / "binary.expect"
+        if binary_expect.exists():
+            ret = subprocess.run(
+                ["xobjdump", "-t", app_xe], capture_output=True, text=True
+            )
+            with open(binary_expect, "r") as f:
+                for l in f.readlines():
+                    assert l in ret.stdout
+
+
 @pytest.mark.parametrize("test_dir", list_test_dirs())
 def test_cmake(cmake, test_dir):
     test_dir = Path(__file__).parent / test_dir
@@ -89,26 +114,7 @@ def test_cmake(cmake, test_dir):
 
         bin_dir = test_dir / app / "bin"
 
-        # Run all XEs
-        # TODO we need to check that all the xe files we expect are present
-        app_xes = bin_dir.glob("**/*.xe")
-        for app_xe in app_xes:
-            print(app_xe)
-            run_expect = test_dir / f"{app_xe.stem}.expect"
-
-            ret = subprocess.run(["xsim", app_xe], capture_output=True, text=True)
-            assert ret.returncode == 0
-            with open(run_expect, "r") as f:
-                assert f.read() == ret.stdout
-
-            binary_expect = test_dir / "binary.expect"
-            if binary_expect.exists():
-                ret = subprocess.run(
-                    ["xobjdump", "-t", app_xe], capture_output=True, text=True
-                )
-                with open(binary_expect, "r") as f:
-                    for l in f.readlines():
-                        assert l in ret.stdout
+        run_xes(bin_dir, test_dir)
 
     # Cleanup
     for app in apps:
@@ -140,3 +146,79 @@ def test_fetch_deps(cmake):
     for dir in [test_dir / d for d in dep_dirs]:
         if dir.exists() and dir.is_dir():
             shutil.rmtree(dir, onerror=rmtree_error)
+
+
+def test_native_build(cmake):
+    test_dir = Path(__file__).parent / "_native_build"
+    app_dir = test_dir / "app_native_build"
+    build_dir = app_dir / "build"
+    bin_dir = app_dir / "bin"
+    lib_dir = test_dir / "lib_static0"
+    lib_build_dir = lib_dir / "build"
+
+    cleanup_app(app_dir)
+    cleanup_static_lib(lib_dir)
+
+    cmake_env = os.environ
+    if "XMOS_CMAKE_PATH" not in cmake_env:
+        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+
+    cmake_native_cmd = [
+        cmake,
+        "-G",
+        "Unix Makefiles",
+        "-B",
+        "build",
+        "-D",
+        "BUILD_NATIVE=ON",
+    ]
+
+    ret = subprocess.run(cmake_native_cmd, cwd=lib_dir, env=cmake_env)
+    assert ret.returncode == 0
+
+    ret = subprocess.run(["xmake"], cwd=lib_build_dir)
+    assert ret.returncode == 0
+
+    ret = subprocess.run(cmake_native_cmd, cwd=app_dir, env=cmake_env)
+    assert ret.returncode == 0
+
+    ret = subprocess.run(["xmake"], cwd=build_dir)
+    assert ret.returncode == 0
+
+    exe_name = "native_build.exe" if platform.system() == "Windows" else "native_build"
+    exe_path = Path(bin_dir) / exe_name
+    ret = subprocess.run(
+        [exe_path],
+        capture_output=True,
+        text=True,
+        shell=True,
+    )
+    assert ret.returncode == 0
+    with open(test_dir / "native_build.expect", "r") as f:
+        assert f.read() == ret.stdout
+
+    cleanup_app(app_dir)
+    cleanup_static_lib(lib_dir)
+
+
+def test_multi_app_build(cmake):
+    test_dir = Path(__file__).parent / "_multi_app_build"
+
+    # First: test the build of both applications from the root directory
+    app_dir = test_dir
+
+    cleanup_dirs = [app_dir, app_dir / "app_foo", app_dir / "app_bar"]
+    for dir in cleanup_dirs:
+        cleanup_app(dir)
+
+    build(app_dir, cmake)
+
+    bin_dirs = [app_dir / "app_foo" / "bin", app_dir / "app_bar" / "bin"]
+    for bin_dir in bin_dirs:
+        run_xes(bin_dir, test_dir)
+
+    for dir in cleanup_dirs:
+        cleanup_app(dir)
+
+    # Second: test the builds from within the application directories
+    test_cmake(cmake, test_dir)

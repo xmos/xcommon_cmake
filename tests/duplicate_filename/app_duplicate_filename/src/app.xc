@@ -1,9 +1,9 @@
-#include "intf.h"
-#include "intf2.h"
+#include "mod0.h"
+#include "mod1.h"
 
 int main()
 {
-    intf();
-    intf2();
+    mod0();
+    mod1();
     return 0;
 }

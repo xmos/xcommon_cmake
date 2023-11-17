@@ -1,10 +1,10 @@
-#include "intf.h"
-#include "stat.h"
+#include "mod0.h"
+#include "static0.h"
 
 int main()
 {
-    intf();
-    intf_asm();
-    stat();
+    mod0();
+    mod0_asm();
+    static0();
     return 0;
 }

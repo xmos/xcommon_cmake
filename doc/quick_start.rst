@@ -13,8 +13,11 @@ Software Requirements
 Setup
 ^^^^^
 
+.. Note:: XCommon CMake is not yet distributed with the XMOS XTC Tools (correct at version 15.2.1). Once integrated
+   this step can be omitted.
+
 Before using XCommon CMake, the environment variable ``XMOS_CMAKE_PATH`` must be set to the location of
-the ``xcommon_cmake`` directory.
+the ``xcommon_cmake`` directory. For example:
 
 .. tab:: MacOS and Linux
 
@@ -29,10 +32,6 @@ the ``xcommon_cmake`` directory.
 
        # Windows
        set XMOS_CMAKE_PATH=C:\Users\user\xcommon_cmake
-
-When XCommon CMake is integrated into XTC Tools, the user will no longer have to set this environment variable
-themself as it will be configured in the XTC Tools environment. At this point, XTC Tools will no longer be a
-software requirement of XCommon CMake, because XCommon CMake will be distributed as part of XTC Tools.
 
 Hello World Example
 ^^^^^^^^^^^^^^^^^^^
@@ -67,7 +66,7 @@ Create the following file structure, with the contents shown below:
     #include <stdio.h>
 
     int main() {
-        printf("Hello world\n");
+        printf("Hello world!\n");
         return 0;
     }
 
@@ -81,4 +80,8 @@ Build the executable and run it using the simulator:
     cd ..
     xsim bin/hello_world.xe
 
-The message "Hello world" is displayed.
+The message "Hello world!" is displayed.
+
+.. Note:: ``xmake`` is a build of GNU Make (https://www.gnu.org/software/make/) provided with the XMOS XTC tools for convenience.
+
+.. Note:: ``xsim`` provides a near cycle-accurate model of systems built from one of more xcore devices. It is supplied with the XMOS XTC tools.

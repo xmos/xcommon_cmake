@@ -16,7 +16,7 @@ Directory structure
            |-- lib_mod0/
            |           |-- lib_mod0/
            |                       |-- api/
-           |                       |-- CMakeLists.txt
+           |                       |-- lib_build_info.cmake
            |                       |-- src/
            |-- sw_opthdr/
                         |-- app_opthdr/
@@ -41,7 +41,7 @@ CMake file contents
 
     XMOS_REGISTER_APP()
 
-`sandbox/lib_mod0/lib_mod0/CMakeLists.txt`
+`sandbox/lib_mod0/lib_mod0/lib_build_info.cmake`
 
 .. code-block:: cmake
 

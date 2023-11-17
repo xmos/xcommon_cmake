@@ -23,6 +23,16 @@ Required application variables
     set(APP_HW_TARGET XCORE-AI-EXPLORER)
     set(APP_HW_TARGET xk-316-mc.xn)
 
+  Advanced: this variable is not required if exclusively performing :ref:`native-builds`.
+
+``XMOS_SANDBOX_DIR``
+  The path to the root of the sandbox directory. This is only required if ``APP_DEPENDENT_MODULES``
+  is non-empty. See :ref:`sandbox-structure`.
+
+  .. code-block:: cmake
+
+    set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
+
 .. _optional-application-variables:
 
 Optional application variables
@@ -134,6 +144,14 @@ Optional application variables
 
     set(APP_XSCOPE_SRCS src/config.xscope)
     set(APP_XSCOPE_SRCS "")
+
+``XMOS_DEP_DIR_<module>``
+  Directory containing the dependency ``<module>`` as an override to the default sandbox root
+  directory in ``XMOS_SANDBOX_DIR``. This is the path to the root of the module.
+
+  .. code-block:: cmake
+
+    set(XMOS_DEP_DIR_lib_i2c /home/user/lib_i2c)
 
 Modules
 ^^^^^^^
@@ -274,7 +292,15 @@ Static Libraries
 Required static library variables
 """""""""""""""""""""""""""""""""
 
-The same as the :ref:`required-module-variables`.
+The same as the :ref:`required-module-variables`, and also:
+
+``XMOS_SANDBOX_DIR``
+  The path to the root of the sandbox directory. This is only required if ``LIB_DEPENDENT_MODULES``
+  is non-empty. See :ref:`sandbox-structure`.
+
+  .. code-block:: cmake
+
+    set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
 
 .. _optional-staticlib-variables:
 
@@ -291,3 +317,17 @@ The same as the :ref:`optional-module-variables`, and also:
 
     set(LIB_ARCH xs2a)
     set(LIB_ARCH xs2a xs3a)
+
+Output Variables
+^^^^^^^^^^^^^^^^
+
+Experienced CMake users are able to add custom CMake code around the XCommon CMake build system. To
+support this, some variables are exposed from the ``XMOS_REGISTER_APP`` function.
+
+``APP_BUILD_TARGETS``
+  List of the target names for the applications which have been configured. This allows relationships to
+  be defined with custom CMake targets that a user may create.
+
+``APP_BUILD_ARCH``
+  String of the architecture of the application being built. This variable allows the CMake code for a
+  module to be conditionally configured based on the target architecture.
