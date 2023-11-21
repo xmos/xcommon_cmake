@@ -402,6 +402,10 @@ function(XMOS_REGISTER_APP)
         message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
     endif()
 
+    if(APP_MULTITILE_MERGE GREATER 2)
+        message(FATAL_ERROR "Merging multiple tiles is not supported for more than two tiles")
+    endif()
+
     if(NOT APP_COMPILER_FLAGS)
         set(APP_COMPILER_FLAGS "")
     endif()
@@ -461,18 +465,48 @@ function(XMOS_REGISTER_APP)
         list(APPEND APP_CONFIGS "DEFAULT")
     endif()
 
-        # Create app targets with config-specific options
+    # Create app targets with config-specific options
     set(BUILD_TARGETS "")
     foreach(APP_CONFIG ${APP_CONFIGS})
         # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "DEFAULT")
-            add_executable(${PROJECT_NAME})
-            target_sources(${PROJECT_NAME} PRIVATE ${ALL_SRCS_PATH})
-            set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
-            target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
-            target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
-            target_link_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
-            list(APPEND BUILD_TARGETS ${PROJECT_NAME})
+            if(APP_MULTITILE_MERGE GREATER 1)
+                math(EXPR max_tile "${APP_MULTITILE_MERGE} - 1")
+                set(merge_deps "")
+                foreach(tilenum RANGE ${max_tile})
+                    add_executable(${PROJECT_NAME}_tile${tilenum})
+                    target_sources(${PROJECT_NAME}_tile${tilenum} PRIVATE ${ALL_SRCS_PATH})
+                    set_target_properties(${PROJECT_NAME}_tile${tilenum} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+                    target_include_directories(${PROJECT_NAME}_tile${tilenum} PRIVATE ${APP_INCLUDES})
+                    target_compile_options(${PROJECT_NAME}_tile${tilenum} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} -DTHIS_XCORE_TILE=${tilenum} ${APP_XSCOPE_SRCS})
+                    target_link_options(${PROJECT_NAME}_tile${tilenum} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
+                    list(APPEND BUILD_TARGETS ${PROJECT_NAME}_tile${tilenum})
+                    list(APPEND merge_deps ${PROJECT_NAME}_tile${tilenum})
+                endforeach()
+
+                set(INPUT_ELF ${PROJECT_NAME}_tile1_split/image_n0c1_2.elf)
+                add_custom_target(${PROJECT_NAME} ALL
+                    COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_NAME}_tile1_split
+                    COMMAND xobjdump --split --split-dir ${PROJECT_NAME}_tile1_split ${PROJECT_NAME}_tile1.xe > ${PROJECT_NAME}_tile1_split/output.log
+                    # next line fails if file does not exist, there is probably a cheaper way to do this. xobjdump -r silently continues if
+                    # the file does not exist
+                    COMMAND ${CMAKE_COMMAND} -E compare_files ${INPUT_ELF} ${INPUT_ELF}
+                    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_NAME}_tile0.xe ${PROJECT_NAME}.xe
+                    COMMAND xobjdump ${PROJECT_NAME}.xe -r 0,1,${INPUT_ELF} >> ${PROJECT_NAME}_tile1_split/output.log
+                    DEPENDS ${merge_deps}
+                    BYPRODUCTS ${PROJECT_NAME}.xe
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin
+                    VERBATIM
+                )
+            else()
+                add_executable(${PROJECT_NAME})
+                target_sources(${PROJECT_NAME} PRIVATE ${ALL_SRCS_PATH})
+                set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+                target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
+                target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
+                target_link_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
+                list(APPEND BUILD_TARGETS ${PROJECT_NAME})
+            endif()
         else()
             add_executable(${PROJECT_NAME}_${APP_CONFIG})
             # If a single app is being configured, build targets can be named after the app configs; in the case of a multi-app
