@@ -64,6 +64,9 @@ def run_xes(bin_dir, exp_dir):
     # Always expect at least one application
     assert len(app_xes) > 0
 
+    # Exclude the per-tile XE binaries
+    app_xes = [app_xe for app_xe in app_xes if "multitile_merge_tile" not in app_xe.name]
+
     for app_xe in app_xes:
         run_expect = exp_dir / f"{app_xe.stem}.expect"
 
