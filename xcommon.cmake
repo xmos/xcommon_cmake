@@ -614,10 +614,14 @@ function(XMOS_REGISTER_MODULE)
                 message(WARNING "Expected major version ${DEP_MAJOR_VER} for ${LIB_NAME} but got ${CMAKE_MATCH_1}")
             endif()
         else()
-            message(ERROR "Invalid LIB_VERSION ${LIB_VERSION} for ${LIB_NAME}")
+            message(WARNING "Invalid LIB_VERSION ${LIB_VERSION} for ${LIB_NAME}")
         endif()
     endif()
 
+    # DEP_NAME was set in XMOS_REGISTER_DEPS as the expected name of the module
+    if(NOT LIB_NAME STREQUAL DEP_NAME)
+        message(WARNING "Module ${DEP_NAME} has mismatched LIB_NAME: ${LIB_NAME}")
+    endif()
     set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
 
