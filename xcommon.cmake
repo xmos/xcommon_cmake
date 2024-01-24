@@ -59,7 +59,7 @@ macro(add_file_flags prefix file_srcs)
             string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
             if(_cmp)
                 set(flags ${${prefix}_COMPILER_FLAGS_${FLAG_FILE}})
-                foreach(target ${BUILD_TARGETS})
+                foreach(target ${APP_BUILD_TARGETS})
                     set_source_files_properties(${SRC_FILE_PATH}
                                                 TARGET_DIRECTORY ${target}
                                                 PROPERTIES COMPILE_OPTIONS "${flags}")
@@ -462,7 +462,7 @@ function(XMOS_REGISTER_APP)
     endif()
 
         # Create app targets with config-specific options
-    set(BUILD_TARGETS "")
+    set(APP_BUILD_TARGETS "")
     foreach(APP_CONFIG ${APP_CONFIGS})
         # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "DEFAULT")
@@ -472,7 +472,7 @@ function(XMOS_REGISTER_APP)
             target_include_directories(${PROJECT_NAME} PRIVATE ${APP_INCLUDES})
             target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
-            list(APPEND BUILD_TARGETS ${PROJECT_NAME})
+            list(APPEND APP_BUILD_TARGETS ${PROJECT_NAME})
         else()
             add_executable(${PROJECT_NAME}_${APP_CONFIG})
             # If a single app is being configured, build targets can be named after the app configs; in the case of a multi-app
@@ -486,10 +486,10 @@ function(XMOS_REGISTER_APP)
             target_include_directories(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_INCLUDES})
             target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} "-DCONFIG=${APP_CONFIG}" ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
-            list(APPEND BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
+            list(APPEND APP_BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
         endif()
     endforeach()
-    set(APP_BUILD_TARGETS ${BUILD_TARGETS} PARENT_SCOPE)
+    set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
 
     if(${CONFIGS_COUNT} EQUAL 0)
         # Only print the default-only config at the verbose log level
@@ -527,7 +527,7 @@ function(XMOS_REGISTER_APP)
     set(current_module ${PROJECT_NAME})
     XMOS_REGISTER_DEPS()
 
-    foreach(target ${BUILD_TARGETS})
+    foreach(target ${APP_BUILD_TARGETS})
         get_target_property(all_inc_dirs ${target} INCLUDE_DIRECTORIES)
         get_target_property(all_opt_hdrs ${target} OPTIONAL_HEADERS)
         set(opt_hdrs_found "")
@@ -552,7 +552,7 @@ function(XMOS_REGISTER_APP)
 
     if(APP_PCA_ENABLE AND NOT BUILD_NATIVE)
         message(STATUS "Generating commands for Pre-Compilation Analysis (PCA)")
-        foreach(target ${BUILD_TARGETS})
+        foreach(target ${APP_BUILD_TARGETS})
             string(REGEX REPLACE "${PROJECT_NAME}" "" DOT_BUILD_SUFFIX ${target})
             set(DOT_BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/.build${DOT_BUILD_SUFFIX})
             set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${DOT_BUILD_DIR})
@@ -633,7 +633,7 @@ function(XMOS_REGISTER_MODULE)
     glob_srcs("LIB" ${module_dir})
 
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
-                                TARGET_DIRECTORY ${BUILD_TARGETS}
+                                TARGET_DIRECTORY ${APP_BUILD_TARGETS}
                                 PROPERTIES COMPILE_OPTIONS "${LIB_COMPILER_FLAGS}")
 
     GET_ALL_VARS_STARTING_WITH("LIB_COMPILER_FLAGS_" LIB_COMPILER_FLAGS_VARS)
@@ -642,7 +642,7 @@ function(XMOS_REGISTER_MODULE)
 
     list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
-    foreach(target ${BUILD_TARGETS})
+    foreach(target ${APP_BUILD_TARGETS})
         target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
         target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
 
@@ -697,7 +697,7 @@ function(XMOS_REGISTER_DEPS)
                 message(VERBOSE "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
                 include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
                 get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
-                foreach(target ${BUILD_TARGETS})
+                foreach(target ${APP_BUILD_TARGETS})
                     target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
                     target_link_libraries(${target} PRIVATE ${DEP_NAME})
                 endforeach()
@@ -744,7 +744,7 @@ function(XMOS_STATIC_LIBRARY)
 
     glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
 
-    set(BUILD_TARGETS "")
+    set(APP_BUILD_TARGETS "")
     foreach(lib_arch ${LIB_ARCH})
         add_library(${LIB_NAME}-${lib_arch} STATIC)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY VERSION ${LIB_VERSION})
@@ -757,9 +757,9 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
         # Set output name so that static library filename does not include architecture
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
-        list(APPEND BUILD_TARGETS ${LIB_NAME}-${lib_arch})
+        list(APPEND APP_BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
-    set(APP_BUILD_TARGETS ${BUILD_TARGETS} PARENT_SCOPE)
+    set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
 
     if(DEFINED XMOS_DEPS_ROOT_DIR)
         message(WARNING "XMOS_DEPS_ROOT_DIR is deprecated; please use XMOS_SANDBOX_DIR instead")
