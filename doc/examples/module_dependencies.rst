@@ -44,6 +44,7 @@ CMake file contents
     set(APP_HW_TARGET XCORE-AI-EXPLORER)
     set(APP_DEPENDENT_MODULES "lib_mod0(3.2.0)"
                               "lib_mod1(1.0.0)")
+    set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
 
     XMOS_REGISTER_APP()
 
