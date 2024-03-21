@@ -46,9 +46,20 @@ Sandbox Manifest
 It is often useful to record the actual version that was used for each module, especially when tracking a branch.
 
 Whenever ``cmake`` generates the build environment for an application or static library, a file called ``manifest.txt``
-is created in the ``build`` directory. This "manifest" contains a list of the application and module dependencies, with the
-columns in a table for the location from which the module was cloned, and the branch/tag and git commit hash for the
-current checked out changeset. If any columns are not applicable, they will contain a hyphen.
+is created in the ``build`` directory.
+
+The columns in the manifest file are:
+
+- Name: the name of the application or library
+- Location: the git remote from which the repository was cloned
+- Branch/tag: the currently checked out branch or tag. A tag takes precedence, so if the head of a branch is explicitly
+  checked out, but that changeset has also been tagged, then the tag will be reported here.
+- Changeset: the git commit hash identifying the current changeset checked out in the repository
+- Dependency Requirement: (hidden) the requirement for the repository from the dependent modules list variable. This can
+  differ from the current changeset if the develop has manually checked out a different version of that component. This
+  column is only displayed if ``cmake`` is run with the option ``-D FULL_MANIFEST=TRUE``.
+
+If any columns are not applicable to a particular dependency, they will contain a hyphen.
 
 Dependency Location
 ^^^^^^^^^^^^^^^^^^^

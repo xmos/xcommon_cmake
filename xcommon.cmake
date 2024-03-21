@@ -31,9 +31,13 @@ set_property(GLOBAL PROPERTY SSH_HOST_SUCCESS "")
 set_property(GLOBAL PROPERTY SSH_HOST_FAILURE "")
 
 set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
+if(FULL_MANIFEST)
+    set(DEP_REQ_HEADER "                                  | Dependency requirement")
+    set(DEP_REQ_DIVIDER "+-----------------------------------------")
+endif()
 set(MANIFEST_HEADER
-        "Name                    | Location                                        | Branch/tag             | Changeset\n"
-        "------------------------+-------------------------------------------------+------------------------+-----------------------------------------\n")
+        "Name                    | Location                                        | Branch/tag             | Changeset${DEP_REQ_HEADER}\n"
+        "------------------------+-------------------------------------------------+------------------------+--------------------------------------------${DEP_REQ_DIVIDER}\n")
 
 function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     get_cmake_property(_vars VARIABLES)
@@ -303,11 +307,12 @@ function(pad_string str total_len ret_str)
     endif()
 endfunction()
 
-function(form_manifest_string name version repo branch commit_hash status ret_str)
+function(form_manifest_string name required_ver repo branch tag commit_hash status ret_str)
     if(NOT commit_hash)
         # Must not be in a git repo, so unset other variables
         set(commit_hash "-")
         unset(branch)
+        unset(tag)
         unset(repo)
         unset(status)
     endif()
@@ -326,19 +331,24 @@ function(form_manifest_string name version repo branch commit_hash status ret_st
         endif()
     endif()
 
-    # Depending on the git version, a branch might be checked out by detaching the HEAD of that branch
-    string(REGEX MATCH "^HEAD detached at ([a-zA-Z0-9\\._-]+/)?([a-zA-Z0-9\\._-]+)\n" _m "${status}")
-    if(CMAKE_MATCH_COUNT GREATER 1)
-        set(detached ${CMAKE_MATCH_${CMAKE_MATCH_COUNT}})
-        if(commit_hash MATCHES "^${detached}")
-            set(branch "-")
-        else()
-            set(branch "${detached}")
-        endif()
+    # Prefer a tag reference over a branch
+    if(tag)
+        set(branch ${tag})
     endif()
 
     if(NOT branch)
-        set(branch "-")
+        # Depending on the git version, a branch might be checked out by detaching the HEAD of that branch
+        string(REGEX MATCH "^HEAD detached at ([a-zA-Z0-9\\._-]+/)?([a-zA-Z0-9\\._-]+)\n" _m "${status}")
+        if(CMAKE_MATCH_COUNT GREATER 1)
+            set(detached ${CMAKE_MATCH_${CMAKE_MATCH_COUNT}})
+            if(commit_hash MATCHES "^${detached}")
+                set(branch "-")
+            else()
+                set(branch "${detached}")
+            endif()
+        else()
+            set(branch "-")
+        endif()
     endif()
 
     set(manifest_str "${name}")
@@ -348,6 +358,10 @@ function(form_manifest_string name version repo branch commit_hash status ret_st
     string(APPEND manifest_str " ${branch}")
     pad_string(${manifest_str} 100 manifest_str)
     string(APPEND manifest_str " ${commit_hash}")
+    if(FULL_MANIFEST)
+        pad_string(${manifest_str} 145 manifest_str)
+        string(APPEND manifest_str " ${required_ver}")
+    endif()
 
     set(${ret_str} ${manifest_str} PARENT_SCOPE)
 endfunction()
@@ -390,7 +404,18 @@ function(manifest_git_status name version)
                     OUTPUT_STRIP_TRAILING_WHITESPACE
                     ERROR_QUIET)
 
-    form_manifest_string("${name}" "${version}" "${repo}" "${branch}" "${commit_hash}" "${status}" manifest_str)
+    execute_process(COMMAND git describe --tags --exact-match HEAD
+                    TIMEOUT 5
+                    WORKING_DIRECTORY ${working_dir}
+                    OUTPUT_VARIABLE tag
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+
+    if(NOT version)
+        set(version "-")
+    endif()
+
+    form_manifest_string("${name}" "${version}" "${repo}" "${branch}" "${tag}" "${commit_hash}" "${status}" manifest_str)
     file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 endfunction()
 
