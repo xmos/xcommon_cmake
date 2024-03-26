@@ -583,9 +583,9 @@ function(XMOS_REGISTER_APP)
 
             list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_SANDBOX_DIR}/)
 
-            string(REPLACE ";" " " PCA_FILES_PATH_STR "${PCA_FILES_PATH}")
-            set(PCA_FILES_RESP ${DOT_BUILD_DIR}/_pca.rsp)
-            file(WRITE ${PCA_FILES_RESP} ${PCA_FILES_PATH_STR})
+            string(REPLACE ";" "\" \"" PCA_FILES_PATH_STR "${PCA_FILES_PATH}")
+            set(PCA_FILES_RESP ${CMAKE_BINARY_DIR}/_pca${DOT_BUILD_SUFFIX}.rsp)
+            file(WRITE ${PCA_FILES_RESP} "\"${PCA_FILES_PATH_STR}\"")
 
             set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
             add_custom_command(
@@ -597,7 +597,7 @@ function(XMOS_REGISTER_APP)
                 )
             set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES_PATH})
 
-            set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc ${DOT_BUILD_DIR}/pca.xml")
+            set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc \"${DOT_BUILD_DIR}/pca.xml\"")
             target_compile_options(${target} PRIVATE ${PCA_FLAG})
             target_sources(${target} PRIVATE ${PCA_FILE})
         endforeach()

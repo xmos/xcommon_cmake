@@ -1,6 +1,12 @@
 XCommon CMake Change Log
 ========================
 
+UNRELEASED
+----------
+
+  * FIXED: xpca response file erroneously deleted
+  * FIXED: PCA commands fail if there are spaces in the directory path
+
 0.2.0
 -----
 
