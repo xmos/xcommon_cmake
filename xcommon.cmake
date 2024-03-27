@@ -584,7 +584,7 @@ function(XMOS_REGISTER_APP)
             list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_SANDBOX_DIR}/)
 
             string(REPLACE ";" "\" \"" PCA_FILES_PATH_STR "${PCA_FILES_PATH}")
-            set(PCA_FILES_RESP ${CMAKE_BINARY_DIR}/_pca${DOT_BUILD_SUFFIX}.rsp)
+            set(PCA_FILES_RESP ${CMAKE_BINARY_DIR}/${target}/_pca.rsp)
             file(WRITE ${PCA_FILES_RESP} "\"${PCA_FILES_PATH_STR}\"")
 
             set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
