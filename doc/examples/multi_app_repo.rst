@@ -173,6 +173,17 @@ The build product is ``bin/multiapp1.xe``. Application ``app_multiapp0`` has not
 Best practice
 """""""""""""
 
-The union of the dependent modules lists for all applications in the repository should be listed
-in ``deps.cmake``; individual applications should not modify the ``APP_DEPENDENT_MODULES`` variable
-in their own ``CMakeLists.txt`` files. If they do, the generated manifest file may be incorrect.
+For a repository which contains multiple applications, each with different dependencies, if each
+has its own definition of the ``APP_DEPENDENT_MODULES`` variable, trying to keep the common
+dependencies synchronised is error-prone.
+
+In a multi-application repository, ``cmake`` can configure and generate the build environment at
+different levels: either for a single application from within that application's subdirectory, or
+for all applications from the ``CMakeLists.txt`` file in the root of the repository. For simplicity,
+it is preferable for the manifest to show a common view of the whole sandbox, rather than only
+reporting the dependencies in the sandbox which are used by a single application.
+
+Therefore, it is strongly recommended to set the ``APP_DEPENDENT_MODULES`` variable with the full
+list of dependencies for all applications in the repository in the common ``deps.cmake`` file, as
+in the example above. Individual applications should not modify the ``APP_DEPENDENT_MODULES`` variable
+in their own ``CMakeLists.txt`` files, otherwise the generated manifest file may be incorrect.
