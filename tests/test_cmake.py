@@ -135,7 +135,7 @@ def rmtree_error(func, path, exc_info):
 # parameterisation of test_cmake.
 def test_fetch_deps(cmake):
     test_dir = Path(__file__).parent / "_fetch_deps"
-    dep_dirs = ["lib_test0", "lib_test1"]
+    dep_dirs = ["lib_dsp", "lib_logging"]
 
     for dir in [test_dir / d for d in dep_dirs]:
         if dir.exists() and dir.is_dir():
