@@ -32,7 +32,7 @@ set_property(GLOBAL PROPERTY SSH_HOST_FAILURE "")
 
 set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
 if(FULL_MANIFEST)
-    set(DEP_REQ_HEADER "                                  | Dependency requirement")
+    set(DEP_REQ_HEADER "                                  | Dependency_requirement")
     set(DEP_REQ_DIVIDER "+-----------------------------------------")
 endif()
 set(MANIFEST_HEADER
