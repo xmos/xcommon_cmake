@@ -6,6 +6,7 @@ UNRELEASED
 
   * FIXED: xpca response file erroneously deleted
   * FIXED: PCA commands fail if there are spaces in the directory path
+  * FIXED: PCA failures when building C++ sources
 
 0.2.0
 -----

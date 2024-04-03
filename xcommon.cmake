@@ -586,6 +586,9 @@ function(XMOS_REGISTER_APP)
 
             get_target_property(target_srcs ${target} SOURCES)
 
+            # Filter sources so that the only sources are XC
+            list(FILTER target_srcs INCLUDE REGEX "\\.xc$")
+
             get_target_property(target_link_libs ${target} LINK_LIBRARIES)
             list(FILTER target_link_libs EXCLUDE REGEX "^.+-NOTFOUND$")
             set(static_incdirs "")

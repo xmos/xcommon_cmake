@@ -3,6 +3,8 @@
 #include "mod0.h"
 #include "mod1.h"
 
+void fn_cxx();
+
 int add_1(int a)
 {
     return a + 1;
@@ -18,6 +20,8 @@ int main()
     printintln(x);
     printintln(y);
     printintln(z);
+
+    fn_cxx();
 
     return 0;
 }
