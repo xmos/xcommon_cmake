@@ -131,12 +131,11 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
     add_custom_command(
        OUTPUT ${file_pca}
        COMMAND xcc -pre-compilation-analysis ${SOURCE_FILE} ${FILE_FLAGS} "$<$<BOOL:${FILE_INCDIRS}>:-I$<JOIN:${FILE_INCDIRS},;-I>>" -x none -o ${file_pca}
-       DEPENDS ${SOURCE_FILE} ${file_pca_dir}
+       DEPENDS ${SOURCE_FILE} ${file_pca_dir} ${APP_HW_TARGET_XN_FILE}
        VERBATIM
        COMMAND_EXPAND_LISTS
     )
 
-    set_property(SOURCE ${file_pca} APPEND PROPERTY OBJECT_DEPENDS ${SOURCE_FILE})
     set(${RET_FILE_PCA} ${file_pca} PARENT_SCOPE)
 endfunction()
 
@@ -442,6 +441,7 @@ function(XMOS_REGISTER_APP)
         endif()
         set(APP_TARGET_COMPILER_FLAG ${xn_files})
         message(VERBOSE "XN file: ${xn_files}")
+        set(APP_HW_TARGET_XN_FILE ${xn_files})
     elseif(NOT BUILD_NATIVE)
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
         message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
@@ -514,6 +514,11 @@ function(XMOS_REGISTER_APP)
             list(APPEND APP_BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
         endif()
     endforeach()
+    if(APP_HW_TARGET_XN_FILE)
+        set_source_files_properties(${ALL_SRCS_PATH}
+                                    TARGET_DIRECTORY ${APP_BUILD_TARGETS}
+                                    PROPERTIES OBJECT_DEPENDS ${APP_HW_TARGET_XN_FILE})
+    endif()
     set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
 
     if(${CONFIGS_COUNT} EQUAL 0)
@@ -623,7 +628,6 @@ function(XMOS_REGISTER_APP)
                     DEPFILE ${DOT_BUILD_DIR}/pca.d
                     COMMAND_EXPAND_LISTS
                 )
-            set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES_PATH})
 
             set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc \"${DOT_BUILD_DIR}/pca.xml\"")
             target_compile_options(${target} PRIVATE ${PCA_FLAG})
@@ -667,6 +671,12 @@ function(XMOS_REGISTER_MODULE)
     GET_ALL_VARS_STARTING_WITH("LIB_COMPILER_FLAGS_" LIB_COMPILER_FLAGS_VARS)
     set(ALL_LIB_SRCS_PATH ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
     add_file_flags("LIB" "${ALL_LIB_SRCS_PATH}")
+
+    if(APP_HW_TARGET_XN_FILE)
+        set_source_files_properties(${ALL_LIB_SRCS_PATH}
+                                    TARGET_DIRECTORY ${APP_BUILD_TARGETS}
+                                    PROPERTIES OBJECT_DEPENDS ${APP_HW_TARGET_XN_FILE})
+    endif()
 
     list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
