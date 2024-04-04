@@ -7,6 +7,7 @@ UNRELEASED
   * FIXED: xpca response file erroneously deleted
   * FIXED: PCA commands fail if there are spaces in the directory path
   * FIXED: PCA failures when building C++ sources
+  * FIXED: modifying XN file doesn't cause an application rebuild
 
 0.2.0
 -----
