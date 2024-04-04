@@ -480,6 +480,16 @@ function(XMOS_REGISTER_APP)
         endif()
     endforeach()
 
+    # Add any configs defined by SOURCE_FILES_<config> that aren't already in APP_CONFIGS
+    GET_ALL_VARS_STARTING_WITH("SOURCE_FILES_" SOURCE_FILES_VARS)
+    foreach(SOURCE_FILES_VAR ${SOURCE_FILES_VARS})
+        string(REPLACE "SOURCE_FILES_" "" SOURCE_FILES_VAR ${SOURCE_FILES_VAR})
+        list(FIND APP_CONFIGS ${SOURCE_FILES_VAR} found)
+        if(${found} EQUAL -1)
+            list(APPEND APP_CONFIGS ${SOURCE_FILES_VAR})
+        endif()
+    endforeach()
+
     # Somewhat follow the strategy of xcommon here with a config named "Default"
     list(LENGTH APP_CONFIGS CONFIGS_COUNT)
     if(${CONFIGS_COUNT} EQUAL 0)
