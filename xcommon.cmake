@@ -793,6 +793,11 @@ function(XMOS_STATIC_LIBRARY)
 
     glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
 
+    set(archive_name ${LIB_NAME})
+    if(NOT ${LIB_NAME} MATCHES "^lib")
+        set(archive_name "lib${LIB_NAME}")
+    endif()
+
     set(APP_BUILD_TARGETS "")
     foreach(lib_arch ${LIB_ARCH})
         add_library(${LIB_NAME}-${lib_arch} STATIC)
@@ -806,6 +811,12 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
         # Set output name so that static library filename does not include architecture
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
+
+        # Avoid archive named "liblib..." by removing prefix
+        if(LIB_NAME STREQUAL archive_name)
+            set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY PREFIX "")
+        endif()
+
         list(APPEND APP_BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
     set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
@@ -845,12 +856,11 @@ function(XMOS_STATIC_LIBRARY)
                 set(dep_dir ${XMOS_SANDBOX_DIR}/@LIB_NAME@)
             endif()
 
-            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
+            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/@archive_name@.a)
             set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
             foreach(incdir @LIB_INCLUDES@)
                 target_include_directories(@LIB_NAME@ INTERFACE ${dep_dir}/@LIB_NAME@/${incdir})
-            endforeach()
-        ]=])
+            endforeach()]=])
 
         # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
         configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${CMAKE_SOURCE_DIR}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
