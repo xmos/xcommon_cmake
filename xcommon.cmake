@@ -740,9 +740,21 @@ function(XMOS_REGISTER_DEPS)
             endif()
             cmake_path(SET dep_dir NORMALIZE ${dep_dir})
 
+            # Fetch dependency if not present
+            if(NOT IS_DIRECTORY ${dep_dir})
+                message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
+                FetchContent_Declare(
+                    ${DEP_NAME}
+                    GIT_REPOSITORY ${DEP_REPO}
+                    GIT_TAG ${DEP_VERSION}
+                    SOURCE_DIR ${dep_dir}
+                )
+                FetchContent_Populate(${DEP_NAME})
+            endif()
+
             # Add dependencies directories
             if(IS_DIRECTORY ${dep_dir}/${DEP_NAME}/lib)
-                message(VERBOSE "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
+                message(STATUS "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
                 include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
                 get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
                 foreach(target ${APP_BUILD_TARGETS})
@@ -753,17 +765,6 @@ function(XMOS_REGISTER_DEPS)
                 # Clear source variables to avoid inheriting from parent scope
                 # Either lib_build_info.cmake will populate these, otherwise we glob for them
                 unset_lib_vars()
-
-                if(NOT EXISTS ${dep_dir})
-                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
-                    FetchContent_Declare(
-                        ${DEP_NAME}
-                        GIT_REPOSITORY ${DEP_REPO}
-                        GIT_TAG ${DEP_VERSION}
-                        SOURCE_DIR ${dep_dir}
-                    )
-                    FetchContent_Populate(${DEP_NAME})
-                endif()
 
                 set(module_dir ${dep_dir}/${DEP_NAME})
                 message(STATUS "Adding module ${DEP_NAME}")
