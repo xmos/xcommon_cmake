@@ -145,6 +145,17 @@ Optional application variables
     set(APP_XSCOPE_SRCS src/config.xscope)
     set(APP_XSCOPE_SRCS "")
 
+``SOURCE_FILES_<config>``
+  List of source files to use only when building the specified application config. Each application
+  config initially has the same source file list, which is created according to the behaviour of the
+  language-specific source list variables. Then for each application config, sources are removed
+  from their list if a different application config has specified that file in its
+  ``SOURCE_FILES_<config>`` variable.
+
+  .. code-block:: cmake
+
+    set(SOURCE_FILES_config0 src/config0.c)
+
 ``XMOS_DEP_DIR_<module>``
   Directory containing the dependency ``<module>`` as an override to the default sandbox root
   directory in ``XMOS_SANDBOX_DIR``. This is the path to the root of the module.
