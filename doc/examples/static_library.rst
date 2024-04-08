@@ -13,14 +13,19 @@ Directory structure
            |-- lib_mod0/
            |           |-- lib_mod0/
            |                       |-- api/
+           |                       |      |-- mod0.h
            |                       |-- lib_build_info.cmake
            |                       |-- src/
+           |                              |-- mod0.c
+           |
            |-- lib_abc/
                       |-- CMakeLists.txt
                       |-- lib_abc/
                                  |-- api/
+                                 |      |-- abc.h
                                  |-- CMakeLists.txt
                                  |-- libsrc/
+                                           |-- abc.c
 
 CMake file contents
 """""""""""""""""""
@@ -33,6 +38,8 @@ CMake file contents
     include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
     project(lib_abc)
 
+    set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
+
     add_subdirectory(lib_abc)
 
 `sandbox/lib_abc/lib_abc/CMakeLists.txt`
@@ -43,7 +50,8 @@ CMake file contents
     set(LIB_VERSION 1.2.3)
     set(LIB_ARCH xs2a xs3a)
     set(LIB_INCLUDES api)
-    set(LIB_DEPENDENT_MODULES "lib_mod0(3.2.0)")
+    set(LIB_C_SRCS libsrc/abc.c)
+    set(LIB_DEPENDENT_MODULES "lib_mod0(1.0.0)")
 
     XMOS_STATIC_LIBRARY()
 
@@ -72,5 +80,5 @@ Commands to build the static libraries, from working directory ``sandbox/lib_abc
 A static library archive is created for each architecture, with a cmake include file
 so that it can be added to an application project and linked into an executable.
 
-- ``sandbox/lib_abc/lib_abc/lib/xs2a/liblib_abc.a`` included via ``sandbox/lib_abc/lib_abc/lib/lib_abc-xs2a.cmake``
-- ``sandbox/lib_abc/lib_abc/lib/xs3a/liblib_abc.a`` included via ``sandbox/lib_abc/lib_abc/lib/lib_abc-xs3a.cmake``
+- ``sandbox/lib_abc/lib_abc/lib/xs2a/lib_abc.a`` included via ``sandbox/lib_abc/lib_abc/lib/lib_abc-xs2a.cmake``
+- ``sandbox/lib_abc/lib_abc/lib/xs3a/lib_abc.a`` included via ``sandbox/lib_abc/lib_abc/lib/lib_abc-xs3a.cmake``
