@@ -740,9 +740,21 @@ function(XMOS_REGISTER_DEPS)
             endif()
             cmake_path(SET dep_dir NORMALIZE ${dep_dir})
 
+            # Fetch dependency if not present
+            if(NOT IS_DIRECTORY ${dep_dir})
+                message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
+                FetchContent_Declare(
+                    ${DEP_NAME}
+                    GIT_REPOSITORY ${DEP_REPO}
+                    GIT_TAG ${DEP_VERSION}
+                    SOURCE_DIR ${dep_dir}
+                )
+                FetchContent_Populate(${DEP_NAME})
+            endif()
+
             # Add dependencies directories
             if(IS_DIRECTORY ${dep_dir}/${DEP_NAME}/lib)
-                message(VERBOSE "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
+                message(STATUS "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
                 include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
                 get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
                 foreach(target ${APP_BUILD_TARGETS})
@@ -753,17 +765,6 @@ function(XMOS_REGISTER_DEPS)
                 # Clear source variables to avoid inheriting from parent scope
                 # Either lib_build_info.cmake will populate these, otherwise we glob for them
                 unset_lib_vars()
-
-                if(NOT EXISTS ${dep_dir})
-                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
-                    FetchContent_Declare(
-                        ${DEP_NAME}
-                        GIT_REPOSITORY ${DEP_REPO}
-                        GIT_TAG ${DEP_VERSION}
-                        SOURCE_DIR ${dep_dir}
-                    )
-                    FetchContent_Populate(${DEP_NAME})
-                endif()
 
                 set(module_dir ${dep_dir}/${DEP_NAME})
                 message(STATUS "Adding module ${DEP_NAME}")
@@ -792,6 +793,11 @@ function(XMOS_STATIC_LIBRARY)
 
     glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
 
+    set(archive_name ${LIB_NAME})
+    if(NOT ${LIB_NAME} MATCHES "^lib")
+        set(archive_name "lib${LIB_NAME}")
+    endif()
+
     set(APP_BUILD_TARGETS "")
     foreach(lib_arch ${LIB_ARCH})
         add_library(${LIB_NAME}-${lib_arch} STATIC)
@@ -805,6 +811,12 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
         # Set output name so that static library filename does not include architecture
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
+
+        # Avoid archive named "liblib..." by removing prefix
+        if(LIB_NAME STREQUAL archive_name)
+            set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY PREFIX "")
+        endif()
+
         list(APPEND APP_BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
     set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
@@ -844,12 +856,11 @@ function(XMOS_STATIC_LIBRARY)
                 set(dep_dir ${XMOS_SANDBOX_DIR}/@LIB_NAME@)
             endif()
 
-            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
+            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/@archive_name@.a)
             set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
             foreach(incdir @LIB_INCLUDES@)
                 target_include_directories(@LIB_NAME@ INTERFACE ${dep_dir}/@LIB_NAME@/${incdir})
-            endforeach()
-        ]=])
+            endforeach()]=])
 
         # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
         configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${CMAKE_SOURCE_DIR}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
