@@ -65,14 +65,19 @@ XCommon CMake Functions
 
   This function is called recursively when adding module dependencies which use this function.
 
-``XMOS_STATIC_LIBRARY()``
+``XMOS_REGISTER_STATIC_LIB()``
   This function is called after setting the :ref:`required-staticlib-variables` and any
-  :ref:`optional-staticlib-variables`, to perform the following:
+  :ref:`optional-staticlib-variables`, and it can be used in two ways.
+
+  Firstly, if ``cmake`` is being run from the static library directory, this function will:
 
   - define the static library build targets
   - add static library sources to the build targets
   - set compiler options for the static library sources
-  - populate the manifest with an entry for the application
+  - populate the manifest with an entry for the static library
   - fetch any missing dependencies
   - configure the immediate dependencies
-  - create the cmake inclusion file for linking this static library into an application
+
+Alternatively, if the static library is a dependency of an application, this function is called as
+a result of the dependency configuration for the application. In that case, it will link the static
+library into all of the application build targets.

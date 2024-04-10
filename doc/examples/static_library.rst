@@ -19,18 +19,18 @@ Directory structure
            |                              |-- mod0.c
            |
            |-- lib_abc/
-                      |-- CMakeLists.txt
                       |-- lib_abc/
                                  |-- api/
                                  |      |-- abc.h
                                  |-- CMakeLists.txt
+                                 |-- lib_build_info.cmake
                                  |-- libsrc/
                                            |-- abc.c
 
 CMake file contents
 """""""""""""""""""
 
-`sandbox/lib_abc/CMakeLists.txt`
+`sandbox/lib_abc/lib_abc/CMakeLists.txt`
 
 .. code-block:: cmake
 
@@ -38,11 +38,10 @@ CMake file contents
     include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
     project(lib_abc)
 
-    set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
+    set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
+    include(lib_build_info.cmake)
 
-    add_subdirectory(lib_abc)
-
-`sandbox/lib_abc/lib_abc/CMakeLists.txt`
+`sandbox/lib_abc/lib_abc/lib_build_info.cmake`
 
 .. code-block:: cmake
 
@@ -53,7 +52,7 @@ CMake file contents
     set(LIB_C_SRCS libsrc/abc.c)
     set(LIB_DEPENDENT_MODULES "lib_mod0(1.0.0)")
 
-    XMOS_STATIC_LIBRARY()
+    XMOS_REGISTER_STATIC_LIB()
 
 `sandbox/lib_mod0/lib_mod0/lib_build_info.cmake`
 
@@ -69,7 +68,7 @@ CMake file contents
 Build instructions
 """"""""""""""""""
 
-Commands to build the static libraries, from working directory ``sandbox/lib_abc``:
+Commands to build the static libraries, from working directory ``sandbox/lib_abc/lib_abc``:
 
 .. code-block:: console
 
@@ -77,8 +76,7 @@ Commands to build the static libraries, from working directory ``sandbox/lib_abc
     cd build
     xmake
 
-A static library archive is created for each architecture, with a cmake include file
-so that it can be added to an application project and linked into an executable.
+A static library archive is created for each architecture:
 
-- ``sandbox/lib_abc/lib_abc/lib/xs2a/lib_abc.a`` included via ``sandbox/lib_abc/lib_abc/lib/lib_abc-xs2a.cmake``
-- ``sandbox/lib_abc/lib_abc/lib/xs3a/lib_abc.a`` included via ``sandbox/lib_abc/lib_abc/lib/lib_abc-xs3a.cmake``
+- ``sandbox/lib_abc/lib_abc/lib/xs2a/lib_abc.a``
+- ``sandbox/lib_abc/lib_abc/lib/xs3a/lib_abc.a``
