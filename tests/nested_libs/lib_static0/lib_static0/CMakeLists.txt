@@ -1,8 +1,5 @@
-set(LIB_NAME lib_static0)
-set(LIB_VERSION 1.0.0)
-set(LIB_INCLUDES api)
-set(LIB_DEPENDENT_MODULES lib_mod2)
-
-set(XMOS_SANDBOX_DIR ${CMAKE_SOURCE_DIR}/..)
-
-XMOS_STATIC_LIBRARY()
+cmake_minimum_required(VERSION 3.21)
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
+project(lib_static0)
+set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
+include(lib_build_info.cmake)

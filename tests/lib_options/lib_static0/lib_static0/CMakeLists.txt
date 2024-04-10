@@ -1,7 +1,4 @@
-set(LIB_NAME lib_static0)
-set(LIB_VERSION 1.0.0)
-set(LIB_INCLUDES api)
-set(LIB_DEPENDENT_MODULES "")
-set(LIB_COMPILER_FLAGS -DLIB_STATIC0_OPTION=1)
-
-XMOS_STATIC_LIBRARY()
+cmake_minimum_required(VERSION 3.21)
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
+project(lib_static0)
+include(lib_build_info.cmake)
