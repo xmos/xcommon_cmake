@@ -4,6 +4,8 @@ XCommon CMake Change Log
 UNRELEASED
 ----------
 
+  * ADDED: support for fetching dependencies that are static libraries
+  * CHANGED: supported repository structure for static libraries
   * FIXED: xpca response file erroneously deleted
   * FIXED: PCA commands fail if there are spaces in the directory path
   * FIXED: PCA failures when building C++ sources
