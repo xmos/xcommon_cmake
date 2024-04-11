@@ -1,6 +1,8 @@
 Functions
 ---------
 
+.. _cmake-boilerplate:
+
 CMake Boilerplate
 ^^^^^^^^^^^^^^^^^
 
@@ -19,7 +21,7 @@ Some CMake function calls are required in the application or static library ``CM
   This function takes an argument which will be used as the base name for the application. If ``my_app``
   is set here, the XE executable for the default config build will be called ``my_app.xe``.
 
-These three lines should be present at the beginning of an application or static library ``CMakeLists.txt``
+These three lines must be present at the beginning of an application or static library ``CMakeLists.txt``
 file.
 
 .. code-block:: cmake

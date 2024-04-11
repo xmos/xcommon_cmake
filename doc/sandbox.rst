@@ -27,7 +27,7 @@ Module
   into objects which are directly linked into the application executable. XMOS module
   directories are typically prefixed with ``lib_``.
 
-  For example, a source module may implement an IO function such as I2C
+  For example, a source module may implement an IO function such as I2C.
 
 Static Library
   Contains source code and (optionally) a pre-built static library archive, which can be
