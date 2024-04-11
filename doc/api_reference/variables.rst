@@ -307,7 +307,8 @@ The same as the :ref:`required-module-variables`, and also:
 
 ``XMOS_SANDBOX_DIR``
   The path to the root of the sandbox directory. This is only required if ``LIB_DEPENDENT_MODULES``
-  is non-empty. See :ref:`sandbox-structure`.
+  is non-empty. This must be set in the static library's ``CMakeLists.txt`` file before including
+  ``lib_build_info.cmake``. See :ref:`sandbox-structure`.
 
   .. code-block:: cmake
 

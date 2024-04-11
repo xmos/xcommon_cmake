@@ -25,7 +25,7 @@ def cleanup_static_lib(lib_dir):
     if build_dir.exists() and build_dir.is_dir():
         shutil.rmtree(build_dir)
 
-    bin_dir = lib_dir / lib_dir.name / "lib"
+    bin_dir = lib_dir / "lib"
     if bin_dir.exists() and bin_dir.is_dir():
         shutil.rmtree(bin_dir)
 
@@ -153,7 +153,7 @@ def test_native_build(cmake):
     app_dir = test_dir / "app_native_build"
     build_dir = app_dir / "build"
     bin_dir = app_dir / "bin"
-    lib_dir = test_dir / "lib_static0"
+    lib_dir = test_dir / "lib_static0" / "lib_static0"
     lib_build_dir = lib_dir / "build"
 
     cleanup_app(app_dir)

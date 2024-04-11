@@ -752,24 +752,13 @@ function(XMOS_REGISTER_DEPS)
                 FetchContent_Populate(${DEP_NAME})
             endif()
 
-            # Add dependencies directories
-            if(IS_DIRECTORY ${dep_dir}/${DEP_NAME}/lib)
-                message(STATUS "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
-                include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
-                get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
-                foreach(target ${APP_BUILD_TARGETS})
-                    target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
-                    target_link_libraries(${target} PRIVATE ${DEP_NAME})
-                endforeach()
-            else()
-                # Clear source variables to avoid inheriting from parent scope
-                # Either lib_build_info.cmake will populate these, otherwise we glob for them
-                unset_lib_vars()
+            # Clear source variables to avoid inheriting from parent scope
+            # Either lib_build_info.cmake will populate these, otherwise we glob for them
+            unset_lib_vars()
 
-                set(module_dir ${dep_dir}/${DEP_NAME})
-                message(STATUS "Adding module ${DEP_NAME}")
-                include(${module_dir}/lib_build_info.cmake)
-            endif()
+            set(module_dir ${dep_dir}/${DEP_NAME})
+            message(STATUS "Adding dependency ${DEP_NAME}")
+            include(${module_dir}/lib_build_info.cmake)
 
             manifest_git_status(${DEP_NAME} ${DEP_VERSION})
         endif()
@@ -841,28 +830,35 @@ function(XMOS_STATIC_LIBRARY)
 
     set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
+endfunction()
 
-    foreach(lib_arch ${LIB_ARCH})
-        # To statically link this library into an application, a cmake file is needed which will be included in
-        # other projects to access this library. Start with a template file with exactly the content written by
-        # the file() command below; no variables are substituted.
-        file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in [=[
-            add_library(@LIB_NAME@ STATIC IMPORTED)
-            set_property(TARGET @LIB_NAME@ PROPERTY SYSTEM OFF)
+# Either configures the build of the static library or links the static library into the application
+function(XMOS_REGISTER_STATIC_LIB)
+    # The variable module_dir will be set if this function is called as result of application dependency
+    # resolution, in which case the static library is linked into the application. If this variable is
+    # not set, XMOS_STATIC_LIBRARY() is called to configure the build of the static library itself.
+    if(NOT module_dir)
+        XMOS_STATIC_LIBRARY()
+    else()
+        set(archive_name ${LIB_NAME})
+        if(NOT ${LIB_NAME} MATCHES "^lib")
+            set(archive_name "lib${LIB_NAME}")
+        endif()
 
-            if(DEFINED XMOS_DEP_DIR_@LIB_NAME@)
-                set(dep_dir ${XMOS_DEP_DIR_@LIB_NAME@})
-            else()
-                set(dep_dir ${XMOS_SANDBOX_DIR}/@LIB_NAME@)
-            endif()
+        add_library(${LIB_NAME} STATIC IMPORTED)
+        set_property(TARGET ${LIB_NAME} PROPERTY SYSTEM OFF)
 
-            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/@archive_name@.a)
-            set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
-            foreach(incdir @LIB_INCLUDES@)
-                target_include_directories(@LIB_NAME@ INTERFACE ${dep_dir}/@LIB_NAME@/${incdir})
-            endforeach()]=])
+        set(archive_path ${module_dir}/lib/${APP_BUILD_ARCH}/${archive_name}.a)
+        if(NOT EXISTS ${archive_path})
+            message(FATAL_ERROR "${LIB_NAME} static library archive not present at ${archive_path}")
+        endif()
+        set_property(TARGET ${LIB_NAME} PROPERTY IMPORTED_LOCATION ${archive_path})
 
-        # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
-        configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${CMAKE_SOURCE_DIR}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
-    endforeach()
+        list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
+        target_include_directories(${LIB_NAME} INTERFACE ${LIB_INCLUDES})
+
+        foreach(target ${APP_BUILD_TARGETS})
+            target_link_libraries(${target} PRIVATE ${LIB_NAME})
+        endforeach()
+    endif()
 endfunction()
