@@ -1,8 +1,10 @@
 Functions
 ---------
 
-CMake Boilerplate
-^^^^^^^^^^^^^^^^^
+.. _cmake-header:
+
+CMake Header
+^^^^^^^^^^^^
 
 Some CMake function calls are required in the application or static library ``CMakeLists.txt`` file.
 
@@ -19,7 +21,7 @@ Some CMake function calls are required in the application or static library ``CM
   This function takes an argument which will be used as the base name for the application. If ``my_app``
   is set here, the XE executable for the default config build will be called ``my_app.xe``.
 
-These three lines should be present at the beginning of an application or static library ``CMakeLists.txt``
+These three lines must be present at the beginning of an application or static library ``CMakeLists.txt``
 file.
 
 .. code-block:: cmake
@@ -69,7 +71,7 @@ XCommon CMake Functions
   This function is called after setting the :ref:`required-staticlib-variables` and any
   :ref:`optional-staticlib-variables`, and it can be used in two ways.
 
-  Firstly, if ``cmake`` is being run from the static library directory, this function will:
+  Firstly, if CMake is being run from the static library directory, this function will:
 
   - define the static library build targets
   - add static library sources to the build targets

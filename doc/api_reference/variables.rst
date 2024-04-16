@@ -1,3 +1,5 @@
+.. _reference-variables:
+
 Variables
 ---------
 
@@ -102,7 +104,9 @@ Optional application variables
 ``APP_DEPENDENT_MODULES``
   List of this application's dependencies, which must be present when compiling. See the separate
   dependency management section about the dependency fetching process and the acceptable format
-  for values in this list. Default: empty list, so the application has no dependencies. Example:
+  for values in this list. Unlike other variables, the values to set for ``APP_DEPENDENT_MODULES``
+  should be quoted, as this is required when the string contains parentheses. Default: empty list,
+  so the application has no dependencies. Example:
 
   .. code-block:: cmake
 
@@ -176,7 +180,8 @@ Required module variables
   List of this module's dependencies, which must be present when compiling. See the separate
   dependency management section about the dependency fetching process and the acceptable format
   for values in this list. If this module has no dependencies, this variable must be set as
-  an empty string. Examples:
+  an empty string.  Unlike other variables, the values to set for ``LIB_DEPENDENT_MODULES``
+  should be quoted, as this is required when the string contains parentheses. Examples:
 
   .. code-block:: cmake
 

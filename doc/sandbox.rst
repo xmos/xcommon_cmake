@@ -3,13 +3,13 @@
 Sandbox Structure
 -----------------
 
-A sandbox is a fully contained collection of source code modules which can be used to build one or
-more applications.
+XCommon CMake assumes a sandbox structure. A sandbox is a fully contained collection of source
+code modules which can be used to build one or more applications.
 
 Definitions
 ^^^^^^^^^^^
 
-There are three types of top-level directories that can be present in a sandbox.
+There are three types of top-level directories that XCommon CMake supports in a sandbox structure.
 
 Application
   Contains a set of source files that is specific to the application that builds into one or more
@@ -27,7 +27,7 @@ Module
   into objects which are directly linked into the application executable. XMOS module
   directories are typically prefixed with ``lib_``.
 
-  For example, a source module may implement an IO function such as I2C
+  For example, a source module may implement an IO function such as I2C.
 
 Static Library
   Contains source code and (optionally) a pre-built static library archive, which can be
