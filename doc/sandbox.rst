@@ -3,13 +3,13 @@
 Sandbox Structure
 -----------------
 
-A sandbox is a fully contained collection of source code modules which can be used to build one or
-more applications.
+XCommon CMake assumes a sandbox structure. A sandbox is a fully contained collection of source
+code modules which can be used to build one or more applications.
 
 Definitions
 ^^^^^^^^^^^
 
-There are three types of top-level directories that can be present in a sandbox.
+There are three types of top-level directories that XCommon CMake supports in a sandbox structure.
 
 Application
   Contains a set of source files that is specific to the application that builds into one or more

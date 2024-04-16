@@ -45,7 +45,7 @@ Sandbox Manifest
 
 It is often useful to record the actual version that was used for each module, especially when tracking a branch.
 
-Whenever ``cmake`` generates the build environment for an application or static library, a file called ``manifest.txt``
+Whenever CMake generates the build environment for an application or static library, a file called ``manifest.txt``
 is created in the ``build`` directory.
 
 The columns in the manifest file are:
@@ -57,6 +57,6 @@ The columns in the manifest file are:
 - Changeset: the git commit hash identifying the current changeset checked out in the repository
 - Dependency_Requirement: (hidden) the requirement for the repository from the dependent modules list variable. This can
   differ from the current changeset if the developer has manually checked out a different version of that component. This
-  column is only displayed if ``cmake`` is run with the option ``-D FULL_MANIFEST=TRUE``.
+  column is only displayed if CMake is run with the option ``-D FULL_MANIFEST=TRUE``.
 
 If any columns are not applicable to a particular dependency, they will contain a hyphen.

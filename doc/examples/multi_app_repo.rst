@@ -170,14 +170,14 @@ Alternatively, a single application can be configured and built. From working di
 
 The build product is ``bin/multiapp1.xe``. Application ``app_multiapp0`` has not been built.
 
-Best practice
-"""""""""""""
+Dependency best practice
+""""""""""""""""""""""""
 
 For a repository which contains multiple applications, each with different dependencies, if each
 has its own definition of the ``APP_DEPENDENT_MODULES`` variable, trying to keep the common
 dependencies synchronised is error-prone.
 
-In a multi-application repository, ``cmake`` can configure and generate the build environment at
+In a multi-application repository, CMake can configure and generate the build environment at
 different levels: either for a single application from within that application's subdirectory, or
 for all applications from the ``CMakeLists.txt`` file in the root of the repository. For simplicity,
 it is preferable for the manifest to show a common view of the whole sandbox, rather than only

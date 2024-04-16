@@ -15,8 +15,8 @@ The application ``CMakeLists.txt`` file is located in the application directory 
 :ref:`sandbox-structure` section. This file typically has three sections.
 
 The first section is a "header" which must be present to provide mandatory CMake function calls and
-to load the XCommon CMake function definitions. The three lines in :ref:`cmake-boilerplate` are
-required at the beginning of the file.
+to load the XCommon CMake function definitions. The three lines in :ref:`cmake-header` are required
+at the beginning of the file.
 
 The second section of this file is usually the largest. It contains the variable definitions that
 will be used by the XCommon CMake functions to configure the application. There is a set of named
