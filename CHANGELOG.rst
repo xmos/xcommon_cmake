@@ -1,8 +1,8 @@
 XCommon CMake Change Log
 ========================
 
-UNRELEASED
-----------
+1.0.0
+-----
 
   * ADDED: support for fetching dependencies that are static libraries
   * CHANGED: supported repository structure for static libraries

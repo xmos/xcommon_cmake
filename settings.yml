@@ -1,6 +1,6 @@
 title: XCommon CMake
 project: xcommon_cmake
-version: 0.2.0
+version: 1.0.0
 documentation:
     exclude_patterns_path: doc/exclude_patterns.inc
     pdfs:
