@@ -1,7 +1,7 @@
 Introduction
 ------------
 
-XCommon CMake is a build system for xcore applications and libraries. It uses ``cmake`` to
+XCommon CMake is a build system for xcore applications and libraries. It uses CMake to
 configure and generate a build environment, using ``git`` to fetch any missing dependencies,
 which can then be built with ``xmake``.
 
@@ -16,7 +16,7 @@ Overview
 An application executable is built from separate components: application sources, module sources
 and static libraries.
 
-Each component sets some cmake variables to define its own properties and its dependency
+Each component sets some CMake variables to define its own properties and its dependency
 relationships with other components.
 
 Then XCommon CMake utility functions provide a CMake implementation to create a build environment

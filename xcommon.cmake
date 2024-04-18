@@ -31,9 +31,13 @@ set_property(GLOBAL PROPERTY SSH_HOST_SUCCESS "")
 set_property(GLOBAL PROPERTY SSH_HOST_FAILURE "")
 
 set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
+if(FULL_MANIFEST)
+    set(DEP_REQ_HEADER "                                  | Dependency_requirement")
+    set(DEP_REQ_DIVIDER "+-----------------------------------------")
+endif()
 set(MANIFEST_HEADER
-        "Name                    | Location                                        | Branch/tag             | Changeset\n"
-        "------------------------+-------------------------------------------------+------------------------+-----------------------------------------\n")
+        "Name                    | Location                                        | Branch/tag             | Changeset${DEP_REQ_HEADER}\n"
+        "------------------------+-------------------------------------------------+------------------------+--------------------------------------------${DEP_REQ_DIVIDER}\n")
 
 function (GET_ALL_VARS_STARTING_WITH _prefix _varResult)
     get_cmake_property(_vars VARIABLES)
@@ -78,7 +82,7 @@ function(remove_srcs ALL_APP_CONFIGS APP_CONFIG ALL_SRCS RET_CONFIG_SRCS)
         string(COMPARE EQUAL ${CFG} ${APP_CONFIG} _cmp)
         if(NOT ${_cmp})
             foreach(RM_FILE ${SOURCE_FILES_${CFG}})
-                list(REMOVE_ITEM CONFIG_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/${RM_FILE})
+                list(REMOVE_ITEM CONFIG_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${RM_FILE})
             endforeach()
         endif()
     endforeach()
@@ -127,12 +131,11 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
     add_custom_command(
        OUTPUT ${file_pca}
        COMMAND xcc -pre-compilation-analysis ${SOURCE_FILE} ${FILE_FLAGS} "$<$<BOOL:${FILE_INCDIRS}>:-I$<JOIN:${FILE_INCDIRS},;-I>>" -x none -o ${file_pca}
-       DEPENDS ${SOURCE_FILE} ${file_pca_dir}
+       DEPENDS ${SOURCE_FILE} ${file_pca_dir} ${APP_HW_TARGET_XN_FILE}
        VERBATIM
        COMMAND_EXPAND_LISTS
     )
 
-    set_property(SOURCE ${file_pca} APPEND PROPERTY OBJECT_DEPENDS ${SOURCE_FILE})
     set(${RET_FILE_PCA} ${file_pca} PARENT_SCOPE)
 endfunction()
 
@@ -303,11 +306,12 @@ function(pad_string str total_len ret_str)
     endif()
 endfunction()
 
-function(form_manifest_string name version repo branch commit_hash status ret_str)
+function(form_manifest_string name required_ver repo branch tag commit_hash status ret_str)
     if(NOT commit_hash)
         # Must not be in a git repo, so unset other variables
         set(commit_hash "-")
         unset(branch)
+        unset(tag)
         unset(repo)
         unset(status)
     endif()
@@ -326,19 +330,24 @@ function(form_manifest_string name version repo branch commit_hash status ret_st
         endif()
     endif()
 
-    # Depending on the git version, a branch might be checked out by detaching the HEAD of that branch
-    string(REGEX MATCH "^HEAD detached at ([a-zA-Z0-9\\._-]+/)?([a-zA-Z0-9\\._-]+)\n" _m "${status}")
-    if(CMAKE_MATCH_COUNT GREATER 1)
-        set(detached ${CMAKE_MATCH_${CMAKE_MATCH_COUNT}})
-        if(commit_hash MATCHES "^${detached}")
-            set(branch "-")
-        else()
-            set(branch "${detached}")
-        endif()
+    # Prefer a tag reference over a branch
+    if(tag)
+        set(branch ${tag})
     endif()
 
     if(NOT branch)
-        set(branch "-")
+        # Depending on the git version, a branch might be checked out by detaching the HEAD of that branch
+        string(REGEX MATCH "^HEAD detached at ([a-zA-Z0-9\\._-]+/)?([a-zA-Z0-9\\._-]+)\n" _m "${status}")
+        if(CMAKE_MATCH_COUNT GREATER 1)
+            set(detached ${CMAKE_MATCH_${CMAKE_MATCH_COUNT}})
+            if(commit_hash MATCHES "^${detached}")
+                set(branch "-")
+            else()
+                set(branch "${detached}")
+            endif()
+        else()
+            set(branch "-")
+        endif()
     endif()
 
     set(manifest_str "${name}")
@@ -348,6 +357,10 @@ function(form_manifest_string name version repo branch commit_hash status ret_st
     string(APPEND manifest_str " ${branch}")
     pad_string(${manifest_str} 100 manifest_str)
     string(APPEND manifest_str " ${commit_hash}")
+    if(FULL_MANIFEST)
+        pad_string(${manifest_str} 145 manifest_str)
+        string(APPEND manifest_str " ${required_ver}")
+    endif()
 
     set(${ret_str} ${manifest_str} PARENT_SCOPE)
 endfunction()
@@ -390,7 +403,18 @@ function(manifest_git_status name version)
                     OUTPUT_STRIP_TRAILING_WHITESPACE
                     ERROR_QUIET)
 
-    form_manifest_string("${name}" "${version}" "${repo}" "${branch}" "${commit_hash}" "${status}" manifest_str)
+    execute_process(COMMAND git describe --tags --exact-match HEAD
+                    TIMEOUT 5
+                    WORKING_DIRECTORY ${working_dir}
+                    OUTPUT_VARIABLE tag
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+
+    if(NOT version)
+        set(version "-")
+    endif()
+
+    form_manifest_string("${name}" "${version}" "${repo}" "${branch}" "${tag}" "${commit_hash}" "${status}" manifest_str)
     file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 endfunction()
 
@@ -417,6 +441,7 @@ function(XMOS_REGISTER_APP)
         endif()
         set(APP_TARGET_COMPILER_FLAG ${xn_files})
         message(VERBOSE "XN file: ${xn_files}")
+        set(APP_HW_TARGET_XN_FILE ${xn_files})
     elseif(NOT BUILD_NATIVE)
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
         message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
@@ -455,6 +480,16 @@ function(XMOS_REGISTER_APP)
         endif()
     endforeach()
 
+    # Add any configs defined by SOURCE_FILES_<config> that aren't already in APP_CONFIGS
+    GET_ALL_VARS_STARTING_WITH("SOURCE_FILES_" SOURCE_FILES_VARS)
+    foreach(SOURCE_FILES_VAR ${SOURCE_FILES_VARS})
+        string(REPLACE "SOURCE_FILES_" "" SOURCE_FILES_VAR ${SOURCE_FILES_VAR})
+        list(FIND APP_CONFIGS ${SOURCE_FILES_VAR} found)
+        if(${found} EQUAL -1)
+            list(APPEND APP_CONFIGS ${SOURCE_FILES_VAR})
+        endif()
+    endforeach()
+
     # Somewhat follow the strategy of xcommon here with a config named "Default"
     list(LENGTH APP_CONFIGS CONFIGS_COUNT)
     if(${CONFIGS_COUNT} EQUAL 0)
@@ -489,6 +524,11 @@ function(XMOS_REGISTER_APP)
             list(APPEND APP_BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
         endif()
     endforeach()
+    if(APP_HW_TARGET_XN_FILE)
+        set_source_files_properties(${ALL_SRCS_PATH}
+                                    TARGET_DIRECTORY ${APP_BUILD_TARGETS}
+                                    PROPERTIES OBJECT_DEPENDS ${APP_HW_TARGET_XN_FILE})
+    endif()
     set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
 
     if(${CONFIGS_COUNT} EQUAL 0)
@@ -561,6 +601,9 @@ function(XMOS_REGISTER_APP)
 
             get_target_property(target_srcs ${target} SOURCES)
 
+            # Filter sources so that the only sources are XC
+            list(FILTER target_srcs INCLUDE REGEX "\\.xc$")
+
             get_target_property(target_link_libs ${target} LINK_LIBRARIES)
             list(FILTER target_link_libs EXCLUDE REGEX "^.+-NOTFOUND$")
             set(static_incdirs "")
@@ -583,9 +626,9 @@ function(XMOS_REGISTER_APP)
 
             list(TRANSFORM BUILD_ADDED_DEPS_PATHS PREPEND ${XMOS_SANDBOX_DIR}/)
 
-            string(REPLACE ";" " " PCA_FILES_PATH_STR "${PCA_FILES_PATH}")
-            set(PCA_FILES_RESP ${DOT_BUILD_DIR}/_pca.rsp)
-            file(WRITE ${PCA_FILES_RESP} ${PCA_FILES_PATH_STR})
+            string(REPLACE ";" "\" \"" PCA_FILES_PATH_STR "${PCA_FILES_PATH}")
+            set(PCA_FILES_RESP ${CMAKE_BINARY_DIR}/${target}/_pca.rsp)
+            file(WRITE ${PCA_FILES_RESP} "\"${PCA_FILES_PATH_STR}\"")
 
             set(PCA_FILE ${DOT_BUILD_DIR}/pca.xml)
             add_custom_command(
@@ -595,9 +638,8 @@ function(XMOS_REGISTER_APP)
                     DEPFILE ${DOT_BUILD_DIR}/pca.d
                     COMMAND_EXPAND_LISTS
                 )
-            set_property(SOURCE ${PCA_FILE} APPEND PROPERTY OBJECT_DEPENDS ${PCA_FILES_PATH})
 
-            set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc ${DOT_BUILD_DIR}/pca.xml")
+            set(PCA_FLAG "SHELL: -Xcompiler-xc -analysis" "SHELL: -Xcompiler-xc \"${DOT_BUILD_DIR}/pca.xml\"")
             target_compile_options(${target} PRIVATE ${PCA_FLAG})
             target_sources(${target} PRIVATE ${PCA_FILE})
         endforeach()
@@ -639,6 +681,12 @@ function(XMOS_REGISTER_MODULE)
     GET_ALL_VARS_STARTING_WITH("LIB_COMPILER_FLAGS_" LIB_COMPILER_FLAGS_VARS)
     set(ALL_LIB_SRCS_PATH ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
     add_file_flags("LIB" "${ALL_LIB_SRCS_PATH}")
+
+    if(APP_HW_TARGET_XN_FILE)
+        set_source_files_properties(${ALL_LIB_SRCS_PATH}
+                                    TARGET_DIRECTORY ${APP_BUILD_TARGETS}
+                                    PROPERTIES OBJECT_DEPENDS ${APP_HW_TARGET_XN_FILE})
+    endif()
 
     list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
@@ -692,35 +740,25 @@ function(XMOS_REGISTER_DEPS)
             endif()
             cmake_path(SET dep_dir NORMALIZE ${dep_dir})
 
-            # Add dependencies directories
-            if(IS_DIRECTORY ${dep_dir}/${DEP_NAME}/lib)
-                message(VERBOSE "Adding static library ${DEP_NAME}-${APP_BUILD_ARCH}")
-                include(${dep_dir}/${DEP_NAME}/lib/${DEP_NAME}-${APP_BUILD_ARCH}.cmake)
-                get_target_property(DEP_VERSION ${DEP_NAME} VERSION)
-                foreach(target ${APP_BUILD_TARGETS})
-                    target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
-                    target_link_libraries(${target} PRIVATE ${DEP_NAME})
-                endforeach()
-            else()
-                # Clear source variables to avoid inheriting from parent scope
-                # Either lib_build_info.cmake will populate these, otherwise we glob for them
-                unset_lib_vars()
-
-                if(NOT EXISTS ${dep_dir})
-                    message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
-                    FetchContent_Declare(
-                        ${DEP_NAME}
-                        GIT_REPOSITORY ${DEP_REPO}
-                        GIT_TAG ${DEP_VERSION}
-                        SOURCE_DIR ${dep_dir}
-                    )
-                    FetchContent_Populate(${DEP_NAME})
-                endif()
-
-                set(module_dir ${dep_dir}/${DEP_NAME})
-                message(STATUS "Adding module ${DEP_NAME}")
-                include(${module_dir}/lib_build_info.cmake)
+            # Fetch dependency if not present
+            if(NOT IS_DIRECTORY ${dep_dir})
+                message(STATUS "Fetching ${DEP_NAME}: ${DEP_VERSION} from ${DEP_REPO} into ${dep_dir}")
+                FetchContent_Declare(
+                    ${DEP_NAME}
+                    GIT_REPOSITORY ${DEP_REPO}
+                    GIT_TAG ${DEP_VERSION}
+                    SOURCE_DIR ${dep_dir}
+                )
+                FetchContent_Populate(${DEP_NAME})
             endif()
+
+            # Clear source variables to avoid inheriting from parent scope
+            # Either lib_build_info.cmake will populate these, otherwise we glob for them
+            unset_lib_vars()
+
+            set(module_dir ${dep_dir}/${DEP_NAME})
+            message(STATUS "Adding dependency ${DEP_NAME}")
+            include(${module_dir}/lib_build_info.cmake)
 
             manifest_git_status(${DEP_NAME} ${DEP_VERSION})
         endif()
@@ -744,6 +782,11 @@ function(XMOS_STATIC_LIBRARY)
 
     glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
 
+    set(archive_name ${LIB_NAME})
+    if(NOT ${LIB_NAME} MATCHES "^lib")
+        set(archive_name "lib${LIB_NAME}")
+    endif()
+
     set(APP_BUILD_TARGETS "")
     foreach(lib_arch ${LIB_ARCH})
         add_library(${LIB_NAME}-${lib_arch} STATIC)
@@ -757,6 +800,12 @@ function(XMOS_STATIC_LIBRARY)
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
         # Set output name so that static library filename does not include architecture
         set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
+
+        # Avoid archive named "liblib..." by removing prefix
+        if(LIB_NAME STREQUAL archive_name)
+            set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY PREFIX "")
+        endif()
+
         list(APPEND APP_BUILD_TARGETS ${LIB_NAME}-${lib_arch})
     endforeach()
     set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
@@ -781,29 +830,35 @@ function(XMOS_STATIC_LIBRARY)
 
     set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
+endfunction()
 
-    foreach(lib_arch ${LIB_ARCH})
-        # To statically link this library into an application, a cmake file is needed which will be included in
-        # other projects to access this library. Start with a template file with exactly the content written by
-        # the file() command below; no variables are substituted.
-        file(WRITE ${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in [=[
-            add_library(@LIB_NAME@ STATIC IMPORTED)
-            set_property(TARGET @LIB_NAME@ PROPERTY SYSTEM OFF)
+# Either configures the build of the static library or links the static library into the application
+function(XMOS_REGISTER_STATIC_LIB)
+    # The variable module_dir will be set if this function is called as result of application dependency
+    # resolution, in which case the static library is linked into the application. If this variable is
+    # not set, XMOS_STATIC_LIBRARY() is called to configure the build of the static library itself.
+    if(NOT module_dir)
+        XMOS_STATIC_LIBRARY()
+    else()
+        set(archive_name ${LIB_NAME})
+        if(NOT ${LIB_NAME} MATCHES "^lib")
+            set(archive_name "lib${LIB_NAME}")
+        endif()
 
-            if(DEFINED XMOS_DEP_DIR_@LIB_NAME@)
-                set(dep_dir ${XMOS_DEP_DIR_@LIB_NAME@})
-            else()
-                set(dep_dir ${XMOS_SANDBOX_DIR}/@LIB_NAME@)
-            endif()
+        add_library(${LIB_NAME} STATIC IMPORTED)
+        set_property(TARGET ${LIB_NAME} PROPERTY SYSTEM OFF)
 
-            set_property(TARGET @LIB_NAME@ PROPERTY IMPORTED_LOCATION ${dep_dir}/@LIB_NAME@/lib/@lib_arch@/lib@LIB_NAME@.a)
-            set_property(TARGET @LIB_NAME@ PROPERTY VERSION @LIB_VERSION@)
-            foreach(incdir @LIB_INCLUDES@)
-                target_include_directories(@LIB_NAME@ INTERFACE ${dep_dir}/@LIB_NAME@/${incdir})
-            endforeach()
-        ]=])
+        set(archive_path ${module_dir}/lib/${APP_BUILD_ARCH}/${archive_name}.a)
+        if(NOT EXISTS ${archive_path})
+            message(FATAL_ERROR "${LIB_NAME} static library archive not present at ${archive_path}")
+        endif()
+        set_property(TARGET ${LIB_NAME} PROPERTY IMPORTED_LOCATION ${archive_path})
 
-        # Produce the final cmake include file by substituting variables surrounded by @ signs in the template
-        configure_file(${CMAKE_BINARY_DIR}/${LIB_NAME}-${lib_arch}.cmake.in ${CMAKE_SOURCE_DIR}/${LIB_NAME}/lib/${LIB_NAME}-${lib_arch}.cmake @ONLY)
-    endforeach()
+        list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
+        target_include_directories(${LIB_NAME} INTERFACE ${LIB_INCLUDES})
+
+        foreach(target ${APP_BUILD_TARGETS})
+            target_link_libraries(${target} PRIVATE ${LIB_NAME})
+        endforeach()
+    endif()
 endfunction()

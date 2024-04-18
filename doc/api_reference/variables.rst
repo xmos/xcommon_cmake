@@ -1,3 +1,5 @@
+.. _reference-variables:
+
 Variables
 ---------
 
@@ -102,7 +104,9 @@ Optional application variables
 ``APP_DEPENDENT_MODULES``
   List of this application's dependencies, which must be present when compiling. See the separate
   dependency management section about the dependency fetching process and the acceptable format
-  for values in this list. Default: empty list, so the application has no dependencies. Example:
+  for values in this list. Unlike other variables, the values to set for ``APP_DEPENDENT_MODULES``
+  should be quoted, as this is required when the string contains parentheses. Default: empty list,
+  so the application has no dependencies. Example:
 
   .. code-block:: cmake
 
@@ -145,6 +149,17 @@ Optional application variables
     set(APP_XSCOPE_SRCS src/config.xscope)
     set(APP_XSCOPE_SRCS "")
 
+``SOURCE_FILES_<config>``
+  List of source files to use only when building the specified application config. Each application
+  config initially has the same source file list, which is created according to the behaviour of the
+  language-specific source list variables. Then for each application config, sources are removed
+  from their list if a different application config has specified that file in its
+  ``SOURCE_FILES_<config>`` variable.
+
+  .. code-block:: cmake
+
+    set(SOURCE_FILES_config0 src/config0.c)
+
 ``XMOS_DEP_DIR_<module>``
   Directory containing the dependency ``<module>`` as an override to the default sandbox root
   directory in ``XMOS_SANDBOX_DIR``. This is the path to the root of the module.
@@ -165,7 +180,8 @@ Required module variables
   List of this module's dependencies, which must be present when compiling. See the separate
   dependency management section about the dependency fetching process and the acceptable format
   for values in this list. If this module has no dependencies, this variable must be set as
-  an empty string. Examples:
+  an empty string.  Unlike other variables, the values to set for ``LIB_DEPENDENT_MODULES``
+  should be quoted, as this is required when the string contains parentheses. Examples:
 
   .. code-block:: cmake
 
@@ -296,7 +312,8 @@ The same as the :ref:`required-module-variables`, and also:
 
 ``XMOS_SANDBOX_DIR``
   The path to the root of the sandbox directory. This is only required if ``LIB_DEPENDENT_MODULES``
-  is non-empty. See :ref:`sandbox-structure`.
+  is non-empty. This must be set in the static library's ``CMakeLists.txt`` file before including
+  ``lib_build_info.cmake``. See :ref:`sandbox-structure`.
 
   .. code-block:: cmake
 

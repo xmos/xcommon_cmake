@@ -11,6 +11,7 @@ example source code.
 
   ./app_configs
   ./module_dependencies
+  ./multi_app_repo
   ./compiler_flags
   ./optional_headers
   ./static_library

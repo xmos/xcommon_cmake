@@ -1,8 +1,10 @@
 Functions
 ---------
 
-CMake Boilerplate
-^^^^^^^^^^^^^^^^^
+.. _cmake-header:
+
+CMake Header
+^^^^^^^^^^^^
 
 Some CMake function calls are required in the application or static library ``CMakeLists.txt`` file.
 
@@ -19,7 +21,7 @@ Some CMake function calls are required in the application or static library ``CM
   This function takes an argument which will be used as the base name for the application. If ``my_app``
   is set here, the XE executable for the default config build will be called ``my_app.xe``.
 
-These three lines should be present at the beginning of an application or static library ``CMakeLists.txt``
+These three lines must be present at the beginning of an application or static library ``CMakeLists.txt``
 file.
 
 .. code-block:: cmake
@@ -65,14 +67,19 @@ XCommon CMake Functions
 
   This function is called recursively when adding module dependencies which use this function.
 
-``XMOS_STATIC_LIBRARY()``
+``XMOS_REGISTER_STATIC_LIB()``
   This function is called after setting the :ref:`required-staticlib-variables` and any
-  :ref:`optional-staticlib-variables`, to perform the following:
+  :ref:`optional-staticlib-variables`, and it can be used in two ways.
+
+  Firstly, if CMake is being run from the static library directory, this function will:
 
   - define the static library build targets
   - add static library sources to the build targets
   - set compiler options for the static library sources
-  - populate the manifest with an entry for the application
+  - populate the manifest with an entry for the static library
   - fetch any missing dependencies
   - configure the immediate dependencies
-  - create the cmake inclusion file for linking this static library into an application
+
+Alternatively, if the static library is a dependency of an application, this function is called as
+a result of the dependency configuration for the application. In that case, it will link the static
+library into all of the application build targets.
