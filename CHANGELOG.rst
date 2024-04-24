@@ -1,6 +1,11 @@
 XCommon CMake Change Log
 ========================
 
+UNRELEASED
+----------
+
+  * ADDED: "Depends on" column in generated manifest file (when FULL_MANIFEST=TRUE)
+
 1.0.0
 -----
 
