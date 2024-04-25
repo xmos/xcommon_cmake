@@ -55,8 +55,10 @@ The columns in the manifest file are:
 - Branch/tag: the currently checked out branch or tag. A tag takes precedence, so if the head of a branch is explicitly
   checked out, but that changeset has also been tagged, then the tag will be reported here.
 - Changeset: the git commit hash identifying the current changeset checked out in the repository
-- Dependency_Requirement: (hidden) the requirement for the repository from the dependent modules list variable. This can
+- Dependency_requirement: (hidden) the requirement for the repository from the dependent modules list variable. This can
   differ from the current changeset if the developer has manually checked out a different version of that component. This
   column is only displayed if CMake is run with the option ``-D FULL_MANIFEST=TRUE``.
+- Depends_on: (hidden) a list of the libraries the dependency is dependent on. This column is only displayed if CMake i
+  is run with the option ``-D FULL_MANIFEST=TRUE``.
 
 If any columns are not applicable to a particular dependency, they will contain a hyphen.
