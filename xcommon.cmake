@@ -32,8 +32,8 @@ set_property(GLOBAL PROPERTY SSH_HOST_FAILURE "")
 
 set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
 if(FULL_MANIFEST)
-    set(DEP_REQ_HEADER "                                  | Dependency_requirement")
-    set(DEP_REQ_DIVIDER "+-----------------------------------------")
+    set(DEP_REQ_HEADER "                                  | Depends_on")
+    set(DEP_REQ_DIVIDER                                  "+------------------------------")
 endif()
 set(MANIFEST_HEADER
         "Name                    | Location                                        | Branch/tag             | Changeset${DEP_REQ_HEADER}\n"
@@ -306,7 +306,7 @@ function(pad_string str total_len ret_str)
     endif()
 endfunction()
 
-function(form_manifest_string name required_ver repo branch tag commit_hash status ret_str)
+function(form_manifest_string name repo branch tag commit_hash status ret_str)
     if(NOT commit_hash)
         # Must not be in a git repo, so unset other variables
         set(commit_hash "-")
@@ -357,18 +357,29 @@ function(form_manifest_string name required_ver repo branch tag commit_hash stat
     string(APPEND manifest_str " ${branch}")
     pad_string(${manifest_str} 100 manifest_str)
     string(APPEND manifest_str " ${commit_hash}")
-    if(FULL_MANIFEST)
-        pad_string(${manifest_str} 145 manifest_str)
-        string(APPEND manifest_str " ${required_ver}")
-    endif()
 
     set(${ret_str} ${manifest_str} PARENT_SCOPE)
 endfunction()
 
+macro(add_manifest_depends_on )
+    if(${FULL_MANIFEST})
+        pad_string(${manifest_str} 145 manifest_str)
+        list(LENGTH LIB_DEPENDENT_MODULES DEP_COUNT)
+        foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
+            parse_dep_string(${DEP_MODULE} DEP_REPO DEP_VERSION DEP_NAME)
+            math(EXPR DEP_COUNT "${DEP_COUNT} - 1")
+            set(manifest_str "${manifest_str} ${DEP_NAME}(${DEP_VERSION})")
+            if(NOT DEP_COUNT EQUAL 0)
+                set(manifest_str "${manifest_str},")
+            endif()
+        endforeach()
+    endif()
+endmacro()
+
 # Called for the top-level app/lib and each module, this takes a name and version (either blank for the
 # top-level app or provided by the module dependency specification), checks the git repo status to work out
 # changeset hashes and tags, and then appends an entry in the manifest file for the module.
-function(manifest_git_status name version)
+function(manifest_git_status name manifest_str_ret)
     if(NOT name)
         set(working_dir ${CMAKE_SOURCE_DIR})
     else()
@@ -410,12 +421,10 @@ function(manifest_git_status name version)
                     OUTPUT_STRIP_TRAILING_WHITESPACE
                     ERROR_QUIET)
 
-    if(NOT version)
-        set(version "-")
-    endif()
+    form_manifest_string("${name}" "${repo}" "${branch}" "${tag}" "${commit_hash}" "${status}" manifest_str)
 
-    form_manifest_string("${name}" "${version}" "${repo}" "${branch}" "${tag}" "${commit_hash}" "${status}" manifest_str)
-    file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
+    set(${manifest_str_ret} ${manifest_str} PARENT_SCOPE)
+
 endfunction()
 
 ## Registers an application and its dependencies
@@ -562,7 +571,12 @@ function(XMOS_REGISTER_APP)
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
-    manifest_git_status("" "")
+    manifest_git_status("" manifest_str)
+
+    # Create the Depends_on column in manifest
+    add_manifest_depends_on()
+
+    file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 
     set(current_module ${PROJECT_NAME})
     XMOS_REGISTER_DEPS()
@@ -760,9 +774,14 @@ function(XMOS_REGISTER_DEPS)
             message(STATUS "Adding dependency ${DEP_NAME}")
             include(${module_dir}/lib_build_info.cmake)
 
-            manifest_git_status(${DEP_NAME} ${DEP_VERSION})
+            manifest_git_status(${DEP_NAME} manifest_str)
+
+            # Create the Depends_on column in manifest
+            add_manifest_depends_on()
+            file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
         endif()
     endforeach()
+
 endfunction()
 
 ## Registers a static library target
@@ -826,7 +845,8 @@ function(XMOS_STATIC_LIBRARY)
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
-    manifest_git_status("" "")
+    manifest_git_status("" "" manifest_str)
+    file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 
     set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
