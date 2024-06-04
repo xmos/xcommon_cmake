@@ -148,27 +148,29 @@ endmacro()
 
 # If source variables are blank, glob for source files; otherwise prepend the full path
 # The prefix parameter is the prefix on the list variables _XC_SRCS, _C_SRCS, etc.
-macro(glob_srcs prefix src_dir)
+# The src_subdir parameter is the name of the directory in which to search for source
+# files if none are specified.
+macro(glob_srcs prefix src_dir src_subdir)
     if(NOT DEFINED ${prefix}_XC_SRCS)
-        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/src/*.xc)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/${src_subdir}/*.xc)
     else()
         list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/src/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/${src_subdir}/*.cpp)
     else()
         list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_C_SRCS)
-        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/src/*.c)
+        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/${src_subdir}/*.c)
     else()
         list(TRANSFORM ${prefix}_C_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_ASM_SRCS)
-        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/src/*.S)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/${src_subdir}/*.S)
     else()
         list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${src_dir}/)
     endif()
@@ -456,7 +458,7 @@ function(XMOS_REGISTER_APP)
         message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
     endif()
 
-    glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR})
+    glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR} src)
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
 
@@ -686,7 +688,7 @@ function(XMOS_REGISTER_MODULE)
         set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
     endforeach()
 
-    glob_srcs("LIB" ${module_dir})
+    glob_srcs("LIB" ${module_dir} src)
 
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
                                 TARGET_DIRECTORY ${APP_BUILD_TARGETS}
@@ -799,7 +801,7 @@ function(XMOS_STATIC_LIBRARY)
     endif()
     message(VERBOSE "Building for architecture: ${LIB_ARCH}")
 
-    glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
+    glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR} libsrc)
 
     set(archive_name ${LIB_NAME})
     if(NOT ${LIB_NAME} MATCHES "^lib")
@@ -879,6 +881,18 @@ function(XMOS_REGISTER_STATIC_LIB)
 
         foreach(target ${APP_BUILD_TARGETS})
             target_link_libraries(${target} PRIVATE ${LIB_NAME})
+
+            foreach(incdir ${LIB_ADD_INC_DIRS})
+                target_include_directories(${target} PRIVATE ${module_dir}/${incdir})
+            endforeach()
+
+            foreach(srcdir ${LIB_ADD_SRC_DIRS})
+                file(GLOB_RECURSE _add_srcs ${module_dir}/${srcdir}/*.c
+                                            ${module_dir}/${srcdir}/*.xc
+                                            ${module_dir}/${srcdir}/*.cpp
+                                            ${module_dir}/${srcdir}/*.S)
+                target_sources(${target} PRIVATE ${_add_srcs})
+            endforeach()
         endforeach()
     endif()
 endfunction()
