@@ -49,7 +49,6 @@ CMake file contents
     set(LIB_VERSION 1.2.3)
     set(LIB_ARCH xs2a xs3a)
     set(LIB_INCLUDES api)
-    set(LIB_C_SRCS libsrc/abc.c)
     set(LIB_DEPENDENT_MODULES "lib_mod0(1.0.0)")
 
     XMOS_REGISTER_STATIC_LIB()
