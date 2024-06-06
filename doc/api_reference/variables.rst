@@ -326,6 +326,31 @@ Optional static library variables
 
 The same as the :ref:`optional-module-variables`, and also:
 
+``LIB_ADD_INC_DIRS``
+  List of directories which are required on the include directory search path for the compilation of
+  the additional source files as found based on the ``LIB_ADD_SRC_DIRS`` variable. This list of
+  directories will be added to the include directory search path of the application. If this string
+  is unset or empty, no additional directories will be added to the include directory search path.
+  Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ADD_INC_DIRS inc0 inc1)
+    set(LIB_ADD_INC_DIRS extra/inc)
+
+``LIB_ADD_SRCS_DIRS``
+  List of directories which contain additional source files which will be compiled and linked during
+  the building of the application with which this static library is being linked. These directories
+  are searched recursively, so only the highest-level directories are required. All source files
+  from the result of this search will be compiled with the application; it is not possible to select
+  individual additional source files for compilation. If this string is unset or empty, no search
+  for additional sources will be performed, so no additional source files will be compiled. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ADD_SRC_DIRS src0 src1)
+    set(LIB_ADD_SRC_DIRS extra/src)
+
 ``LIB_ARCH``
   List of xcore architectures for which to build static libraries. For each architecture, a separate
   static library archive will be built. If empty or undefined, the default is ``xs3a``. Examples:
