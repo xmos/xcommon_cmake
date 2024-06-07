@@ -6,6 +6,7 @@ UNRELEASED
 
   * ADDED:   "Depends on" column in generated manifest file (when FULL_MANIFEST=TRUE)
   * ADDED:   Support for compiling additional sources for a static library
+  * ADDED:   Support for default optional header name based on LIB_NAME
   * CHANGED: Removed "Dependency_requirement" column in generated manifest file (when FULL_MANIFEST=TRUE)
 
 1.0.0
