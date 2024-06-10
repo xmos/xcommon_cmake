@@ -429,6 +429,16 @@ function(manifest_git_status name manifest_str_ret)
 
 endfunction()
 
+macro(configure_optional_headers)
+    string(REPLACE "lib_" "" auto_opthdr ${LIB_NAME})
+    foreach(target ${APP_BUILD_TARGETS})
+        get_target_property(opt_hdrs ${target} OPTIONAL_HEADERS)
+        list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS} ${auto_opthdr}_conf.h)
+        list(REMOVE_DUPLICATES opt_hdrs)
+        set_target_properties(${target} PROPERTIES OPTIONAL_HEADERS "${opt_hdrs}")
+    endforeach()
+endmacro()
+
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
     message(STATUS "Configuring application: ${PROJECT_NAME}")
@@ -706,17 +716,12 @@ function(XMOS_REGISTER_MODULE)
 
     list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
-    string(REPLACE "lib_" "" auto_opthdr ${LIB_NAME})
-
     foreach(target ${APP_BUILD_TARGETS})
         target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
         target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
-
-        get_target_property(opt_hdrs ${target} OPTIONAL_HEADERS)
-        list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS} ${auto_opthdr}_conf.h)
-        list(REMOVE_DUPLICATES opt_hdrs)
-        set_target_properties(${target} PROPERTIES OPTIONAL_HEADERS "${opt_hdrs}")
     endforeach()
+
+    configure_optional_headers()
 endfunction()
 
 ## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
@@ -897,5 +902,7 @@ function(XMOS_REGISTER_STATIC_LIB)
                 target_sources(${target} PRIVATE ${_add_srcs})
             endforeach()
         endforeach()
+
+        configure_optional_headers()
     endif()
 endfunction()
