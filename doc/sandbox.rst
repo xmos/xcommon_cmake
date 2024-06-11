@@ -30,9 +30,12 @@ Module
   For example, a source module may implement an IO function such as I2C.
 
 Static Library
-  Contains source code and (optionally) a pre-built static library archive, which can be
-  linked into the application executable. XMOS modules containing a static library are typically
-  prefixed with ``lib_``.
+  Contains a pre-built static library archive for each supported architecture. Also, it can
+  optionally contain the source code for the static library to allow the archive to be rebuilt.
+  Finally, it can optionally contain other additional source files which are compiled when the
+  application is built. When an application that uses the static library is built, the static
+  library archive is linked, and any additional source files are compiled and linked into the
+  application. XMOS modules containing a static library are typically prefixed with ``lib_``.
 
   For example, a static library module may implement a large stack such as Tensorflow or protected
   third party IP.
