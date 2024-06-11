@@ -1,8 +1,8 @@
 XCommon CMake Change Log
 ========================
 
-UNRELEASED
-----------
+1.1.0
+-----
 
   * ADDED:   "Depends on" column in generated manifest file (when FULL_MANIFEST=TRUE)
   * ADDED:   Support for compiling additional sources for a static library
