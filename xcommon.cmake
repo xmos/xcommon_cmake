@@ -706,12 +706,15 @@ function(XMOS_REGISTER_MODULE)
 
     list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
+    string(REPLACE "lib_" "" auto_opthdr ${LIB_NAME})
+
     foreach(target ${APP_BUILD_TARGETS})
         target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
         target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
 
         get_target_property(opt_hdrs ${target} OPTIONAL_HEADERS)
-        list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS})
+        list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS} ${auto_opthdr}_conf.h)
+        list(REMOVE_DUPLICATES opt_hdrs)
         set_target_properties(${target} PROPERTIES OPTIONAL_HEADERS "${opt_hdrs}")
     endforeach()
 endfunction()

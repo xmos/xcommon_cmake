@@ -273,7 +273,10 @@ Optional module variables
   this module. These files are not present in this module. If they are present in an application
   or module, the preprocessor macro ``__<name>_h_exists__`` will be set. Files within this module
   can then contain code which is conditionally compiled based on the presence of these optional
-  headers in other applications. Default: empty list which provides no optional headers. Example:
+  headers in other applications. Every module or static library has an automatic optional header;
+  for a library named ``lib_foo``, the optional header ``foo_conf.h`` will automatically be
+  configured, so it doesn't need to be set in this variable. Default: empty list which provides no
+  optional headers. Example:
 
   .. code-block:: cmake
 
