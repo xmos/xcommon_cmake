@@ -41,10 +41,8 @@ def cleanup_app(app_dir):
 
 
 def build(dir, cmake):
-    # Set XMOS_CMAKE_PATH in local environment if not set
     cmake_env = os.environ
-    if "XMOS_CMAKE_PATH" not in cmake_env:
-        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+    cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
     ret = subprocess.run(
         [cmake, "-G", "Unix Makefiles", "-B", "build"],
@@ -160,8 +158,7 @@ def test_native_build(cmake):
     cleanup_static_lib(lib_dir)
 
     cmake_env = os.environ
-    if "XMOS_CMAKE_PATH" not in cmake_env:
-        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+    cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
     cmake_native_cmd = [
         cmake,
