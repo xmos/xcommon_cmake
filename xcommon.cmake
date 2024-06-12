@@ -32,8 +32,8 @@ set_property(GLOBAL PROPERTY SSH_HOST_FAILURE "")
 
 set(MANIFEST_OUT ${CMAKE_BINARY_DIR}/manifest.txt)
 if(FULL_MANIFEST)
-    set(DEP_REQ_HEADER "                                  | Dependency_requirement")
-    set(DEP_REQ_DIVIDER "+-----------------------------------------")
+    set(DEP_REQ_HEADER "                                  | Depends_on")
+    set(DEP_REQ_DIVIDER                                  "+------------------------------")
 endif()
 set(MANIFEST_HEADER
         "Name                    | Location                                        | Branch/tag             | Changeset${DEP_REQ_HEADER}\n"
@@ -148,27 +148,29 @@ endmacro()
 
 # If source variables are blank, glob for source files; otherwise prepend the full path
 # The prefix parameter is the prefix on the list variables _XC_SRCS, _C_SRCS, etc.
-macro(glob_srcs prefix src_dir)
+# The src_subdir parameter is the name of the directory in which to search for source
+# files if none are specified.
+macro(glob_srcs prefix src_dir src_subdir)
     if(NOT DEFINED ${prefix}_XC_SRCS)
-        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/src/*.xc)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/${src_subdir}/*.xc)
     else()
         list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/src/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/${src_subdir}/*.cpp)
     else()
         list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_C_SRCS)
-        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/src/*.c)
+        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/${src_subdir}/*.c)
     else()
         list(TRANSFORM ${prefix}_C_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_ASM_SRCS)
-        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/src/*.S)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/${src_subdir}/*.S)
     else()
         list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${src_dir}/)
     endif()
@@ -306,7 +308,7 @@ function(pad_string str total_len ret_str)
     endif()
 endfunction()
 
-function(form_manifest_string name required_ver repo branch tag commit_hash status ret_str)
+function(form_manifest_string name repo branch tag commit_hash status ret_str)
     if(NOT commit_hash)
         # Must not be in a git repo, so unset other variables
         set(commit_hash "-")
@@ -357,18 +359,29 @@ function(form_manifest_string name required_ver repo branch tag commit_hash stat
     string(APPEND manifest_str " ${branch}")
     pad_string(${manifest_str} 100 manifest_str)
     string(APPEND manifest_str " ${commit_hash}")
-    if(FULL_MANIFEST)
-        pad_string(${manifest_str} 145 manifest_str)
-        string(APPEND manifest_str " ${required_ver}")
-    endif()
 
     set(${ret_str} ${manifest_str} PARENT_SCOPE)
 endfunction()
 
+macro(add_manifest_depends_on )
+    if(${FULL_MANIFEST})
+        pad_string(${manifest_str} 145 manifest_str)
+        list(LENGTH LIB_DEPENDENT_MODULES DEP_COUNT)
+        foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
+            parse_dep_string(${DEP_MODULE} DEP_REPO DEP_VERSION DEP_NAME)
+            math(EXPR DEP_COUNT "${DEP_COUNT} - 1")
+            set(manifest_str "${manifest_str} ${DEP_NAME}(${DEP_VERSION})")
+            if(NOT DEP_COUNT EQUAL 0)
+                set(manifest_str "${manifest_str},")
+            endif()
+        endforeach()
+    endif()
+endmacro()
+
 # Called for the top-level app/lib and each module, this takes a name and version (either blank for the
 # top-level app or provided by the module dependency specification), checks the git repo status to work out
 # changeset hashes and tags, and then appends an entry in the manifest file for the module.
-function(manifest_git_status name version)
+function(manifest_git_status name manifest_str_ret)
     if(NOT name)
         set(working_dir ${CMAKE_SOURCE_DIR})
     else()
@@ -410,13 +423,21 @@ function(manifest_git_status name version)
                     OUTPUT_STRIP_TRAILING_WHITESPACE
                     ERROR_QUIET)
 
-    if(NOT version)
-        set(version "-")
-    endif()
+    form_manifest_string("${name}" "${repo}" "${branch}" "${tag}" "${commit_hash}" "${status}" manifest_str)
 
-    form_manifest_string("${name}" "${version}" "${repo}" "${branch}" "${tag}" "${commit_hash}" "${status}" manifest_str)
-    file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
+    set(${manifest_str_ret} ${manifest_str} PARENT_SCOPE)
+
 endfunction()
+
+macro(configure_optional_headers)
+    string(REPLACE "lib_" "" auto_opthdr ${LIB_NAME})
+    foreach(target ${APP_BUILD_TARGETS})
+        get_target_property(opt_hdrs ${target} OPTIONAL_HEADERS)
+        list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS} ${auto_opthdr}_conf.h)
+        list(REMOVE_DUPLICATES opt_hdrs)
+        set_target_properties(${target} PROPERTIES OPTIONAL_HEADERS "${opt_hdrs}")
+    endforeach()
+endmacro()
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
@@ -447,7 +468,7 @@ function(XMOS_REGISTER_APP)
         message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
     endif()
 
-    glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR})
+    glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR} src)
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
 
@@ -562,7 +583,12 @@ function(XMOS_REGISTER_APP)
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
-    manifest_git_status("" "")
+    manifest_git_status("" manifest_str)
+
+    # Create the Depends_on column in manifest
+    add_manifest_depends_on()
+
+    file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 
     set(current_module ${PROJECT_NAME})
     XMOS_REGISTER_DEPS()
@@ -672,7 +698,7 @@ function(XMOS_REGISTER_MODULE)
         set_source_files_properties(${ABS_PATH} PROPERTIES LANGUAGE ASM)
     endforeach()
 
-    glob_srcs("LIB" ${module_dir})
+    glob_srcs("LIB" ${module_dir} src)
 
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
                                 TARGET_DIRECTORY ${APP_BUILD_TARGETS}
@@ -693,11 +719,9 @@ function(XMOS_REGISTER_MODULE)
     foreach(target ${APP_BUILD_TARGETS})
         target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
         target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
-
-        get_target_property(opt_hdrs ${target} OPTIONAL_HEADERS)
-        list(APPEND opt_hdrs ${LIB_OPTIONAL_HEADERS})
-        set_target_properties(${target} PROPERTIES OPTIONAL_HEADERS "${opt_hdrs}")
     endforeach()
+
+    configure_optional_headers()
 endfunction()
 
 ## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
@@ -760,9 +784,14 @@ function(XMOS_REGISTER_DEPS)
             message(STATUS "Adding dependency ${DEP_NAME}")
             include(${module_dir}/lib_build_info.cmake)
 
-            manifest_git_status(${DEP_NAME} ${DEP_VERSION})
+            manifest_git_status(${DEP_NAME} manifest_str)
+
+            # Create the Depends_on column in manifest
+            add_manifest_depends_on()
+            file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
         endif()
     endforeach()
+
 endfunction()
 
 ## Registers a static library target
@@ -780,7 +809,7 @@ function(XMOS_STATIC_LIBRARY)
     endif()
     message(VERBOSE "Building for architecture: ${LIB_ARCH}")
 
-    glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR})
+    glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR} libsrc)
 
     set(archive_name ${LIB_NAME})
     if(NOT ${LIB_NAME} MATCHES "^lib")
@@ -826,7 +855,8 @@ function(XMOS_STATIC_LIBRARY)
 
     # Overwrites file if already present and then record manifest entry for application repo
     file(WRITE ${MANIFEST_OUT} ${MANIFEST_HEADER})
-    manifest_git_status("" "")
+    manifest_git_status("" "" manifest_str)
+    file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 
     set(current_module ${LIB_NAME})
     XMOS_REGISTER_DEPS()
@@ -859,6 +889,20 @@ function(XMOS_REGISTER_STATIC_LIB)
 
         foreach(target ${APP_BUILD_TARGETS})
             target_link_libraries(${target} PRIVATE ${LIB_NAME})
+
+            foreach(incdir ${LIB_ADD_INC_DIRS})
+                target_include_directories(${target} PRIVATE ${module_dir}/${incdir})
+            endforeach()
+
+            foreach(srcdir ${LIB_ADD_SRC_DIRS})
+                file(GLOB_RECURSE _add_srcs ${module_dir}/${srcdir}/*.c
+                                            ${module_dir}/${srcdir}/*.xc
+                                            ${module_dir}/${srcdir}/*.cpp
+                                            ${module_dir}/${srcdir}/*.S)
+                target_sources(${target} PRIVATE ${_add_srcs})
+            endforeach()
         endforeach()
+
+        configure_optional_headers()
     endif()
 endfunction()

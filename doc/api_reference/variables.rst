@@ -273,7 +273,10 @@ Optional module variables
   this module. These files are not present in this module. If they are present in an application
   or module, the preprocessor macro ``__<name>_h_exists__`` will be set. Files within this module
   can then contain code which is conditionally compiled based on the presence of these optional
-  headers in other applications. Default: empty list which provides no optional headers. Example:
+  headers in other applications. Every module or static library has an automatic optional header;
+  for a library named ``lib_foo``, the optional header ``foo_conf.h`` will automatically be
+  configured, so it doesn't need to be set in this variable. Default: empty list which provides no
+  optional headers. Example:
 
   .. code-block:: cmake
 
@@ -325,6 +328,31 @@ Optional static library variables
 """""""""""""""""""""""""""""""""
 
 The same as the :ref:`optional-module-variables`, and also:
+
+``LIB_ADD_INC_DIRS``
+  List of directories which are required on the include directory search path for the compilation of
+  the additional source files as found based on the ``LIB_ADD_SRC_DIRS`` variable. This list of
+  directories will be added to the include directory search path of the application. If this string
+  is unset or empty, no additional directories will be added to the include directory search path.
+  Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ADD_INC_DIRS inc0 inc1)
+    set(LIB_ADD_INC_DIRS extra/inc)
+
+``LIB_ADD_SRCS_DIRS``
+  List of directories which contain additional source files which will be compiled and linked during
+  the building of the application with which this static library is being linked. These directories
+  are searched recursively, so only the highest-level directories are required. All source files
+  from the result of this search will be compiled with the application; it is not possible to select
+  individual additional source files for compilation. If this string is unset or empty, no search
+  for additional sources will be performed, so no additional source files will be compiled. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ADD_SRC_DIRS src0 src1)
+    set(LIB_ADD_SRC_DIRS extra/src)
 
 ``LIB_ARCH``
   List of xcore architectures for which to build static libraries. For each architecture, a separate

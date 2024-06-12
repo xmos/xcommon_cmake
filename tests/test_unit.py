@@ -22,8 +22,7 @@ def test_unit(cmake, unit):
         shutil.rmtree(build_dir)
 
     cmake_env = os.environ
-    if "XMOS_CMAKE_PATH" not in cmake_env:
-        cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+    cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
     ret = subprocess.run(
         [cmake, "-G", "Unix Makefiles", "-B", "build"], cwd=test_dir, env=cmake_env
     )
