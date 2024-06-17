@@ -6,7 +6,7 @@ set(APP_HW_TARGET XCORE-AI-EXPLORER)
 set(APP_DEPENDENT_MODULES "lib_static0")
 
 # Select which achive we wish to use
-set(APP_ARCHIVES archive_xs3)
+set(APP_DEPENDENT_ARCHIVES archive_xs3)
 
 # Add src to include directory search path for optional header
 set(APP_INCLUDES src)
