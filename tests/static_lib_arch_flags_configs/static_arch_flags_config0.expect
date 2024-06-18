@@ -1,3 +1,4 @@
 config0
 config0
-archive0 xs3a
+static0 archive0 xs3a
+static1 xs3a

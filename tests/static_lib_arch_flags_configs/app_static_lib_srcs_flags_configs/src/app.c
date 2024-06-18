@@ -1,5 +1,7 @@
 #include "static0.h"
 #include "static0_aux.h"
+#include "static1.h"
+#include "static1_aux.h"
 #include "print.h"
 #define STRINGIFY0(x) #x
 #define STRINGIFY(x) STRINGIFY0(x)
@@ -19,5 +21,6 @@ int main()
     static0_aux_xc();
     static0_aux_cxx();
     static0_aux_S();
+    static1();
     return 0;
 }
