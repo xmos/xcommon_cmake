@@ -1,7 +1,7 @@
-#include "static0_aux.h"
+#include "static0.h"
 
 #ifndef __static0_conf_h_exists__
 #error "This should be defined"
 #endif
 
-void static0_aux_c() {}
+void static0_c() {}
