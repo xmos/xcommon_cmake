@@ -3,9 +3,6 @@ set(LIB_VERSION 1.0.0)
 set(LIB_INCLUDES api)
 set(LIB_DEPENDENT_MODULES "")
 
-set(LIB_ADD_SRC_DIRS src)
-set(LIB_ADD_INC_DIRS inc)
-
 # Specify architectures to build archives for
 set(LIB_ARCHIVE_ARCHS xs2a xs3a)
 

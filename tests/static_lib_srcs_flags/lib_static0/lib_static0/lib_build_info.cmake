@@ -3,8 +3,7 @@ set(LIB_VERSION 1.0.0)
 set(LIB_INCLUDES api)
 set(LIB_DEPENDENT_MODULES "")
 
-set(LIB_ADD_SRC_DIRS src)
-set(LIB_ADD_INC_DIRS inc)
+set(LIB_INCLUDES inc)
 
 set(LIB_ARCHIVES static0_archive)
 

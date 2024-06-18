@@ -7,7 +7,9 @@ set(LIB_ARCHIVE_ARCHS_static0_archive xs3a)
 set(LIB_INCLUDES api)
 set(LIB_DEPENDENT_MODULES "")
 
-set(LIB_ADD_SRC_DIRS src)
-set(LIB_ADD_INC_DIRS inc)
+# By default expect xcommon to use ./libsrc for archive src files
+# By default expect xcommon to use ./src for additional src files
+#set(LIB_ADD_SRC_DIRS src)
+#set(LIB_ADD_INC_DIRS inc)
 
 XMOS_REGISTER_STATIC_LIB()
