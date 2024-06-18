@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.21)
+include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
+project(static_lib_srcs_flags_configs)
+
+set(APP_HW_TARGET XCORE-AI-EXPLORER)
+set(APP_DEPENDENT_MODULES "lib_static0")
+
+# Add src to include directory search path for optional header
+set(APP_INCLUDES src)
+
+# Define some build configs for the app
+set(APP_COMPILER_FLAGS_config0 -DMSG=config0)
+set(APP_COMPILER_FLAGS_config1 -DMSG=config1)
+set(APP_COMPILER_FLAGS_config2 -DMSG=config2)
+set(APP_COMPILER_FLAGS_config3 -DMSG=config3)
+
+# Choose which archive we want to use for each config
+set(APP_DEPENDENT_ARCHIVES static0_archive0)
+
+set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
+
+XMOS_REGISTER_APP()
