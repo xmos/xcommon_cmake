@@ -6,14 +6,12 @@ set(LIB_DEPENDENT_MODULES "")
 set(LIB_ADD_SRC_DIRS src)
 set(LIB_ADD_INC_DIRS inc)
 
-set(LIB_ARCHIVES archive_xs3 archive_xs2)
+set(LIB_ARCHIVES static0_archive)
 
-set(LIB_ARCHIVE_ARCH_archive_xs3 xs3a
-set(LIB_ARCHIVE_ARCH_archive_xs2 xs2a
+set(LIB_ARCHIVE_ARCHS_static0_archive xs2a xs3a)
 
 # Applies to building the .a
-set(LIB_ARCHIVE_FLAGS_archive_xs2 -DLIB_STATIC0_OPTION_archive_xs3=1)
-set(LIB_ARCHIVE_FLAGS_archive_xs3 -DLIB_STATIC0_OPTION_archive_xs2=1)
+set(LIB_ARCHIVE_FLAGS_static0_archive -DLIB_STATIC0_OPTION_archive=1)
 
 # Applies to the additional source files
 set(LIB_COMPILER_FLAGS -DLIB_STATIC0_OPTION=1)
