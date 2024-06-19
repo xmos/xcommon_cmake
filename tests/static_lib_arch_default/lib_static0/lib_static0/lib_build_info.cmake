@@ -3,6 +3,7 @@ set(LIB_VERSION 1.0.0)
 
 # Defaults used for building archives contained in this lib
 # e.g. arch = xs3a
+set(LIB_ARCHIVE_INCLUDES api)
 
 # Items to allow use of this lib (and contained archive)
 set(LIB_INCLUDES api)

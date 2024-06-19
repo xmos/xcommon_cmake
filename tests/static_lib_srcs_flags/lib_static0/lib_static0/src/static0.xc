@@ -11,5 +11,5 @@
 void static0_xc()
 {
     // Call func from static lib
-    static0_archive()
+    static0_archive();
 }

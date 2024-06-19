@@ -21,12 +21,12 @@ set(LIB_ARCHIVE_FLAGS_static0_archive1 -DLIB_STATIC0_OPTION_archive1=1)
 set(LIB_DEPENDENT_MODULES "")
 
 # Specify includes for building archives */
-set(LIB_ARCHIVE_INCLUDES api)
+set(LIB_ARCHIVE_INCLUDES inc)
 
 ### Items to allow use of this lib (contained archives and additonal source files)
 
 # Include directory to expose to the dependent libs/apps
-set(LIB_INCLUDES api)
+set(LIB_INCLUDES api inc)
 
 # Compiler options to apply to the additional source files (i.e. source files not compiled into .a)
 set(LIB_COMPILER_FLAGS -DLIB_STATIC0_OPTION=1)
