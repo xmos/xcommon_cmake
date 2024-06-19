@@ -7,7 +7,7 @@
 
 #endif
 
-void static0()
+void static0_archive()
 {
 #if defined(__XS3A__) && defined(LIB_STATIC0_OPTION_archive0)
     printstr("static0 archive0 xs3a");

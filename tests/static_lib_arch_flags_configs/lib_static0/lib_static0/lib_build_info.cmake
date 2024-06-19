@@ -20,6 +20,9 @@ set(LIB_ARCHIVE_FLAGS_static0_archive1 -DLIB_STATIC0_OPTION_archive1=1)
 # Are both useful features?
 set(LIB_DEPENDENT_MODULES "")
 
+# Specify includes for building archives */
+set(LIB_ARCHIVE_INCLUDES api)
+
 ### Items to allow use of this lib (contained archives and additonal source files)
 
 # Include directory to expose to the dependent libs/apps

@@ -1,7 +1,7 @@
 #include "static0.h"
 
-int main() 
+int main()
 {
-    static0();
+    static0_archive();
     return 0;
 }

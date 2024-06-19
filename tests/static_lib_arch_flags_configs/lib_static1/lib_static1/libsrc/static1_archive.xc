@@ -1,3 +1,4 @@
+#include "static1_archive.h"
 #include "static1.h"
 #include <print.h>
 
@@ -9,7 +10,7 @@
 #error "LIB_STATIC1_OPTION_archive expected to be defined here"
 #endif
 
-void static1()
+void static1_archive()
 {
 #if defined(__XS3A__)
     printstr("static1 xs3a");

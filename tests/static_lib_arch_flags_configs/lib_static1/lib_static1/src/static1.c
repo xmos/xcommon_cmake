@@ -1,4 +1,4 @@
-#include "static1_aux.h"
+#include "static1.h"
 
 #ifndef __static1_conf_h_exists__
 #error "This should be defined"
@@ -8,4 +8,4 @@
 #error "LIB_STATIC1_OPTION expected to be defined here"
 #endif
 
-void static1_aux_c() {}
+void static1_c() {}

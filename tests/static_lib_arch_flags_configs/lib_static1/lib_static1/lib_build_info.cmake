@@ -13,6 +13,9 @@ set(LIB_ARCHIVE_FLAGS -DLIB_STATIC1_OPTION_archive=1)
 # TODO rename?
 set(LIB_DEPENDENT_MODULES "")
 
+# Specify includes for building archives
+set(LIB_INCLUDES api inc)
+
 ### Items to allow use of this lib (contained archives and additonal source files)
 
 # Include directory to expose to the dependent lib/app

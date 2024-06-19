@@ -16,7 +16,10 @@ set(LIB_ARCHIVE_FLAGS_static0_archive1 -DLIB_STATIC0_OPTION_archive1=1)
 
 set(LIB_ARCHIVE_DEPENDENT_MODULES "")
 
-### Items for building archives contained in this lib
+# Specify includes for building archives
+set(LIB_ARCHIVE_INCLUDES inc)
+
+### Items to allow use of this lib (contained archives and additonal source files)
 
 # Applies to the additional source files
 set(LIB_COMPILER_FLAGS -DLIB_STATIC0_OPTION=1)

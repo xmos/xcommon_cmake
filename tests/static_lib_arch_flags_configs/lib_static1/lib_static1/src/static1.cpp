@@ -1,9 +1,9 @@
-#include "static1_aux.h"
+#include "static1.h"
 
 #ifndef LIB_STATIC1_OPTION
 #error "This should be defined"
 #endif
 
 extern "C" {
-    void static1_aux_cxx() {}
+    void static1_cxx() {}
 }

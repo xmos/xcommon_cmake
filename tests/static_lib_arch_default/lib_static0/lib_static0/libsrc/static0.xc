@@ -1,4 +1,3 @@
-#include "static0.h"
 #include <print.h>
 void static0() {
 #ifdef __XS3A__
