@@ -1,7 +1,7 @@
-#include "static0.h"
+#include "mod0.h"
 
-int main() 
+int main()
 {
-    static0();
+    mod0(); // Calls static0_archive()
     return 0;
 }
