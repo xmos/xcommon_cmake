@@ -1,7 +1,8 @@
 #include "static0.h"
 
-int main() 
+int main()
 {
-    static0();
+    /* Call func in archive */
+    static0_archive();
     return 0;
 }

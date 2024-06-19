@@ -1,5 +1,5 @@
 #include <print.h>
-void static0() {
+void static0_archive() {
 #ifdef __XS3A__
     printstrln("arch xs3a");
 #else
