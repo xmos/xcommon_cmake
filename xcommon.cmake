@@ -868,8 +868,10 @@ function(XMOS_REGISTER_STATIC_LIB)
     # resolution, in which case the static library is linked into the application. If this variable is
     # not set, XMOS_STATIC_LIBRARY() is called to configure the build of the static library itself.
     if(NOT module_dir)
+        # Configure build of static lib
         XMOS_STATIC_LIBRARY()
     else()
+        # Configure use of build static lib
         set(archive_name ${LIB_NAME})
         if(NOT ${LIB_NAME} MATCHES "^lib")
             set(archive_name "lib${LIB_NAME}")

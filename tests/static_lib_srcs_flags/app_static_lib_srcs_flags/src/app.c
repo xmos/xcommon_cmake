@@ -1,15 +1,18 @@
 #include "static0.h"
-#include "static0_aux.h"
+//#include "static0_static.h" // shouldn't be able to see this, used for building .a only
 
-void static0_aux_cxx();
-void static0_aux_S();
+void static0_cxx();
+void static0_S();
 
 int main()
 {
-    static0();
-    static0_aux_c();
-    static0_aux_xc();
-    static0_aux_cxx();
-    static0_aux_S();
+    // Func from .a
+    static0_archive(); // prints MSG_ARCHICE
+
+    // Funcs from additional source files
+    static0_c(); // prints MSG
+    static0_xc(); // calls static0_archive (prints MSG_ARCHIVE)
+    static0_cxx();
+    static0_S();
     return 0;
 }
