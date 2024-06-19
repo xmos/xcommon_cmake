@@ -22,7 +22,7 @@ set(LIB_DEPENDENT_MODULES "")
 
 ### Items to allow use of this lib (contained archives and additonal source files)
 
-# Include directory to expose to the dependent lib/app
+# Include directory to expose to the dependent libs/apps
 set(LIB_INCLUDES api)
 
 # Compiler options to apply to the additional source files (i.e. source files not compiled into .a)

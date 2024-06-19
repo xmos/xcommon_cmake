@@ -1,7 +1,6 @@
 set(LIB_NAME lib_static1)
 set(LIB_VERSION 1.0.0)
 
-
 ### Items used to build archives contained in this lib
 
 # Specify architectures to build archives for
