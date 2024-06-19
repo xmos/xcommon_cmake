@@ -1,2 +1,2 @@
 #error "File should not be compiled"
-void mod0A_c() {}
+void static0B_archive_xc() {}

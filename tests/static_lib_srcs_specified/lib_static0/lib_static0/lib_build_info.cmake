@@ -13,19 +13,19 @@ set(LIB_ARCHIVE_ARCHS_static0_archive xs3a)
 set(LIB_ARCHIVE_DEPENDENT_MODULES "")
 
 # Includes for building archive(s)
-set(LIB_ARCHIVE_INCLUDES inc api)
+set(LIB_ARCHIVE_INCLUDES api)
+
+# Archive sources (default is to glob in libsrc)
+set(LIB_ARCHIVE_XC_SRCS mylibsrc/static0_archive.xc mylibsrc/srcA/static0A_archive.xc)
+set(LIB_ARCHIVE_C_SRCS mylibsrc/srcB/static0B_archive.c)
+set(LIB_ARCHIVE_CXX_SRCS mylibsrc/srcB/static0B_archive.cpp)
 
 ### Items to allow use of this lib (contained archives and additonal source files)
 
 # "Additional" sources (default is to glob in src)
-set(LIB_XC_SRCS mysrc/mod0.xc mysrc/srcA/mod0A.xc)
-set(LIB_C_SRCS mysrc/srcB/mod0B.c)
-set(LIB_CXX_SRCS mysrc/srcB/mod0B.cpp)
-
-# Archive sources (default is to glob in libsrc)
-set(LIB_ARCHIVE_XC_SRCS mylibsrc/mod0.xc mylibsrc/srcA/static0A.xc)
-set(LIB_ARCHIVE_C_SRCS mylivsrc/srcB/static0B.c)
-set(LIB_ARCHIVE_CXX_SRCS mylibsrc/srcB/static0B.cpp)
+set(LIB_XC_SRCS mysrc/static0.xc mysrc/srcA/static0A.xc)
+set(LIB_C_SRCS mysrc/srcB/static0B.c)
+set(LIB_CXX_SRCS mysrc/srcB/static0B.cpp)
 
 # Include directories to expose to dependent libs/apps
 set(LIB_INCLUDES api)
