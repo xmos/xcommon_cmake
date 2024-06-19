@@ -11,6 +11,9 @@ set(LIB_ARCHIVE_ARCHS xs2a xs3a)
 # Specify dependencies required to build archives
 set(LIB_ARCHIVE_DEPENDENT_MODULES "")
 
+# Specify includes for building archives
+set(LIB_ARCHIVES_INCLUDES api)
+
 ### Items used to build archives contained in this lib
 
 # Include directory to expose to the dependent libs/apps
