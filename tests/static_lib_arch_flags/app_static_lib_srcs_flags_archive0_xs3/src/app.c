@@ -1,15 +1,15 @@
 #include "static0.h"
-#include "static0_aux.h"
+//#include "static0_archive.h" shouldn't be able to see this
 
-void static0_aux_cxx();
-void static0_aux_S();
+void static0_cxx();
+void static0_S();
 
 int main()
 {
-    static0();
-    static0_aux_c();
-    static0_aux_xc();
-    static0_aux_cxx();
-    static0_aux_S();
+    static0_archive();
+    static0_c();
+    static0_xc();
+    static0_cxx();
+    static0_S();
     return 0;
 }
