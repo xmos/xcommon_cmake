@@ -1,6 +1,12 @@
 XCommon CMake Change Log
 ========================
 
+UNRELEASED
+----------
+
+  * ADDED:   Support for multiple prebuilt archives in a static library repository
+  * ADDED:   Support for configuring compiler flags on static library additional sources
+
 1.1.0
 -----
 
