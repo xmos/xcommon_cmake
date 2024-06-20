@@ -10,11 +10,10 @@ set(LIB_ARCHIVE_ARCHS xs2a xs3a)
 set(LIB_ARCHIVE_FLAGS -DLIB_STATIC1_OPTION_archive=1)
 
 # Depencencies used to build archive
-# TODO rename?
-set(LIB_DEPENDENT_MODULES "")
+set(LIB_ARCHIVE_DEPENDENT_MODULES "")
 
 # Specify includes for building archives
-set(LIB_INCLUDES api inc)
+set(LIB_ARCHIVE_INCLUDES api inc)
 
 ### Items to allow use of this lib (contained archives and additonal source files)
 

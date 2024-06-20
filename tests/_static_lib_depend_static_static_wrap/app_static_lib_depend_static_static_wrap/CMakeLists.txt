@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-project(static_lib_depend_static_mod)
+project(static_lib_depend_static_static_wrap)
 
 set(APP_HW_TARGET XCORE-AI-EXPLORER)
 set(APP_DEPENDENT_MODULES lib_static0)
