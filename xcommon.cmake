@@ -152,31 +152,31 @@ endmacro()
 # files if none are specified.
 macro(glob_srcs prefix src_dir src_subdir)
     if(NOT DEFINED ${prefix}_XC_SRCS)
-        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/${src_subdir}/*.xc)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.xc)
     else()
         list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/${src_subdir}/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.cpp)
     else()
         list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_C_SRCS)
-        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/${src_subdir}/*.c)
+        file(GLOB_RECURSE ${prefix}_C_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.c)
     else()
         list(TRANSFORM ${prefix}_C_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_ASM_SRCS)
-        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/${src_subdir}/*.S)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.S)
     else()
         list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_XSCOPE_SRCS)
-        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS ${src_dir}/*.xscope)
+        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS CONFIGURE_DEPENDS ${src_dir}/*.xscope)
     else()
         list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${src_dir}/)
     endif()
@@ -454,7 +454,7 @@ function(XMOS_REGISTER_APP)
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
         # Check specified XN file exists
-        file(GLOB_RECURSE xn_files ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
+        file(GLOB_RECURSE xn_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
         list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
         list(LENGTH xn_files num_xn_files)
         if(NOT ${num_xn_files})
@@ -598,7 +598,7 @@ function(XMOS_REGISTER_APP)
         get_target_property(all_opt_hdrs ${target} OPTIONAL_HEADERS)
         set(opt_hdrs_found "")
         foreach(inc ${all_inc_dirs})
-            file(GLOB headers ${inc}/*.h)
+            file(GLOB headers CONFIGURE_DEPENDS ${inc}/*.h)
             foreach(header ${headers})
                 get_filename_component(name ${header} NAME)
                 list(FIND all_opt_hdrs ${name} FOUND)
@@ -895,7 +895,7 @@ function(XMOS_REGISTER_STATIC_LIB)
             endforeach()
 
             foreach(srcdir ${LIB_ADD_SRC_DIRS})
-                file(GLOB_RECURSE _add_srcs ${module_dir}/${srcdir}/*.c
+                file(GLOB_RECURSE _add_srcs CONFIGURE_DEPENDS ${module_dir}/${srcdir}/*.c
                                             ${module_dir}/${srcdir}/*.xc
                                             ${module_dir}/${srcdir}/*.cpp
                                             ${module_dir}/${srcdir}/*.S)
