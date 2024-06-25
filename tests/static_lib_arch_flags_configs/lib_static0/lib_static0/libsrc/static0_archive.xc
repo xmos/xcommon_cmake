@@ -1,4 +1,4 @@
-#include "static0_archive.h"
+#include "static0.h"
 #include <print.h>
 
 #ifdef LIB_STATIC0_OPTION

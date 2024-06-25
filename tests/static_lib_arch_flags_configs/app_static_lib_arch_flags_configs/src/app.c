@@ -1,6 +1,5 @@
 #include "static0.h"
-#include "static0_archive.h"
-#include "static1_archive.h"
+#include "static1.h"
 #include "print.h"
 #define STRINGIFY0(x) #x
 #define STRINGIFY(x) STRINGIFY0(x)
