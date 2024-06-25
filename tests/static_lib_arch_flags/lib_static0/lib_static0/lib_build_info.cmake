@@ -11,8 +11,8 @@ set(LIB_ARCHIVE_ARCHS_static0_archive0 xs2a xs3a)
 set(LIB_ARCHIVE_ARCHS_static0_archive1 xs3a)
 
 # For each archive "config" provide some options that apply to building the .a
-set(LIB_ARCHIVE_FLAGS_static0_archive0 -DLIB_STATIC0_OPTION_archive0=1)
-set(LIB_ARCHIVE_FLAGS_static0_archive1 -DLIB_STATIC0_OPTION_archive1=1)
+set(LIB_ARCHIVE_COMPILER_FLAGS_static0_archive0 -DLIB_STATIC0_OPTION_archive0=1)
+set(LIB_ARCHIVE_COMPILER_FLAGS_static0_archive1 -DLIB_STATIC0_OPTION_archive1=1)
 
 set(LIB_ARCHIVE_DEPENDENT_MODULES "")
 
