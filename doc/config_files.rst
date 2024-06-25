@@ -95,11 +95,11 @@ Example: `sandbox/lib_bar/lib_bar/lib_build_info.cmake`
 
     set(LIB_NAME lib_bar)
     set(LIB_VERSION 1.0.0)
-    set(LIB_ARCH xs2a xs3a)
-    set(LIB_INCLUDES api)
-    set(LIB_C_SRCS libsrc/bar0.c libsrc/bar1.c)
-    set(LIB_COMPILER_FLAGS -O3)
-    set(LIB_DEPENDENT_MODULES "")
+    set(LIB_ARCHS xs2a xs3a)
+    set(LIB_ARCHIVE_INCLUDES api)
+    set(LIB_ARCHIVE_C_SRCS libsrc/bar0.c libsrc/bar1.c)
+    set(LIB_ARCHIVE_COMPILER_FLAGS -O3)
+    set(LIB_ARCHIVE_DEPENDENT_MODULES "")
 
     XMOS_REGISTER_STATIC_LIB()
 
