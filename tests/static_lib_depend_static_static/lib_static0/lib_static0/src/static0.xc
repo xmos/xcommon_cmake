@@ -1,4 +1,5 @@
 #include "static1.h"
+#include "print.h"
 
 void static0()
 {

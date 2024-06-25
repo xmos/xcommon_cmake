@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.21)
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-project(static_lib_srcs_flags_archive0_xs3)
+project(static_lib_arch_flags_archive0_xs2)
 
-set(APP_HW_TARGET XCORE-AI-EXPLORER)
+set(APP_HW_TARGET XCORE-200-EXPLORER)
 set(APP_DEPENDENT_MODULES "lib_static0")
 
 # Add src to include directory search path for optional header

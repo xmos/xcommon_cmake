@@ -8,7 +8,7 @@ set(LIB_ARCHIVE_ARCHS_static0_archive xs2a xs3a)
 set(LIB_ARCHIVE_INCLUDES inc)
 set(LIB_DEPENDENT_MODULES "")
 # Applies to building the .a
-set(LIB_ARCHIVE_FLAGS_static0_archive -DLIB_STATIC0_OPTION_archive=1 -DMSG_ARCHIVE=lib_static0_archive)
+set(LIB_ARCHIVE_COMPILER_FLAGS_static0_archive -DLIB_STATIC0_OPTION_archive=1 -DMSG_ARCHIVE=lib_static0_archive)
 
 ### Items to allow use of this lib (contained archives and additonal source files)
 

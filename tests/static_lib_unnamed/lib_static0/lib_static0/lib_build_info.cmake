@@ -12,7 +12,7 @@ set(LIB_ARCHIVE_ARCHS xs2a xs3a)
 set(LIB_ARCHIVE_DEPENDENT_MODULES "")
 
 # Specify includes for building archives
-set(LIB_ARCHIVES_INCLUDES api)
+set(LIB_ARCHIVE_INCLUDES api)
 
 ### Items used to build archives contained in this lib
 

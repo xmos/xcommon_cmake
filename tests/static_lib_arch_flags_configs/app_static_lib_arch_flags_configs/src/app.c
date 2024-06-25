@@ -17,7 +17,7 @@ int main()
 
     /* Call func from lib_static0 archive - prints "staticX archiveY xsZa") based on archive
      * config/arch */
-    static0();
+    static0_archive();
 
     /* Call some functions from additional source files in lib_static0 */
     static0_c();
@@ -26,6 +26,6 @@ int main()
     static0_S();
 
     /* Call func from lib_static1 archive - prints "static1 xsXa" based on arch */
-    static1();
+    static1_archive();
     return 0;
 }

@@ -8,6 +8,7 @@ void static0_archive()
 #else
     printstrln("static0 archive xs2a");
 #endif
+    static1();
     static1_archive();
 }
 

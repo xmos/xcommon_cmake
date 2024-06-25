@@ -5,7 +5,7 @@ void static0_S();
 
 int main()
 {
-    static0();
+    static0_archive();
     static0_c();
     static0_xc();
     static0_cxx();

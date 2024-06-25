@@ -7,7 +7,7 @@ set(LIB_VERSION 1.0.0)
 set(LIB_ARCHIVE_ARCHS xs2a xs3a)
 
 # Provide some options that apply to building the .a
-set(LIB_ARCHIVE_FLAGS -DLIB_STATIC1_OPTION_archive=1)
+set(LIB_ARCHIVE_COMPILER_FLAGS -DLIB_STATIC1_OPTION_archive=1)
 
 # Depencencies used to build archive
 set(LIB_ARCHIVE_DEPENDENT_MODULES "")
