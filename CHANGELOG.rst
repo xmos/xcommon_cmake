@@ -4,6 +4,7 @@ XCommon CMake Change Log
 UNRELEASED
 ----------
 
+  * ADDED:   XCOMMON_CMAKE_VER cache variable
   * FIXED:   Use CONFIGURE_DEPENDS option in all GLOBs to ensure build is always correct
 
 1.1.0
