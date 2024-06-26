@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.21)
 
 include_guard(GLOBAL)
 
+set(XCOMMON_CMAKE_VER 1.1.0 CACHE INTERNAL "Version of XCommon CMake")
+
+macro(print_xcommon_cmake_version)
+    message(VERBOSE "XCommon CMake version v${XCOMMON_CMAKE_VER}")
+endmacro()
+
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
 
 # Set up compiler
@@ -162,31 +168,31 @@ endmacro()
 # files if none are specified.
 macro(glob_srcs prefix src_dir src_subdir)
     if(NOT DEFINED ${prefix}_XC_SRCS)
-        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/${src_subdir}/*.xc)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.xc)
     else()
         list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/${src_subdir}/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.cpp)
     else()
         list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_C_SRCS)
-        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/${src_subdir}/*.c)
+        file(GLOB_RECURSE ${prefix}_C_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.c)
     else()
         list(TRANSFORM ${prefix}_C_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_ASM_SRCS)
-        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/${src_subdir}/*.S)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.S)
     else()
         list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_XSCOPE_SRCS)
-        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS ${src_dir}/*.xscope)
+        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS CONFIGURE_DEPENDS ${src_dir}/*.xscope)
     else()
         list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${src_dir}/)
     endif()
@@ -455,6 +461,8 @@ function(XMOS_REGISTER_APP)
     # of an application-level build (rather than a static library build)
     set(XCOMMON_CMAKE_APP_BUILD TRUE)
 
+    print_xcommon_cmake_version()
+
     message(STATUS "Configuring application: ${PROJECT_NAME}")
 
     if(NOT BUILD_NATIVE AND NOT APP_HW_TARGET)
@@ -468,7 +476,7 @@ function(XMOS_REGISTER_APP)
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
         # Check specified XN file exists
-        file(GLOB_RECURSE xn_files ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
+        file(GLOB_RECURSE xn_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
         list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
         list(LENGTH xn_files num_xn_files)
         if(NOT ${num_xn_files})
@@ -620,7 +628,7 @@ function(XMOS_REGISTER_APP)
         get_target_property(all_opt_hdrs ${target} OPTIONAL_HEADERS)
         set(opt_hdrs_found "")
         foreach(inc ${all_inc_dirs})
-            file(GLOB headers ${inc}/*.h)
+            file(GLOB headers CONFIGURE_DEPENDS ${inc}/*.h)
             foreach(header ${headers})
                 get_filename_component(name ${header} NAME)
                 list(FIND all_opt_hdrs ${name} FOUND)
@@ -842,6 +850,7 @@ endfunction()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
+    print_xcommon_cmake_version()
     message(STATUS "Configuring static library: ${LIB_NAME}")
 
     glob_srcs("LIB_ARCHIVE" ${CMAKE_CURRENT_SOURCE_DIR} libsrc)
