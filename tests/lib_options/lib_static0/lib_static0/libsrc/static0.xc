@@ -5,7 +5,7 @@
 #endif
 
 #ifdef LIB_STATIC0_OPTION
-#error LIB_STATIC0_OPTION shoudl not be defined
+#error LIB_STATIC0_OPTION should not be defined
 #endif
 
 void static0_archive() {}
