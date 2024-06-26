@@ -339,8 +339,8 @@ Variables for archive build
 """""""""""""""""""""""""""
 
 ``LIB_ARCHIVES``
-  List of archives to build. If not set, a single archive is built and is named by the ``LIB_NAME``
-  variable. Example:
+  List of archives to build. If not set, a single archive (per supported architecture) is built and
+  is named by the ``LIB_NAME`` variable. Example:
 
   .. code-block:: cmake
 
