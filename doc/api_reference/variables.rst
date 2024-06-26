@@ -326,6 +326,8 @@ Optional module variables
     set(LIB_XSCOPE_SRCS src/config.xscope)
     set(LIB_XSCOPE_SRCS "")
 
+.. _staticlib-variables:
+
 Static Libraries
 ^^^^^^^^^^^^^^^^
 
