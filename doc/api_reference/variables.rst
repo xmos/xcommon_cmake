@@ -369,10 +369,26 @@ Output Variables
 Experienced CMake users are able to add custom CMake code around the XCommon CMake build system. To
 support this, some variables are exposed from the ``XMOS_REGISTER_APP`` function.
 
+``APP_BUILD_ARCH``
+  String of the architecture of the application being built. This variable allows the CMake code for a
+  module to be conditionally configured based on the target architecture.
+
 ``APP_BUILD_TARGETS``
   List of the target names for the applications which have been configured. This allows relationships to
   be defined with custom CMake targets that a user may create.
 
-``APP_BUILD_ARCH``
-  String of the architecture of the application being built. This variable allows the CMake code for a
-  module to be conditionally configured based on the target architecture.
+``XCOMMON_CMAKE_VER``
+  String containing the version number of XCommon CMake. This is printed as part of a version string
+  message when run with ``--log-level=VERBOSE`` at the beginning of the CMake configuration stage.
+  This can be used to write CMake code using knowledge of which versions of XCommon CMake include the
+  required features. Version number comparisons must be performed with the ``VERSION_`` binary tests
+  in the ``if`` function for the correct interpretation of the version number sub-components. For
+  example, if a feature is added in v1.1.0:
+
+  .. code-block:: cmake
+
+  if(XCOMMON_CMAKE_VER VERSION_GREATER_EQUAL 1.1.0)
+      # Use the supported feature
+  else()
+      # Do something else as feature is not supported
+  endif()

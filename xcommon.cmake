@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.21)
 
 include_guard(GLOBAL)
 
+set(XCOMMON_CMAKE_VER 1.1.0 CACHE INTERNAL "Version of XCommon CMake")
+
+macro(print_xcommon_cmake_version)
+    message(VERBOSE "XCommon CMake version v${XCOMMON_CMAKE_VER}")
+endmacro()
+
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
 
 # Set up compiler
@@ -441,6 +447,7 @@ endmacro()
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
+    print_xcommon_cmake_version()
     message(STATUS "Configuring application: ${PROJECT_NAME}")
 
     if(NOT BUILD_NATIVE AND NOT APP_HW_TARGET)
@@ -796,6 +803,7 @@ endfunction()
 
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
+    print_xcommon_cmake_version()
     message(STATUS "Configuring static library: ${LIB_NAME}")
 
     if(NOT BUILD_NATIVE)
