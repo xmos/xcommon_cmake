@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.21)
 
 include_guard(GLOBAL)
 
+set(XCOMMON_CMAKE_VER 1.2.0 CACHE INTERNAL "Version of XCommon CMake")
+
+macro(print_xcommon_cmake_version)
+    message(VERBOSE "XCommon CMake version v${XCOMMON_CMAKE_VER}")
+endmacro()
+
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
 
 # Set up compiler
@@ -18,6 +24,9 @@ endif()
 if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" AND NOT DEFINED CMAKE_MAKE_PROGRAM)
     set(CMAKE_MAKE_PROGRAM xmake CACHE STRING "")
 endif()
+
+# Default architecture of static library archives to build if not specified
+set(DEFAULT_STATICLIB_ARCH xs3a)
 
 include(FetchContent)
 
@@ -139,11 +148,18 @@ function(do_pca SOURCE_FILE DOT_BUILD_DIR TARGET_FLAGS TARGET_INCDIRS RET_FILE_P
     set(${RET_FILE_PCA} ${file_pca} PARENT_SCOPE)
 endfunction()
 
+# This macro clears variables when recursively processing dependencies, where those variables
+# can have an effect on the child scope and need to be set within that scope by the
+# lib_build_info.cmake which is included at that point.
 macro(unset_lib_vars)
+    # Clear source variables to allow globbing if they remain unset in a dependency
     unset(LIB_XC_SRCS)
     unset(LIB_C_SRCS)
     unset(LIB_CXX_SRCS)
     unset(LIB_ASM_SRCS)
+
+    # Need to clear this to handle multiple static archive sub-dependencies
+    unset(LIB_ARCHIVES)
 endmacro()
 
 # If source variables are blank, glob for source files; otherwise prepend the full path
@@ -152,31 +168,31 @@ endmacro()
 # files if none are specified.
 macro(glob_srcs prefix src_dir src_subdir)
     if(NOT DEFINED ${prefix}_XC_SRCS)
-        file(GLOB_RECURSE ${prefix}_XC_SRCS ${src_dir}/${src_subdir}/*.xc)
+        file(GLOB_RECURSE ${prefix}_XC_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.xc)
     else()
         list(TRANSFORM ${prefix}_XC_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS ${src_dir}/${src_subdir}/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.cpp)
     else()
         list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_C_SRCS)
-        file(GLOB_RECURSE ${prefix}_C_SRCS ${src_dir}/${src_subdir}/*.c)
+        file(GLOB_RECURSE ${prefix}_C_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.c)
     else()
         list(TRANSFORM ${prefix}_C_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_ASM_SRCS)
-        file(GLOB_RECURSE ${prefix}_ASM_SRCS ${src_dir}/${src_subdir}/*.S)
+        file(GLOB_RECURSE ${prefix}_ASM_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.S)
     else()
         list(TRANSFORM ${prefix}_ASM_SRCS PREPEND ${src_dir}/)
     endif()
 
     if(NOT DEFINED ${prefix}_XSCOPE_SRCS)
-        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS ${src_dir}/*.xscope)
+        file(GLOB_RECURSE ${prefix}_XSCOPE_SRCS CONFIGURE_DEPENDS ${src_dir}/*.xscope)
     else()
         list(TRANSFORM ${prefix}_XSCOPE_SRCS PREPEND ${src_dir}/)
     endif()
@@ -441,6 +457,12 @@ endmacro()
 
 ## Registers an application and its dependencies
 function(XMOS_REGISTER_APP)
+    # Set this variable so that other code can tell whether it is being run within the scope
+    # of an application-level build (rather than a static library build)
+    set(XCOMMON_CMAKE_APP_BUILD TRUE)
+
+    print_xcommon_cmake_version()
+
     message(STATUS "Configuring application: ${PROJECT_NAME}")
 
     if(NOT BUILD_NATIVE AND NOT APP_HW_TARGET)
@@ -454,7 +476,7 @@ function(XMOS_REGISTER_APP)
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
         # Check specified XN file exists
-        file(GLOB_RECURSE xn_files ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
+        file(GLOB_RECURSE xn_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
         list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
         list(LENGTH xn_files num_xn_files)
         if(NOT ${num_xn_files})
@@ -529,6 +551,7 @@ function(XMOS_REGISTER_APP)
             target_compile_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             list(APPEND APP_BUILD_TARGETS ${PROJECT_NAME})
+            set(${PROJECT_NAME}_DEPENDENT_ARCHIVES ${APP_DEPENDENT_ARCHIVES})
         else()
             add_executable(${PROJECT_NAME}_${APP_CONFIG})
             # If a single app is being configured, build targets can be named after the app configs; in the case of a multi-app
@@ -543,6 +566,13 @@ function(XMOS_REGISTER_APP)
             target_compile_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} "-DCONFIG=${APP_CONFIG}" ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             target_link_options(${PROJECT_NAME}_${APP_CONFIG} PRIVATE ${APP_COMPILER_FLAGS_${APP_CONFIG}} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             list(APPEND APP_BUILD_TARGETS ${PROJECT_NAME}_${APP_CONFIG})
+
+            # Store dependent archives for each application target for linking later
+            if(APP_DEPENDENT_ARCHIVES_${APP_CONFIG})
+                set(${PROJECT_NAME}_${APP_CONFIG}_DEPENDENT_ARCHIVES ${APP_DEPENDENT_ARCHIVES_${APP_CONFIG}})
+            else()
+                set(${PROJECT_NAME}_${APP_CONFIG}_DEPENDENT_ARCHIVES ${APP_DEPENDENT_ARCHIVES})
+            endif()
         endif()
     endforeach()
     if(APP_HW_TARGET_XN_FILE)
@@ -591,14 +621,14 @@ function(XMOS_REGISTER_APP)
     file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 
     set(current_module ${PROJECT_NAME})
-    XMOS_REGISTER_DEPS()
+    XMOS_REGISTER_DEPS("${APP_DEPENDENT_MODULES}")
 
     foreach(target ${APP_BUILD_TARGETS})
         get_target_property(all_inc_dirs ${target} INCLUDE_DIRECTORIES)
         get_target_property(all_opt_hdrs ${target} OPTIONAL_HEADERS)
         set(opt_hdrs_found "")
         foreach(inc ${all_inc_dirs})
-            file(GLOB headers ${inc}/*.h)
+            file(GLOB headers CONFIGURE_DEPENDS ${inc}/*.h)
             foreach(header ${headers})
                 get_filename_component(name ${header} NAME)
                 list(FIND all_opt_hdrs ${name} FOUND)
@@ -672,8 +702,9 @@ function(XMOS_REGISTER_APP)
     endif()
 endfunction()
 
-## Registers a module and its dependencies
-function(XMOS_REGISTER_MODULE)
+# Configures the contents of a library directory for use with all the APP_BUILD_TARGETS. This function
+# can be used with either a module or a static library based on the STATIC_LIB_BOOL variable.
+function(configure_lib STATIC_LIB_BOOL)
     # If major version requirement was set, warn if there is a mismatch
     if(NOT "${DEP_MAJOR_VER}" STREQUAL "")
         string(REGEX MATCH "^([0-9]+)\\." _m ${LIB_VERSION})
@@ -691,7 +722,7 @@ function(XMOS_REGISTER_MODULE)
         message(WARNING "Module ${DEP_NAME} has mismatched LIB_NAME: ${LIB_NAME}")
     endif()
     set(current_module ${LIB_NAME})
-    XMOS_REGISTER_DEPS()
+    XMOS_REGISTER_DEPS("${LIB_DEPENDENT_MODULES}")
 
     foreach(file ${LIB_ASM_SRCS})
         get_filename_component(ABS_PATH ${file} ABSOLUTE)
@@ -717,21 +748,33 @@ function(XMOS_REGISTER_MODULE)
     list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
 
     foreach(target ${APP_BUILD_TARGETS})
-        target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
         target_include_directories(${target} PRIVATE ${LIB_INCLUDES})
     endforeach()
 
-    configure_optional_headers()
+    # Don't add sources to static library targets as "wrapping" of static libraries is not supported
+    if(XCOMMON_CMAKE_APP_BUILD OR NOT STATIC_LIB_BOOL)
+        foreach(target ${APP_BUILD_TARGETS})
+            target_sources(${target} PRIVATE ${ALL_LIB_SRCS_PATH})
+        endforeach()
+
+        configure_optional_headers()
+    endif()
 endfunction()
 
-## Registers the dependencies in the LIB_DEPENDENT_MODULES variable
-function(XMOS_REGISTER_DEPS)
-    if(LIB_DEPENDENT_MODULES)
-        # Only print if the LIB_DEPENDENT_MODULES list is non-empty
-        message(VERBOSE "Registering dependencies of ${current_module}: ${LIB_DEPENDENT_MODULES}")
+## Registers a module and its dependencies
+function(XMOS_REGISTER_MODULE)
+    configure_lib(FALSE)
+endfunction()
+
+## Registers the dependencies in the LIB_DEPENDENT_MODULES variable; DEPS_LIST parameter is the list of
+## dependencies in the format of LIB_DEPENDENT_MODULES or LIB_ARCHIVE_DEPENDENT_MODULES
+function(XMOS_REGISTER_DEPS DEPS_LIST)
+    if(deps_list)
+        # Only print if the dependent modules list parameter is non-empty
+        message(VERBOSE "Registering dependencies of ${current_module}: ${DEPS_LIST}")
     endif()
 
-    foreach(DEP_MODULE ${LIB_DEPENDENT_MODULES})
+    foreach(DEP_MODULE ${DEPS_LIST})
         parse_dep_string(${DEP_MODULE} DEP_REPO DEP_VERSION DEP_NAME)
         message(VERBOSE "Dependency: ${DEP_NAME}, repository ${DEP_REPO}, version ${DEP_VERSION}")
 
@@ -794,48 +837,64 @@ function(XMOS_REGISTER_DEPS)
 
 endfunction()
 
+# Takes as input the LIB_NAME or archive name from LIB_ARCHIVES, and removes the toolchain's
+# static library prefix if necessary to avoid the resulting archive being called liblib_foo
+function(get_archive_name IN_NAME RET_NAME)
+    if(CMAKE_STATIC_LIBRARY_PREFIX)
+        string(REGEX REPLACE "^${CMAKE_STATIC_LIBRARY_PREFIX}" "" archive_name ${IN_NAME})
+    else()
+        set(archive_name ${IN_NAME})
+    endif()
+    set(${RET_NAME} ${archive_name} PARENT_SCOPE)
+endfunction()
+
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
+    print_xcommon_cmake_version()
     message(STATUS "Configuring static library: ${LIB_NAME}")
 
-    if(NOT BUILD_NATIVE)
-        list(LENGTH LIB_ARCH num_arch)
-        if(${num_arch} LESS 1)
-            # If architecture not specified, assume xs3a
-            set(LIB_ARCH "xs3a")
+    glob_srcs("LIB_ARCHIVE" ${CMAKE_CURRENT_SOURCE_DIR} libsrc)
+
+    if(NOT LIB_ARCHIVES)
+        set(LIB_ARCHIVES ${LIB_NAME})
+        if(NOT LIB_ARCHIVE_COMPILER_FLAGS_${LIB_NAME})
+            set(LIB_ARCHIVE_COMPILER_FLAGS_${LIB_NAME} "${LIB_ARCHIVE_COMPILER_FLAGS}")
         endif()
-    else()
-        set(LIB_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
-    endif()
-    message(VERBOSE "Building for architecture: ${LIB_ARCH}")
-
-    glob_srcs("LIB" ${CMAKE_CURRENT_SOURCE_DIR} libsrc)
-
-    set(archive_name ${LIB_NAME})
-    if(NOT ${LIB_NAME} MATCHES "^lib")
-        set(archive_name "lib${LIB_NAME}")
     endif()
 
     set(APP_BUILD_TARGETS "")
-    foreach(lib_arch ${LIB_ARCH})
-        add_library(${LIB_NAME}-${lib_arch} STATIC)
-        set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY VERSION ${LIB_VERSION})
-        target_sources(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
-        target_include_directories(${LIB_NAME}-${lib_arch} PRIVATE ${LIB_INCLUDES})
+    foreach(archive ${LIB_ARCHIVES})
         if(NOT BUILD_NATIVE)
-            target_compile_options(${LIB_NAME}-${lib_arch} PUBLIC ${LIB_COMPILER_FLAGS} "-march=${lib_arch}")
+            if(LIB_ARCHIVE_ARCHS_${archive})
+                set(arch_list ${LIB_ARCHIVE_ARCHS_${archive}})
+            elseif(LIB_ARCHIVE_ARCHS)
+                set(arch_list ${LIB_ARCHIVE_ARCHS})
+            else()
+                set(arch_list ${DEFAULT_STATICLIB_ARCH})
+            endif()
+        else()
+            set(arch_list ${CMAKE_HOST_SYSTEM_PROCESSOR})
         endif()
 
-        set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${lib_arch})
-        # Set output name so that static library filename does not include architecture
-        set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY ARCHIVE_OUTPUT_NAME ${LIB_NAME})
+        foreach(arch ${arch_list})
+            set(APP_BUILD_ARCH ${arch})
+            set(archive_target ${archive}-${arch})
+            message(VERBOSE "Building ${archive} for architecture: {arch}")
 
-        # Avoid archive named "liblib..." by removing prefix
-        if(LIB_NAME STREQUAL archive_name)
-            set_property(TARGET ${LIB_NAME}-${lib_arch} PROPERTY PREFIX "")
-        endif()
+            add_library(${archive_target} STATIC)
+            set_property(TARGET ${archive_target} PROPERTY VERSION ${LIB_VERSION})
+            target_sources(${archive_target} PRIVATE ${LIB_ARCHIVE_XC_SRCS} ${LIB_ARCHIVE_CXX_SRCS} ${LIB_ARCHIVE_ASM_SRCS} ${LIB_ARCHIVE_C_SRCS})
+            target_include_directories(${archive_target} PRIVATE ${LIB_ARCHIVE_INCLUDES})
+            if(NOT BUILD_NATIVE)
+                target_compile_options(${archive_target} PUBLIC "-march=${arch}" ${LIB_ARCHIVE_COMPILER_FLAGS_${archive}})
+            endif()
 
-        list(APPEND APP_BUILD_TARGETS ${LIB_NAME}-${lib_arch})
+            set_property(TARGET ${archive_target} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib/${arch})
+            get_archive_name(${archive} archive_name)
+            set_property(TARGET ${archive_target} PROPERTY ARCHIVE_OUTPUT_NAME ${archive_name})
+
+            list(APPEND APP_BUILD_TARGETS ${archive_target})
+        endforeach()
     endforeach()
     set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
 
@@ -845,7 +904,7 @@ function(XMOS_STATIC_LIBRARY)
             set(XMOS_SANDBOX_DIR "${XMOS_DEPS_ROOT_DIR}")
         endif()
     endif()
-    if(LIB_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
+    if(LIB_ARCHIVE_DEPENDENT_MODULES AND NOT XMOS_SANDBOX_DIR)
         message(FATAL_ERROR "XMOS_SANDBOX_DIR must be set as the root directory of the sandbox")
     endif()
     cmake_path(SET XMOS_SANDBOX_DIR NORMALIZE "${XMOS_SANDBOX_DIR}")
@@ -859,7 +918,7 @@ function(XMOS_STATIC_LIBRARY)
     file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 
     set(current_module ${LIB_NAME})
-    XMOS_REGISTER_DEPS()
+    XMOS_REGISTER_DEPS("${LIB_ARCHIVE_DEPENDENT_MODULES}")
 endfunction()
 
 # Either configures the build of the static library or links the static library into the application
@@ -868,41 +927,63 @@ function(XMOS_REGISTER_STATIC_LIB)
     # resolution, in which case the static library is linked into the application. If this variable is
     # not set, XMOS_STATIC_LIBRARY() is called to configure the build of the static library itself.
     if(NOT module_dir)
+        # Configure build of static lib
         XMOS_STATIC_LIBRARY()
     else()
-        set(archive_name ${LIB_NAME})
-        if(NOT ${LIB_NAME} MATCHES "^lib")
-            set(archive_name "lib${LIB_NAME}")
+
+        # Handle any additional source files as though they are in a standard module repository
+        configure_lib(TRUE)
+
+        # If not configuring an application target, then don't need to link static library archives
+        if(NOT XCOMMON_CMAKE_APP_BUILD)
+            return()
         endif()
 
-        add_library(${LIB_NAME} STATIC IMPORTED)
-        set_property(TARGET ${LIB_NAME} PROPERTY SYSTEM OFF)
+        # Configure use of prebuilt static lib
 
-        set(archive_path ${module_dir}/lib/${APP_BUILD_ARCH}/${archive_name}.a)
-        if(NOT EXISTS ${archive_path})
-            message(FATAL_ERROR "${LIB_NAME} static library archive not present at ${archive_path}")
+        if(LIB_ARCHIVES)
+            set(archive_names ${LIB_ARCHIVES})
+        else()
+            set(archive_names ${LIB_NAME})
         endif()
-        set_property(TARGET ${LIB_NAME} PROPERTY IMPORTED_LOCATION ${archive_path})
 
         list(TRANSFORM LIB_INCLUDES PREPEND ${module_dir}/)
-        target_include_directories(${LIB_NAME} INTERFACE ${LIB_INCLUDES})
+        list(TRANSFORM LIB_ARCHIVE_INCLUDES PREPEND ${module_dir}/)
 
         foreach(target ${APP_BUILD_TARGETS})
-            target_link_libraries(${target} PRIVATE ${LIB_NAME})
+            list(LENGTH archive_names num_archives)
+            set(search_archives "")
+            if(num_archives EQUAL 1)
+                set(search_archives ${archive_names})
+            endif()
+            # Also search in the application config-specific archives
+            list(APPEND search_archives ${${target}_DEPENDENT_ARCHIVES})
 
-            foreach(incdir ${LIB_ADD_INC_DIRS})
-                target_include_directories(${target} PRIVATE ${module_dir}/${incdir})
+            set(dep_archives "")
+            foreach(archive ${archive_names})
+                list(FIND search_archives ${archive} found)
+                if(NOT ${found} EQUAL -1)
+                    list(APPEND dep_archives ${archive})
+                endif()
             endforeach()
 
-            foreach(srcdir ${LIB_ADD_SRC_DIRS})
-                file(GLOB_RECURSE _add_srcs ${module_dir}/${srcdir}/*.c
-                                            ${module_dir}/${srcdir}/*.xc
-                                            ${module_dir}/${srcdir}/*.cpp
-                                            ${module_dir}/${srcdir}/*.S)
-                target_sources(${target} PRIVATE ${_add_srcs})
+            foreach(archive ${dep_archives})
+                # Create static library archive target if it hasn't been created yet
+                if(NOT TARGET ${archive})
+                    add_library(${archive} STATIC IMPORTED)
+                    set_property(TARGET ${archive} PROPERTY SYSTEM OFF)
+
+                    get_archive_name(${archive} archive_name)
+                    set(archive_filename ${CMAKE_STATIC_LIBRARY_PREFIX}${archive_name}${CMAKE_STATIC_LIBRARY_SUFFIX})
+                    set(archive_path ${module_dir}/lib/${APP_BUILD_ARCH}/${archive_filename})
+                    if(NOT EXISTS ${archive_path})
+                        message(FATAL_ERROR "${archive_filename} static library archive not present at ${archive_path}")
+                    endif()
+                    set_property(TARGET ${archive} PROPERTY IMPORTED_LOCATION ${archive_path})
+                endif()
             endforeach()
+
+            target_link_libraries(${target} PRIVATE ${dep_archives})
         endforeach()
-
-        configure_optional_headers()
     endif()
 endfunction()

@@ -47,9 +47,15 @@ CMake file contents
 
     set(LIB_NAME lib_abc)
     set(LIB_VERSION 1.2.3)
-    set(LIB_ARCH xs2a xs3a)
-    set(LIB_INCLUDES api)
-    set(LIB_DEPENDENT_MODULES "lib_mod0(1.0.0)")
+
+    # Define debug and release versions of the archive, with different compiler flags
+    set(LIB_ARCHIVES archive_dbg archive_rel)
+    set(LIB_ARCHIVE_ARCHS xs2a xs3a)
+    set(LIB_ARCHIVE_COMPILER_FLAGS_archive_dbg -g -O0)
+    set(LIB_ARCHIVE_COMPILER_FLAGS_archive_rel -O3)
+
+    set(LIB_ARCHIVE_INCLUDES api)
+    set(LIB_ARCHIVE_DEPENDENT_MODULES "lib_mod0(1.0.0)")
 
     XMOS_REGISTER_STATIC_LIB()
 
