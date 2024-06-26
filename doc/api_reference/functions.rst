@@ -68,8 +68,7 @@ XCommon CMake Functions
   This function is called recursively when adding module dependencies which use this function.
 
 ``XMOS_REGISTER_STATIC_LIB()``
-  This function is called after setting the :ref:`required-staticlib-variables` and any
-  :ref:`optional-staticlib-variables`, and it can be used in two ways.
+  This function is called after setting the :ref:`staticlib-variables` and it can be used in two ways.
 
   Firstly, if CMake is being run from the static library directory, this function will:
 

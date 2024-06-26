@@ -85,9 +85,9 @@ Static library lib_build_info.cmake
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For a static library, a ``lib_build_info.cmake`` file is created to hold the XCommon CMake variable
-definitions to allow it to be linked into an application. Some variable definitions are required; see
-:ref:`required-staticlib-variables`. All desired XCommon CMake static library variables must be set
-before the call to ``XMOS_REGISTER_STATIC_LIB()``.
+definitions to allow it to be linked into an application. See :ref:`staticlib-variables` for the
+variable definitions. All desired XCommon CMake static library variables must be set before the call
+to ``XMOS_REGISTER_STATIC_LIB()``.
 
 Example: `sandbox/lib_bar/lib_bar/lib_build_info.cmake`
 
