@@ -19,6 +19,9 @@ if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" AND NOT DEFINED CMAKE_MAKE_PROGRAM)
     set(CMAKE_MAKE_PROGRAM xmake CACHE STRING "")
 endif()
 
+# Default architecture of static library archives to build if not specified
+set(DEFAULT_STATICLIB_ARCH xs3a)
+
 include(FetchContent)
 
 enable_language(CXX C ASM)
@@ -858,7 +861,7 @@ function(XMOS_STATIC_LIBRARY)
             elseif(LIB_ARCHIVE_ARCHS)
                 set(arch_list ${LIB_ARCHIVE_ARCHS})
             else()
-                set(arch_list xs3a)
+                set(arch_list ${DEFAULT_STATICLIB_ARCH})
             endif()
         else()
             set(arch_list ${CMAKE_HOST_SYSTEM_PROCESSOR})
