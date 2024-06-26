@@ -101,6 +101,29 @@ Optional application variables
     set(APP_CXX_SRCS src/feature0/f0.cpp src/feature1/f1.cpp)
     set(APP_CXX_SRCS "")
 
+``APP_DEPENDENT_ARCHIVES``
+  List of static library archives to link into this application. The static library dependency
+  must also be defined in the ``APP_DEPENDENT_MODULES`` variable. The items in this list can
+  either be the name of the static library (if that static library only contains a single archive)
+  or the name of an archive within a static library repository. Default: empty list, so the
+  application does not attempt to link any static library archives. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_DEPENDENT_ARCHIVES lib_static0)
+    set(APP_DEPENDENT_ARCHIVES static0_archive1 static1_archive0)
+
+``APP_DEPENDENT_ARCHIVES_<config>``
+  List of static library archives to link when building the specified application config. The
+  static library dependency must also be defined in the ``APP_DEPENDENT_MODULES`` variable. The
+  items in this list can either be the name of the static library (if that static library only
+  contains a single archive) or the name of an archive within a static library repository. Default:
+  empty list, so the application does not attempt to link any static library archives. Examples:
+
+  .. code-block:: cmake
+
+    set(APP_DEPENDENT_ARCHIVES_config0 lib_static0)
+
 ``APP_DEPENDENT_MODULES``
   List of this application's dependencies, which must be present when compiling. See the separate
   dependency management section about the dependency fetching process and the acceptable format
@@ -306,62 +329,141 @@ Optional module variables
 Static Libraries
 ^^^^^^^^^^^^^^^^
 
-.. _required-staticlib-variables:
+Static library repositories have two possible modes of use: building the static library archive
+from source, and linking the static library (with any additional sources) into an application. Most
+static library variables in the XCommon CMake API are used in just one of these two modes of use.
 
-Required static library variables
-"""""""""""""""""""""""""""""""""
+.. _archive-staticlib-variables:
 
-The same as the :ref:`required-module-variables`, and also:
+Variables for archive build
+"""""""""""""""""""""""""""
+
+``LIB_ARCHIVES``
+  List of archives to build. If not set, a single archive (per supported architecture) is built and
+  is named by the ``LIB_NAME`` variable. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVES archive0 archive1)
+
+``LIB_ARCHIVE_ARCHS``
+  List of architectures for which to build archives. If not set, and ``LIB_ARCHIVE_ARCHS_<archive>``
+  is also unset, then the default archive build architecture is ``xs3a``. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_ARCHS xs2a xs3a)
+
+``LIB_ARCHIVE_ARCHS_<archive>``
+  List of architectures for which to build the named archive. If this is not set, the named archive
+  will be built for the architectures in ``LIB_ARCHIVE_ARCHS``, and if that is unset, the default
+  is ``xs3a``. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_ARCHS_archive0 xs2a xs3a)
+
+``LIB_ARCHIVE_ASM_SRCS``
+  List of assembly source files to compile to create the archive. File paths are relative to the
+  static library directory. If not set, all ``*.S`` files in the ``libsrc`` directory and its
+  subdirectories will be compiled. An empty string can be set to avoid compiling any assembly
+  sources. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_ASM_SRCS libsrc/feature0/f0.S libsrc/feature1/f1.S)
+    set(LIB_ARCHIVE_ASM_SRCS "")
+
+``LIB_ARCHIVE_COMPILER_FLAGS``
+  List of options to the compiler for use when compiling all source files. This variable should also be
+  used for compiler definitions via the ``-D`` option. Default: empty list which provides no
+  compiler options. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_COMPILER_FLAGS -O3 -Wall -DMY_DEF=123)
+
+``LIB_ARCHIVE_COMPILER_FLAGS_<archive_name>``
+  List of options to the compiler for use when compiling all source files when building the named
+  archive. This variable should also be used for compiler definitions via the ``-D`` option.
+  Default: empty list which provides no compiler options. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_COMPILER_FLAGS_archive0 -O3 -Wall -DMY_DEF=123)
+
+``LIB_ARCHIVE_CXX_SRCS``
+  List of C++ source files to compile to create the archive. File paths are relative to the static
+  library directory. If not set, all ``*.cpp`` files in the ``libsrc`` directory and its
+  subdirectories will be compiled. An empty string can be set to avoid compiling any C++ sources.
+  Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_CXX_SRCS libsrc/feature0/f0.cpp libsrc/feature1/f1.cpp)
+    set(LIB_ARCHIVE_CXX_SRCS "")
+
+``LIB_ARCHIVE_C_SRCS``
+  List of C source files to compile to create the archive. File paths are relative to the static
+  library directory. If not set, all ``*.c`` files in the ``libsrc`` directory and its
+  subdirectories will be compiled. An empty string can be set to avoid compiling any C sources.
+  Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_C_SRCS libsrc/feature0/f0.c libsrc/feature1/f1.c)
+    set(LIB_ARCHIVE_C_SRCS "")
+
+``LIB_ARCHIVE_DEPENDENT_MODULES``
+  List of this static library's dependencies, which must be present when compiling. See the
+  separate dependency management section about the dependency fetching process and the acceptable
+  format for values in this list. If this static library has no dependencies, this variable must be
+  set as an empty string.  Unlike other variables, the values to set for
+  ``LIB_ARCHIVE_DEPENDENT_MODULES`` should be quoted, as this is required when the string contains
+  parentheses. Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_DEPENDENT_MODULES "lib_logging(3.1.1)"
+                                      "lib_xassert(4.1.0)")
+    set(LIB_ARCHIVE_DEPENDENT_MODULES "")
+
+``LIB_ARCHIVE_INCLUDES``
+  List of directories to add to the compiler's include search path when compiling sources. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_INCLUDES api src/feature0)
+
+``LIB_ARCHIVE_XC_SRCS``
+  List of XC source files to compile to create the archive. File paths are relative to the static
+  library directory. If not set, all ``*.xc`` files in the ``libsrc`` directory and its
+  subdirectories will be compiled. An empty string can be set to avoid compiling any XC sources.
+  Examples:
+
+  .. code-block:: cmake
+
+    set(LIB_ARCHIVE_XC_SRCS libsrc/feature0/f0.xc libsrc/feature1/f1.xc)
+    set(LIB_ARCHIVE_XC_SRCS "")
 
 ``XMOS_SANDBOX_DIR``
-  The path to the root of the sandbox directory. This is only required if ``LIB_DEPENDENT_MODULES``
-  is non-empty. This must be set in the static library's ``CMakeLists.txt`` file before including
-  ``lib_build_info.cmake``. See :ref:`sandbox-structure`.
+  The path to the root of the sandbox directory. This is only required if
+  ``LIB_ARCHIVE_DEPENDENT_MODULES`` is non-empty. This must be set in the static library's
+  ``lib_build_info.cmake`` before the call to ``XMOS_REGISTER_STATIC_LIB``. See :ref:`sandbox-structure`.
 
   .. code-block:: cmake
 
     set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
 
-.. _optional-staticlib-variables:
+.. _staticlib-app-build-variables:
 
-Optional static library variables
-"""""""""""""""""""""""""""""""""
+Variables for application build with archive
+""""""""""""""""""""""""""""""""""""""""""""
 
-The same as the :ref:`optional-module-variables`, and also:
-
-``LIB_ADD_INC_DIRS``
-  List of directories which are required on the include directory search path for the compilation of
-  the additional source files as found based on the ``LIB_ADD_SRC_DIRS`` variable. This list of
-  directories will be added to the include directory search path of the application. If this string
-  is unset or empty, no additional directories will be added to the include directory search path.
-  Examples:
-
-  .. code-block:: cmake
-
-    set(LIB_ADD_INC_DIRS inc0 inc1)
-    set(LIB_ADD_INC_DIRS extra/inc)
-
-``LIB_ADD_SRCS_DIRS``
-  List of directories which contain additional source files which will be compiled and linked during
-  the building of the application with which this static library is being linked. These directories
-  are searched recursively, so only the highest-level directories are required. All source files
-  from the result of this search will be compiled with the application; it is not possible to select
-  individual additional source files for compilation. If this string is unset or empty, no search
-  for additional sources will be performed, so no additional source files will be compiled. Examples:
-
-  .. code-block:: cmake
-
-    set(LIB_ADD_SRC_DIRS src0 src1)
-    set(LIB_ADD_SRC_DIRS extra/src)
-
-``LIB_ARCH``
-  List of xcore architectures for which to build static libraries. For each architecture, a separate
-  static library archive will be built. If empty or undefined, the default is ``xs3a``. Examples:
-
-  .. code-block:: cmake
-
-    set(LIB_ARCH xs2a)
-    set(LIB_ARCH xs2a xs3a)
+Variables for this mode of use are the same as the :ref:`required-module-variables` and
+:ref:`optional-module-variables`. Variables that affect source files (eg. compiler flags, selection
+of source files) are only applied to any additional source files that may be present in the static
+library repository; the static library archive is not rebuilt.
 
 Output Variables
 ^^^^^^^^^^^^^^^^
@@ -387,8 +489,8 @@ support this, some variables are exposed from the ``XMOS_REGISTER_APP`` function
 
   .. code-block:: cmake
 
-  if(XCOMMON_CMAKE_VER VERSION_GREATER_EQUAL 1.1.0)
-      # Use the supported feature
-  else()
-      # Do something else as feature is not supported
-  endif()
+    if(XCOMMON_CMAKE_VER VERSION_GREATER_EQUAL 1.1.0)
+        # Use the supported feature
+    else()
+        # Do something else as feature is not supported
+    endif()
