@@ -17,12 +17,12 @@ def cleanup_app(app_dir):
             shutil.rmtree(dir)
 
 
-def cmake_verbose(dir, cmake):
+def cmake_verbose(dir, cmake, generator):
     cmake_env = os.environ
     cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
     ret = subprocess.run(
-        [cmake, "-G", "Unix Makefiles", "-B", "build", "--log-level=VERBOSE"],
+        [cmake, "-G", generator.label, "-B", "build", "--log-level=VERBOSE"],
         cwd=dir,
         env=cmake_env,
         text=True,
@@ -35,11 +35,11 @@ def cmake_verbose(dir, cmake):
 
 # Perform CMake configuration on a dummy application with verbose logging to get the
 # current version number, and then compare this with the version number in settings.yml
-def test_version_match(cmake):
+def test_version_match(cmake, generator):
     app_dir = Path(__file__).parent / "_version_match" / "app_version_match"
 
     cleanup_app(app_dir)
-    output = cmake_verbose(app_dir, cmake)
+    output = cmake_verbose(app_dir, cmake, generator)
 
     version_re = r"^-- XCommon CMake version v([0-9]+\.[0-9]+\.[0-9]+)$"
     match = re.search(version_re, output, flags=re.MULTILINE | re.DOTALL)

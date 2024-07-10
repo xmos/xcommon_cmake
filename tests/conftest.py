@@ -4,6 +4,16 @@ import platform
 
 import pytest
 
+from typing import NamedTuple
+
+class Generator(NamedTuple):
+    label: str
+    program: str
+
+@pytest.fixture(params=[Generator('Unix Makefiles', "xmake"), Generator('Ninja', "ninja")])
+def generator(request):
+    return request.param
+
 
 # If a virtual environment is active and contains cmake, use that one,
 # otherwise just run "cmake" and expect it to be on the search path.

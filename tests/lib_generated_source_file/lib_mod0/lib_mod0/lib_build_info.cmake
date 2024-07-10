@@ -5,9 +5,8 @@ set(LIB_DEPENDENT_MODULES "")
 
 XMOS_REGISTER_MODULE()
 
-add_custom_target(mod0_generated.c
-                  ${CMAKE_COMMAND} -E echo \"void mod0_generated() {}\" > ${CMAKE_BINARY_DIR}/mod0_generated.c
-                  BYPRODUCTS ${CMAKE_BINARY_DIR}/mod0_generated.c
+add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/mod0_generated.c
+                   COMMAND ${CMAKE_COMMAND} -E echo \"void mod0_generated() {}\" > ${CMAKE_BINARY_DIR}/mod0_generated.c
                  )
 
 foreach(_target ${APP_BUILD_TARGETS})

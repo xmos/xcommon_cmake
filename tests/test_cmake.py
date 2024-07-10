@@ -40,18 +40,18 @@ def cleanup_app(app_dir):
             shutil.rmtree(dir)
 
 
-def build(dir, cmake):
+def build(dir, cmake, generator):
     cmake_env = os.environ
     cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
     ret = subprocess.run(
-        [cmake, "-G", "Unix Makefiles", "-B", "build"],
+        [cmake, "-G", generator.label, "-B", "build"],
         cwd=dir,
         env=cmake_env,
     )
     assert ret.returncode == 0
 
-    ret = subprocess.run(["xmake"], cwd=dir / "build")
+    ret = subprocess.run([generator.program], cwd=dir / "build")
     assert ret.returncode == 0
 
 
@@ -81,7 +81,7 @@ def run_xes(bin_dir, exp_dir):
 
 
 @pytest.mark.parametrize("test_dir", list_test_dirs())
-def test_cmake(cmake, test_dir):
+def test_cmake(cmake, generator, test_dir):
     test_dir = Path(__file__).parent / test_dir
 
     static_libs = []
@@ -97,7 +97,7 @@ def test_cmake(cmake, test_dir):
         for static_lib in prebuild.static_libs:
             static_libs.append(static_lib)
             cleanup_static_lib(test_dir / static_lib)
-            build(test_dir / static_lib, cmake)
+            build(test_dir / static_lib, cmake, generator)
 
     apps = [
         d.name for d in test_dir.iterdir() if d.is_dir() and d.name.startswith("app_")
@@ -108,7 +108,7 @@ def test_cmake(cmake, test_dir):
 
     for app in apps:
         cleanup_app(test_dir / app)
-        build(test_dir / app, cmake)
+        build(test_dir / app, cmake, generator)
 
         bin_dir = test_dir / app / "bin"
 
@@ -131,7 +131,7 @@ def rmtree_error(func, path, exc_info):
 
 # This test has extra cleanup to remove the cloned dependencies, so it is disabled from the
 # parameterisation of test_cmake.
-def test_fetch_deps(cmake):
+def test_fetch_deps(cmake, generator):
     test_dir = Path(__file__).parent / "_fetch_deps"
     dep_dirs = ["lib_dsp", "lib_logging", "lib_test_staticlib"]
 
@@ -139,14 +139,14 @@ def test_fetch_deps(cmake):
         if dir.exists() and dir.is_dir():
             shutil.rmtree(dir, onerror=rmtree_error)
 
-    test_cmake(cmake, test_dir)
+    test_cmake(cmake, generator, test_dir)
 
     for dir in [test_dir / d for d in dep_dirs]:
         if dir.exists() and dir.is_dir():
             shutil.rmtree(dir, onerror=rmtree_error)
 
 
-def test_native_build(cmake):
+def test_native_build(cmake, generator):
     test_dir = Path(__file__).parent / "_native_build"
     app_dir = test_dir / "app_native_build"
     build_dir = app_dir / "build"
@@ -163,7 +163,7 @@ def test_native_build(cmake):
     cmake_native_cmd = [
         cmake,
         "-G",
-        "Unix Makefiles",
+        generator.label,
         "-B",
         "build",
         "-D",
@@ -173,13 +173,13 @@ def test_native_build(cmake):
     ret = subprocess.run(cmake_native_cmd, cwd=lib_dir, env=cmake_env)
     assert ret.returncode == 0
 
-    ret = subprocess.run(["xmake"], cwd=lib_build_dir)
+    ret = subprocess.run([generator.program], cwd=lib_build_dir)
     assert ret.returncode == 0
 
     ret = subprocess.run(cmake_native_cmd, cwd=app_dir, env=cmake_env)
     assert ret.returncode == 0
 
-    ret = subprocess.run(["xmake"], cwd=build_dir)
+    ret = subprocess.run([generator.program], cwd=build_dir)
     assert ret.returncode == 0
 
     exe_name = "native_build.exe" if platform.system() == "Windows" else "native_build"
@@ -198,7 +198,7 @@ def test_native_build(cmake):
     cleanup_static_lib(lib_dir)
 
 
-def test_multi_app_build(cmake):
+def test_multi_app_build(cmake, generator):
     test_dir = Path(__file__).parent / "_multi_app_build"
 
     # First: test the build of both applications from the root directory
@@ -208,7 +208,7 @@ def test_multi_app_build(cmake):
     for dir in cleanup_dirs:
         cleanup_app(dir)
 
-    build(app_dir, cmake)
+    build(app_dir, cmake, generator)
 
     bin_dirs = [app_dir / "app_foo" / "bin", app_dir / "app_bar" / "bin"]
     for bin_dir in bin_dirs:
@@ -218,4 +218,4 @@ def test_multi_app_build(cmake):
         cleanup_app(dir)
 
     # Second: test the builds from within the application directories
-    test_cmake(cmake, test_dir)
+    test_cmake(cmake, generator, test_dir)
