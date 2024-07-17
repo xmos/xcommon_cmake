@@ -3,6 +3,7 @@ project: xcommon_cmake
 version: 1.2.0
 documentation:
     exclude_patterns_path: doc/exclude_patterns.inc
+    cognidox_part_number: XM-015090-PC
     pdfs:
         index:
             pdf_title: "XCommon CMake"
