@@ -1,6 +1,11 @@
 XCommon CMake Change Log
 ========================
 
+1.2.1
+-----
+
+  * CHANGED:   xmosdoc v5.5.1 for building documentation
+
 1.2.0
 -----
 

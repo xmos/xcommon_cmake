@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 include_guard(GLOBAL)
 
-set(XCOMMON_CMAKE_VER 1.2.0 CACHE INTERNAL "Version of XCommon CMake")
+set(XCOMMON_CMAKE_VER 1.2.1 CACHE INTERNAL "Version of XCommon CMake")
 
 macro(print_xcommon_cmake_version)
     message(VERBOSE "XCommon CMake version v${XCOMMON_CMAKE_VER}")
