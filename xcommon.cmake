@@ -9,6 +9,7 @@ macro(print_xcommon_cmake_version)
 endmacro()
 
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
+option(DEPS_CLONE_SHALLOW "Perform a shallow git clone (--depth=1) for all dependencies")
 
 # Set up compiler
 if(NOT BUILD_NATIVE AND NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
@@ -815,6 +816,7 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
                     GIT_REPOSITORY ${DEP_REPO}
                     GIT_TAG ${DEP_VERSION}
                     SOURCE_DIR ${dep_dir}
+                    GIT_SHALLOW ${DEPS_CLONE_SHALLOW}
                 )
                 FetchContent_Populate(${DEP_NAME})
             endif()
