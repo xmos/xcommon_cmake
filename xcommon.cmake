@@ -2,13 +2,14 @@ cmake_minimum_required(VERSION 3.21)
 
 include_guard(GLOBAL)
 
-set(XCOMMON_CMAKE_VER 1.2.1 CACHE INTERNAL "Version of XCommon CMake")
+set(XCOMMON_CMAKE_VER 1.3.0 CACHE INTERNAL "Version of XCommon CMake")
 
 macro(print_xcommon_cmake_version)
     message(VERBOSE "XCommon CMake version v${XCOMMON_CMAKE_VER}")
 endmacro()
 
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
+option(DEPS_CLONE_SHALLOW "Perform a shallow git clone (--depth=1) for all dependencies")
 
 # Set up compiler
 if(NOT BUILD_NATIVE AND NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
@@ -815,6 +816,7 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
                     GIT_REPOSITORY ${DEP_REPO}
                     GIT_TAG ${DEP_VERSION}
                     SOURCE_DIR ${dep_dir}
+                    GIT_SHALLOW ${DEPS_CLONE_SHALLOW}
                 )
                 FetchContent_Populate(${DEP_NAME})
             endif()

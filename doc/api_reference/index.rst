@@ -6,4 +6,5 @@ API Reference
 
   ./functions
   ./variables
+  ./options
   ./dependency_format
