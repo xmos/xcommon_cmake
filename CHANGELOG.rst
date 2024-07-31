@@ -1,8 +1,8 @@
 XCommon CMake Change Log
 ========================
 
-UNRELEASED
-----------
+1.3.0
+-----
 
   * ADDED:     DEPS_CLONE_SHALLOW option for performing shallow git clones
 
