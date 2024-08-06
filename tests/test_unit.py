@@ -13,7 +13,7 @@ def list_units():
 
 
 @pytest.mark.parametrize("unit", list_units())
-def test_unit(cmake, unit):
+def test_unit(cmake, generator, unit):
     test_dir = Path(__file__).parent / unit
     build_dir = test_dir / "build"
 
@@ -24,7 +24,7 @@ def test_unit(cmake, unit):
     cmake_env = os.environ
     cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
     ret = subprocess.run(
-        [cmake, "-G", "Unix Makefiles", "-B", "build"], cwd=test_dir, env=cmake_env
+        [cmake, "-G", generator.label, "-B", "build"], cwd=test_dir, env=cmake_env
     )
     assert ret.returncode == 0
 

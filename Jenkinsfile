@@ -1,6 +1,6 @@
 @Library('xmos_jenkins_shared_library@v0.27.0') _
 
-def run_tests(cmake_ver) {
+def run_tests(cmake_ver, generator) {
   createVenv('python_version.txt')
   withVenv {
     sh 'pip install -r requirements.txt'
@@ -16,7 +16,7 @@ def run_tests(cmake_ver) {
     dir('tests') {
       withTools(params.TOOLS_VERSION) {
         withEnv(["XMOS_CMAKE_PATH=${WORKSPACE}"]) {
-          sh 'pytest -n auto --junitxml=pytest_result.xml'
+          sh "pytest -n auto --junitxml=pytest_result.xml -k ${generator}"
         }
       }
     }
@@ -70,6 +70,10 @@ pipeline {
             name 'CMAKE_VERSION'
             values '3.21.0', 'latest'
           }
+          axis {
+            name 'GENERATOR'
+            values 'generator0', 'generator1'
+          }
         }
         stages {
           stage("Test") {
@@ -78,7 +82,7 @@ pipeline {
             }
             steps {
               println "Stage running on ${env.NODE_NAME}"
-              run_tests("${CMAKE_VERSION}")
+              run_tests("${CMAKE_VERSION}", "${GENERATOR}")
             }
             post {
               always {
