@@ -498,15 +498,43 @@ function(XMOS_REGISTER_APP)
 
     if(NOT BUILD_NATIVE)
         # Automatically determine architecture
-        list(LENGTH ALL_SRCS_PATH num_srcs)
-        if(NOT ${num_srcs} GREATER 0)
-            message(FATAL_ERROR "No sources present to determine architecture")
-        endif()
-        list(GET ALL_SRCS_PATH 0 src0)
-        execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
-                        OUTPUT_VARIABLE APP_BUILD_ARCH
+        # Different versions of xcc accept or reject a source file with the -dumpmachine option
+        execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG}
+                        RESULT_VARIABLE ret_code
+                        OUTPUT_VARIABLE ret_stdout
+                        ERROR_VARIABLE ret_stderr
                         OUTPUT_STRIP_TRAILING_WHITESPACE
-                        COMMAND_ERROR_IS_FATAL ANY)
+                        ERROR_STRIP_TRAILING_WHITESPACE)
+        message(VERBOSE "Command: xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG}")
+        message(VERBOSE "return code ${ret_code}")
+        message(VERBOSE "stdout: ${ret_stdout}")
+        message(VERBOSE "stderr: ${ret_stderr}")
+
+        if(ret_code EQUAL 0)
+            set(APP_BUILD_ARCH ${ret_stdout})
+        else()
+            list(LENGTH ALL_SRCS_PATH num_srcs)
+            if(NOT ${num_srcs} GREATER 0)
+                message(FATAL_ERROR "No sources present to determine architecture")
+            endif()
+            list(GET ALL_SRCS_PATH 0 src0)
+            execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
+                            RESULT_VARIABLE ret_code
+                            OUTPUT_VARIABLE ret_stdout
+                            ERROR_VARIABLE ret_stderr
+                            OUTPUT_STRIP_TRAILING_WHITESPACE
+                            ERROR_STRIP_TRAILING_WHITESPACE)
+            message(VERBOSE "Command: xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}")
+            message(VERBOSE "return code ${ret_code}")
+            message(VERBOSE "stdout: ${ret_stdout}")
+            message(VERBOSE "stderr: ${ret_stderr}")
+
+            if(ret_code EQUAL 0)
+                set(APP_BUILD_ARCH ${ret_stdout})
+            else()
+                message(FATAL_ERROR "Failed to determine architecture: ${ret_stderr}")
+            endif()
+        endif()
     else()
         set(APP_BUILD_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
