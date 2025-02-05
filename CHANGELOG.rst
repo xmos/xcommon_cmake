@@ -1,6 +1,11 @@
 XCommon CMake Change Log
 ========================
 
+UNRELEASED
+----------
+
+  * FIXED:     execute_process() failures were ignored
+
 1.3.0
 -----
 

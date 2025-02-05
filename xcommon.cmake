@@ -270,7 +270,8 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
             # The Windows NUL didn't work as an input.
             execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/ssh-in.tmp
                             OUTPUT_QUIET
-                            ERROR_QUIET)
+                            ERROR_QUIET
+                            COMMAND_ERROR_IS_FATAL ANY)
             set(tmp_input_file ${CMAKE_BINARY_DIR}/ssh-in.tmp)
         else()
             set(tmp_input_file "/dev/null")
@@ -504,7 +505,8 @@ function(XMOS_REGISTER_APP)
         list(GET ALL_SRCS_PATH 0 src0)
         execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
                         OUTPUT_VARIABLE APP_BUILD_ARCH
-                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        COMMAND_ERROR_IS_FATAL ANY)
     else()
         set(APP_BUILD_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
     endif()
