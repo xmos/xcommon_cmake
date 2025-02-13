@@ -467,51 +467,13 @@ function(XMOS_REGISTER_APP)
 
     message(STATUS "Configuring application: ${PROJECT_NAME}")
 
-    if(NOT BUILD_NATIVE AND NOT APP_HW_TARGET)
-        message(FATAL_ERROR "APP_HW_TARGET not set in application Cmakelists")
-    endif()
-
     if(NOT APP_COMPILER_FLAGS)
         set(APP_COMPILER_FLAGS "")
-    endif()
-
-    ## Populate build flag for hardware target
-    if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
-        # Check specified XN file exists
-        file(GLOB_RECURSE xn_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
-        list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
-        list(LENGTH xn_files num_xn_files)
-        if(NOT ${num_xn_files})
-            message(FATAL_ERROR "XN file not found")
-        endif()
-        set(APP_TARGET_COMPILER_FLAG ${xn_files})
-        message(VERBOSE "XN file: ${xn_files}")
-        set(APP_HW_TARGET_XN_FILE ${xn_files})
-    elseif(NOT BUILD_NATIVE)
-        set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
-        message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
     endif()
 
     glob_srcs("APP" ${CMAKE_CURRENT_SOURCE_DIR} src)
 
     set(ALL_SRCS_PATH ${APP_XC_SRCS} ${APP_ASM_SRCS} ${APP_C_SRCS} ${APP_CXX_SRCS})
-
-    if(NOT BUILD_NATIVE)
-        # Automatically determine architecture
-        list(LENGTH ALL_SRCS_PATH num_srcs)
-        if(NOT ${num_srcs} GREATER 0)
-            message(FATAL_ERROR "No sources present to determine architecture")
-        endif()
-        list(GET ALL_SRCS_PATH 0 src0)
-        execute_process(COMMAND xcc -dumpmachine ${APP_TARGET_COMPILER_FLAG} ${src0}
-                        OUTPUT_VARIABLE APP_BUILD_ARCH
-                        OUTPUT_STRIP_TRAILING_WHITESPACE
-                        COMMAND_ERROR_IS_FATAL ANY)
-    else()
-        set(APP_BUILD_ARCH "${CMAKE_HOST_SYSTEM_PROCESSOR}")
-    endif()
-    message(VERBOSE "Building for architecture: ${APP_BUILD_ARCH}")
-    set(APP_BUILD_ARCH ${APP_BUILD_ARCH} PARENT_SCOPE)
 
     # Find all build configs
     GET_ALL_VARS_STARTING_WITH("APP_COMPILER_FLAGS_" APP_COMPILER_FLAGS_VARS)
@@ -547,6 +509,26 @@ function(XMOS_REGISTER_APP)
     foreach(APP_CONFIG ${APP_CONFIGS})
         # Check for the "Default" config we created if user didn't specify any configs
         if(${APP_CONFIG} STREQUAL "DEFAULT")
+            ## Populate build flag for hardware target
+            if(NOT APP_HW_TARGET)
+                message(FATAL_ERROR "APP_HW_TARGET not set in application CMakelists.txt")
+            endif()
+            if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
+                # Check specified XN file exists
+                file(GLOB_RECURSE xn_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
+                list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
+                list(LENGTH xn_files num_xn_files)
+                if(NOT ${num_xn_files})
+                    message(FATAL_ERROR "XN file not found")
+                endif()
+                set(APP_TARGET_COMPILER_FLAG ${xn_files})
+                message(VERBOSE "XN file: ${xn_files}")
+                set(APP_HW_TARGET_XN_FILE ${xn_files})
+            elseif(NOT BUILD_NATIVE)
+                set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
+                message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
+            endif()
+
             add_executable(${PROJECT_NAME})
             target_sources(${PROJECT_NAME} PRIVATE ${ALL_SRCS_PATH})
             set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
@@ -555,7 +537,35 @@ function(XMOS_REGISTER_APP)
             target_link_options(${PROJECT_NAME} PRIVATE ${APP_COMPILER_FLAGS} ${APP_TARGET_COMPILER_FLAG} ${APP_XSCOPE_SRCS})
             list(APPEND APP_BUILD_TARGETS ${PROJECT_NAME})
             set(${PROJECT_NAME}_DEPENDENT_ARCHIVES ${APP_DEPENDENT_ARCHIVES})
+            if(APP_HW_TARGET_XN_FILE)
+                set_source_files_properties(${ALL_SRCS_PATH}
+                                            TARGET_DIRECTORY ${PROJECT_NAME}
+                                            PROPERTIES OBJECT_DEPENDS ${APP_HW_TARGET_XN_FILE})
+            endif()
         else()
+            ## Populate build flag for hardware target
+            if(NOT DEFINED APP_HW_TARGET_${APP_CONFIG})
+                if(NOT APP_HW_TARGET)
+                    message(FATAL_ERROR "APP_HW_TARGET not set in application CMakelists.txt")
+                endif()
+                set(APP_HW_TARGET_${APP_CONFIG} ${APP_HW_TARGET})
+            endif()
+            if(${APP_HW_TARGET_${APP_CONFIG}} MATCHES ".*\\.xn$")
+                # Check specified XN file exists
+                file(GLOB_RECURSE xn_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
+                list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET_${APP_CONFIG}}")
+                list(LENGTH xn_files num_xn_files)
+                if(NOT ${num_xn_files})
+                    message(FATAL_ERROR "XN file not found")
+                endif()
+                set(APP_TARGET_COMPILER_FLAG ${xn_files})
+                message(VERBOSE "XN file: ${xn_files}")
+                set(APP_HW_TARGET_XN_FILE ${xn_files})
+            elseif(NOT BUILD_NATIVE)
+                set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET_${APP_CONFIG}}")
+                message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
+            endif()
+
             add_executable(${PROJECT_NAME}_${APP_CONFIG})
             # If a single app is being configured, build targets can be named after the app configs; in the case of a multi-app
             # build, config names could coincide between applications, so these shorter named targets can't be used.
@@ -576,13 +586,14 @@ function(XMOS_REGISTER_APP)
             else()
                 set(${PROJECT_NAME}_${APP_CONFIG}_DEPENDENT_ARCHIVES ${APP_DEPENDENT_ARCHIVES})
             endif()
+
+            if(APP_HW_TARGET_XN_FILE)
+                set_source_files_properties(${ALL_SRCS_PATH}
+                                            TARGET_DIRECTORY ${PROJECT_NAME}_${APP_CONFIG}
+                                            PROPERTIES OBJECT_DEPENDS ${APP_HW_TARGET_XN_FILE})
+            endif()
         endif()
     endforeach()
-    if(APP_HW_TARGET_XN_FILE)
-        set_source_files_properties(${ALL_SRCS_PATH}
-                                    TARGET_DIRECTORY ${APP_BUILD_TARGETS}
-                                    PROPERTIES OBJECT_DEPENDS ${APP_HW_TARGET_XN_FILE})
-    endif()
     set(APP_BUILD_TARGETS ${APP_BUILD_TARGETS} PARENT_SCOPE)
 
     if(${CONFIGS_COUNT} EQUAL 0)
