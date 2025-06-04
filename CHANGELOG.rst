@@ -4,6 +4,7 @@ XCommon CMake Change Log
 UNRELEASED
 ----------
 
+  * ADDED:     Information on Windows rebuild issue added to Troubleshooting
   * FIXED:     execute_process() failures were ignored
 
 1.3.0
