@@ -4,6 +4,7 @@ XCommon CMake Change Log
 UNRELEASED
 ----------
 
+  * ADDED:     Troubleshooting section to documentation
   * FIXED:     execute_process() failures were ignored
 
 1.3.0

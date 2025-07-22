@@ -1,4 +1,4 @@
-@Library('xmos_jenkins_shared_library@v0.35.0') _
+@Library('xmos_jenkins_shared_library@v0.39.0') _
 
 def run_tests(cmake_ver) {
   createVenv('python_version.txt')
@@ -40,12 +40,12 @@ pipeline {
   parameters {
     string(
       name: 'TOOLS_VERSION',
-      defaultValue: '15.3.0',
+      defaultValue: '15.3.1',
       description: 'The XTC Tools version'
     )
     string(
       name: 'XMOSDOC_VERSION',
-      defaultValue: 'v6.2.0',
+      defaultValue: 'v7.1.0',
       description: 'The xmosdoc version'
     )
   }

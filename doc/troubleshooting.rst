@@ -73,3 +73,12 @@ When running the CMake command, dependency repositories fail to clone with the f
 
 To resolve this error, ensure that the SSH agent is running and, if the SSH key has a password
 that it has been unlocked. Then the CMake command can be re-run.
+
+Project always rebuilds on Windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+ When running the build step (`xmake`) on Windows a rebuild may always occur even if no changes
+ have been made. This is due to an underlying issue in the `XMOS` preprocessor (XPP). The
+ current recommended work around is to install XTC tools on a path that does not include any
+ spaces (i.e. not in the default `Program Files` location).
+
