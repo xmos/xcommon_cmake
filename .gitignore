@@ -3,6 +3,7 @@
 *.swo
 *.swp
 *~
+.DS_Store
 
 # XMOS tmp files
 *.pxa.xml*

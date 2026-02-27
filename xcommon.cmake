@@ -624,9 +624,14 @@ function(XMOS_REGISTER_APP)
     file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
 
     set(current_module ${PROJECT_NAME})
+    # List of all LIB_LINKER_FLAGS specified in the various dependent libs.
+    # These will get added to link options of all the target apps in this CMakeLists.txt
+    set_property(GLOBAL PROPERTY APP_LIB_LINKER_FLAGS "")
     XMOS_REGISTER_DEPS("${APP_DEPENDENT_MODULES}")
+    get_property(final_linker_flags GLOBAL PROPERTY ALL_LIB_LINKER_FLAGS)
 
     foreach(target ${APP_BUILD_TARGETS})
+        target_link_options(${target} PRIVATE ${final_linker_flags})
         get_target_property(all_inc_dirs ${target} INCLUDE_DIRECTORIES)
         get_target_property(all_opt_hdrs ${target} OPTIONAL_HEADERS)
         set(opt_hdrs_found "")
@@ -776,7 +781,6 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
         # Only print if the dependent modules list parameter is non-empty
         message(VERBOSE "Registering dependencies of ${current_module}: ${DEPS_LIST}")
     endif()
-
     foreach(DEP_MODULE ${DEPS_LIST})
         parse_dep_string(${DEP_MODULE} DEP_REPO DEP_VERSION DEP_NAME)
         message(VERBOSE "Dependency: ${DEP_NAME}, repository ${DEP_REPO}, version ${DEP_VERSION}")
@@ -831,6 +835,10 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
             message(STATUS "Adding dependency ${DEP_NAME}")
             include(${module_dir}/lib_build_info.cmake)
 
+            get_property(current_linker_flags GLOBAL PROPERTY ALL_LIB_LINKER_FLAGS)
+            list(APPEND current_linker_flags ${LIB_LINKER_FLAGS})
+            set_property(GLOBAL PROPERTY ALL_LIB_LINKER_FLAGS "${current_linker_flags}")
+
             manifest_git_status(${DEP_NAME} manifest_str)
 
             # Create the Depends_on column in manifest
@@ -838,7 +846,6 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
             file(APPEND ${MANIFEST_OUT} "${manifest_str}\n")
         endif()
     endforeach()
-
 endfunction()
 
 # Takes as input the LIB_NAME or archive name from LIB_ARCHIVES, and removes the toolchain's

@@ -15,9 +15,10 @@ def list_test_dirs():
 
     # Ignore directories that start with these characters
     exclude_start = [".", "_"]
-
+    exclude_full = ["lib_linker_flags"]
     dirs = [d.name for d in base_dir.iterdir() if d.is_dir()]
-    return [d for d in dirs if d[0] not in exclude_start]
+    print(*[d[0] for d in dirs])
+    return [d for d in dirs if d[0] not in exclude_start and d not in exclude_full]
 
 
 def cleanup_static_lib(lib_dir):

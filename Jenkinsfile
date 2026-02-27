@@ -16,7 +16,7 @@ def run_tests(cmake_ver) {
     dir('tests') {
       withTools(params.TOOLS_VERSION) {
         withEnv(["XMOS_CMAKE_PATH=${WORKSPACE}"]) {
-          sh 'pytest -n auto --junitxml=pytest_result.xml'
+          sh 'pytest -n auto --junitxml=pytest_result.xml -v'
         }
       }
     }

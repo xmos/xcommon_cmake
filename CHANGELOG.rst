@@ -6,6 +6,7 @@ UNRELEASED
 
   * ADDED:     Troubleshooting section to documentation
   * FIXED:     execute_process() failures were ignored
+  * ADDED:     LIB_LINKER_FLAGS option to libraries for specifying the application's link options
 
 1.3.0
 -----
