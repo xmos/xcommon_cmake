@@ -1,3 +1,3 @@
 extern "C" {
-    void src0_cxx() {}
+    void src0_cpp() {}
 }

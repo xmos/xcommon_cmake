@@ -6,6 +6,7 @@ UNRELEASED
 
   * ADDED:     Troubleshooting section to documentation
   * FIXED:     execute_process() failures were ignored
+  * ADDED:     Include .cc files in C++ source glob
 
 1.3.0
 -----

@@ -175,7 +175,7 @@ macro(glob_srcs prefix src_dir src_subdir)
     endif()
 
     if(NOT DEFINED ${prefix}_CXX_SRCS)
-        file(GLOB_RECURSE ${prefix}_CXX_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.cpp)
+        file(GLOB_RECURSE ${prefix}_CXX_SRCS CONFIGURE_DEPENDS ${src_dir}/${src_subdir}/*.cpp ${src_dir}/${src_subdir}/*.cc)
     else()
         list(TRANSFORM ${prefix}_CXX_SRCS PREPEND ${src_dir}/)
     endif()
