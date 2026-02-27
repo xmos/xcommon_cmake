@@ -77,7 +77,7 @@ Optional application variables
   list which provides no compiler options. Example:
 
   .. code-block:: cmake
-  
+
     set(APP_COMPILER_FLAGS_config0 -g -O2 -DMY_DEF=456)
 
 ``APP_COMPILER_FLAGS_<filename>``
@@ -325,6 +325,14 @@ Optional module variables
 
     set(LIB_XSCOPE_SRCS src/config.xscope)
     set(LIB_XSCOPE_SRCS "")
+
+``LIB_LINKER_FLAGS``
+  List of options to the linker to apply when linking applications that depend on this module.
+  These flags are propagated to the application's link options. Example:
+
+  .. code-block:: cmake
+
+    set(LIB_LINKER_FLAGS "-report" "-Wm,--map,test.map")
 
 .. _staticlib-variables:
 
