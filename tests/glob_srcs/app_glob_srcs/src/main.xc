@@ -5,8 +5,10 @@ void src0_xc();
 void src1_xc();
 void src0_c();
 void src1_c();
-void src0_cxx();
-void src1_cxx();
+void src0_cc();
+void src1_cc();
+void src0_cpp();
+void src1_cpp();
 void src0_S();
 void src1_S();
 
@@ -15,8 +17,10 @@ int main() {
     src1_xc();
     src0_c();
     src1_c();
-    src0_cxx();
-    src1_cxx();
+    src0_cc();
+    src1_cc();
+    src0_cpp();
+    src1_cpp();
     src0_S();
     src1_S();
     mod0();
