@@ -55,6 +55,81 @@ def build(dir, cmake):
     assert ret.returncode == 0
 
 
+def test_duplicate_xn_filename_fails_with_clear_error(cmake, tmp_path):
+    app_dir = tmp_path / "app_duplicate_xn"
+    (app_dir / "src0").mkdir(parents=True)
+    (app_dir / "src1").mkdir()
+    (app_dir / "src0" / "duplicate.xn").write_text("")
+    (app_dir / "src1" / "duplicate.xn").write_text("")
+    (app_dir / "CMakeLists.txt").write_text(
+        "\n".join(
+            [
+                "cmake_minimum_required(VERSION 3.21)",
+                "include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)",
+                "project(duplicate_xn)",
+                "set(APP_HW_TARGET duplicate.xn)",
+                "XMOS_REGISTER_APP()",
+                "",
+            ]
+        )
+    )
+
+    cmake_env = os.environ.copy()
+    cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+
+    ret = subprocess.run(
+        [cmake, "-G", "Unix Makefiles", "-B", "build"],
+        cwd=app_dir,
+        env=cmake_env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert ret.returncode != 0
+    output = ret.stdout + ret.stderr
+    assert "Multiple XN files found matching duplicate.xn" in output
+    assert "src0/duplicate.xn" in output
+    assert "src1/duplicate.xn" in output
+
+
+def test_xn_filename_matches_whole_name_only(cmake, tmp_path):
+    # A request for "board.xn" must not be satisfied or obstructed by "my_board.xn"
+    app_dir = tmp_path / "app_similar_xn"
+    (app_dir / "src").mkdir(parents=True)
+    # A real XN file is needed so that configuration can determine the architecture
+    real_xn = Path(__file__).parent / "target_xn" / "app_target_xn" / "src" / "xk-audio-316-mc.xn"
+    shutil.copy(real_xn, app_dir / "src" / "board.xn")
+    shutil.copy(real_xn, app_dir / "src" / "my_board.xn")
+    (app_dir / "src" / "main.xc").write_text("int main(void) { return 0; }\n")
+    (app_dir / "CMakeLists.txt").write_text(
+        "\n".join(
+            [
+                "cmake_minimum_required(VERSION 3.21)",
+                "include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)",
+                "project(similar_xn)",
+                "set(APP_HW_TARGET board.xn)",
+                "XMOS_REGISTER_APP()",
+                "",
+            ]
+        )
+    )
+
+    cmake_env = os.environ.copy()
+    cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
+
+    ret = subprocess.run(
+        [cmake, "-G", "Unix Makefiles", "-B", "build"],
+        cwd=app_dir,
+        env=cmake_env,
+        capture_output=True,
+        text=True,
+    )
+
+    output = ret.stdout + ret.stderr
+    assert "Multiple XN files found" not in output
+    assert ret.returncode == 0
+
+
 def run_xes(bin_dir, exp_dir):
     # TODO we need to check that all the xe files we expect are present
     app_xes = list(bin_dir.glob("**/*.xe"))

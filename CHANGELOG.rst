@@ -10,6 +10,7 @@ UNRELEASED
   * ADDED:     Documentation for using XCOMMON_CMAKE_VER to query the xcommon-cmake version
   * FIXED:     execute_process() failures were ignored
   * FIXED:     APP_COMPILER_FLAGS usage was missing from compiler flags documentation
+  * FIXED:     Duplicate matching XN filenames now report a clear configuration error
 
 1.3.0
 -----

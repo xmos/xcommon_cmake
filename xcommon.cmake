@@ -480,16 +480,22 @@ function(XMOS_REGISTER_APP)
 
     ## Populate build flag for hardware target
     if(${APP_HW_TARGET} MATCHES ".*\\.xn$")
-        # Check specified XN file exists
+        # Check specified XN file exists. The requested name is matched against whole path
+        # segments, so that a request for "board.xn" does not also match "my_board.xn", and any
+        # regular expression characters in the name are escaped so that they match literally.
+        string(REGEX REPLACE "([][+.*()^$?|\\])" "\\\\\\1" xn_name_regex "${APP_HW_TARGET}")
         file(GLOB_RECURSE xn_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.xn)
-        list(FILTER xn_files INCLUDE REGEX ".*${APP_HW_TARGET}")
+        list(FILTER xn_files INCLUDE REGEX "(^|/)${xn_name_regex}$")
         list(LENGTH xn_files num_xn_files)
         if(NOT ${num_xn_files})
-            message(FATAL_ERROR "XN file not found")
+            message(FATAL_ERROR "XN file not found: ${APP_HW_TARGET}")
+        elseif(${num_xn_files} GREATER 1)
+            message(FATAL_ERROR "Multiple XN files found matching ${APP_HW_TARGET}: ${xn_files}")
         endif()
-        set(APP_TARGET_COMPILER_FLAG ${xn_files})
-        message(VERBOSE "XN file: ${xn_files}")
-        set(APP_HW_TARGET_XN_FILE ${xn_files})
+        list(GET xn_files 0 xn_file)
+        set(APP_TARGET_COMPILER_FLAG ${xn_file})
+        message(VERBOSE "XN file: ${xn_file}")
+        set(APP_HW_TARGET_XN_FILE ${xn_file})
     elseif(NOT BUILD_NATIVE)
         set(APP_TARGET_COMPILER_FLAG "-target=${APP_HW_TARGET}")
         message(VERBOSE "Hardware target: ${APP_HW_TARGET}")
