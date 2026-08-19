@@ -1,15 +1,21 @@
 Compiler Flags
 ^^^^^^^^^^^^^^
 
-Options to the compiler can be set for all sources in an application or module, and also
-independent sets of compiler options can be specified for build configs and individual
-source files.
+Options to the compiler can be set for all sources in an application or module. Independent
+sets of compiler options can also be specified for build configs and individual source files.
 
-This example demonstrates the hierarchy of how these options interact. The ``MSG_NUM``
-macro is defined for a config, so it applies to all sources. Then the ``FLAG0`` and ``FLAG1``
-macros are defined for specific files, so they are undefined in the other sources (and
-successful compilation of this example proves this as the ``#error`` directives are not
-reached.
+The simplest way to add compiler options to an application is to set ``APP_COMPILER_FLAGS``.
+These flags apply to all source files in the default application build:
+
+.. code-block:: cmake
+
+    set(APP_COMPILER_FLAGS -g -O3 -Wall -DMY_DEF=123)
+
+This example demonstrates how config-specific and file-specific options interact. The
+``MSG_NUM`` macro is defined for each config, so it applies to all sources in that config. Then
+the ``FLAG0`` and ``FLAG1`` macros are defined for specific files, so they are undefined in the
+other sources (and successful compilation of this example proves this as the ``#error``
+directives are not reached).
 
 Directory structure
 """""""""""""""""""
