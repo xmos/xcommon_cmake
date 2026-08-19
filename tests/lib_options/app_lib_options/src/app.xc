@@ -14,6 +14,18 @@
 #error LIB_STATIC0_ARCHIVE_OPTION defined
 #endif
 
+#ifdef LIB_MOD0_VERSION_MAJOR
+#error LIB_MOD0_VERSION_MAJOR defined in app
+#endif
+
+#ifdef LIB_MOD1_VERSION_MAJOR
+#error LIB_MOD1_VERSION_MAJOR defined in app
+#endif
+
+#ifdef LIB_STATIC0_VERSION_MAJOR
+#error LIB_STATIC0_VERSION_MAJOR defined in app
+#endif
+
 int main() {
     mod0();
     mod1();
