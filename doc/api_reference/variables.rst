@@ -61,10 +61,12 @@ Optional application variables
     set(APP_C_SRCS "")
 
 ``APP_COMPILER_FLAGS``
-  List of options to the compiler for use when compiling all source files, except those which have
-  their own options via the ``APP_COMPILER_FLAGS_<filename>`` variable. This variable should also be
-  used for compiler definitions via the ``-D`` option. Default: empty list which provides no
-  compiler options. Example:
+  List of options to the compiler for use when compiling all source files in the default
+  application build, except those which have their own options via the
+  ``APP_COMPILER_FLAGS_<filename>`` variable. When named application configs are used, set
+  ``APP_COMPILER_FLAGS_<config>`` for each config instead. This variable should also be used for
+  compiler definitions via the ``-D`` option. Default: empty list which provides no compiler
+  options. Example:
 
   .. code-block:: cmake
 

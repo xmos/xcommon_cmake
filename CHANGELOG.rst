@@ -4,9 +4,10 @@ XCommon CMake Change Log
 UNRELEASED
 ----------
 
+  * ADDED:     Include .cc files in C++ source glob
   * ADDED:     Troubleshooting section to documentation
   * FIXED:     execute_process() failures were ignored
-  * ADDED:     Include .cc files in C++ source glob
+  * FIXED:     APP_COMPILER_FLAGS usage was missing from compiler flags documentation
 
 1.3.0
 -----
