@@ -73,6 +73,9 @@ macro(add_file_flags prefix file_srcs)
             string(COMPARE EQUAL ${FLAG_FILE} ${SRC_FILE} _cmp)
             if(_cmp)
                 set(flags ${${prefix}_COMPILER_FLAGS_${FLAG_FILE}})
+                if("${prefix}" STREQUAL "LIB")
+                    list(APPEND flags ${LIB_VERSION_COMPILE_FLAGS})
+                endif()
                 foreach(target ${APP_BUILD_TARGETS})
                     set_source_files_properties(${SRC_FILE_PATH}
                                                 TARGET_DIRECTORY ${target}
@@ -733,10 +736,14 @@ function(configure_lib STATIC_LIB_BOOL)
     endforeach()
 
     glob_srcs("LIB" ${module_dir} src)
+    get_lib_version_compile_flags(LIB_VERSION_COMPILE_FLAGS)
+    set(LIB_COMPILE_FLAGS "")
+    list(APPEND LIB_COMPILE_FLAGS ${LIB_COMPILER_FLAGS})
+    list(APPEND LIB_COMPILE_FLAGS ${LIB_VERSION_COMPILE_FLAGS})
 
     set_source_files_properties(${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS}
                                 TARGET_DIRECTORY ${APP_BUILD_TARGETS}
-                                PROPERTIES COMPILE_OPTIONS "${LIB_COMPILER_FLAGS}")
+                                PROPERTIES COMPILE_OPTIONS "${LIB_COMPILE_FLAGS}")
 
     GET_ALL_VARS_STARTING_WITH("LIB_COMPILER_FLAGS_" LIB_COMPILER_FLAGS_VARS)
     set(ALL_LIB_SRCS_PATH ${LIB_XC_SRCS} ${LIB_CXX_SRCS} ${LIB_ASM_SRCS} ${LIB_C_SRCS})
@@ -852,12 +859,29 @@ function(get_archive_name IN_NAME RET_NAME)
     set(${RET_NAME} ${archive_name} PARENT_SCOPE)
 endfunction()
 
+function(get_lib_version_compile_flags RET_FLAGS)
+    set(version_flags "")
+    string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$" _m "${LIB_VERSION}")
+    if(CMAKE_MATCH_COUNT EQUAL 3)
+        string(TOUPPER "${LIB_NAME}" lib_name_upper)
+        list(APPEND version_flags
+            "-D${lib_name_upper}_VERSION_MAJOR=${CMAKE_MATCH_1}"
+            "-D${lib_name_upper}_VERSION_MINOR=${CMAKE_MATCH_2}"
+            "-D${lib_name_upper}_VERSION_PATCH=${CMAKE_MATCH_3}"
+        )
+    else()
+        message(WARNING "Invalid LIB_VERSION ${LIB_VERSION} for ${LIB_NAME}; version compile definitions will not be generated")
+    endif()
+    set(${RET_FLAGS} ${version_flags} PARENT_SCOPE)
+endfunction()
+
 ## Registers a static library target
 function(XMOS_STATIC_LIBRARY)
     print_xcommon_cmake_version()
     message(STATUS "Configuring static library: ${LIB_NAME}")
 
     glob_srcs("LIB_ARCHIVE" ${CMAKE_CURRENT_SOURCE_DIR} libsrc)
+    get_lib_version_compile_flags(LIB_VERSION_COMPILE_FLAGS)
 
     if(NOT LIB_ARCHIVES)
         set(LIB_ARCHIVES ${LIB_NAME})
@@ -889,6 +913,10 @@ function(XMOS_STATIC_LIBRARY)
             set_property(TARGET ${archive_target} PROPERTY VERSION ${LIB_VERSION})
             target_sources(${archive_target} PRIVATE ${LIB_ARCHIVE_XC_SRCS} ${LIB_ARCHIVE_CXX_SRCS} ${LIB_ARCHIVE_ASM_SRCS} ${LIB_ARCHIVE_C_SRCS})
             target_include_directories(${archive_target} PRIVATE ${LIB_ARCHIVE_INCLUDES})
+            list(LENGTH LIB_VERSION_COMPILE_FLAGS LIB_VERSION_COMPILE_FLAGS_COUNT)
+            if(LIB_VERSION_COMPILE_FLAGS_COUNT GREATER 0)
+                target_compile_options(${archive_target} PRIVATE ${LIB_VERSION_COMPILE_FLAGS})
+            endif()
             if(NOT BUILD_NATIVE)
                 target_compile_options(${archive_target} PUBLIC "-march=${arch}" ${LIB_ARCHIVE_COMPILER_FLAGS_${archive}})
             endif()

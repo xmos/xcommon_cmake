@@ -231,11 +231,19 @@ Required module variables
     set(LIB_NAME lib_logging)
 
 ``LIB_VERSION``
-  String of the three-part version number for this module. Example:
+  String of the three-part version number for this module. The version components are also made
+  available to this module's own source files as compile definitions named
+  ``<LIB_NAME>_VERSION_MAJOR``, ``<LIB_NAME>_VERSION_MINOR`` and ``<LIB_NAME>_VERSION_PATCH``,
+  where ``<LIB_NAME>`` is converted to uppercase. These definitions are not propagated to
+  applications or dependent libraries. Example:
 
   .. code-block:: cmake
 
     set(LIB_VERSION 3.1.1)
+
+  This example generates the compile definitions ``LIB_LOGGING_VERSION_MAJOR=3``,
+  ``LIB_LOGGING_VERSION_MINOR=1`` and ``LIB_LOGGING_VERSION_PATCH=1`` for the module's own source
+  files.
 
 .. _optional-module-variables:
 
@@ -336,6 +344,11 @@ Static Libraries
 Static library repositories have two possible modes of use: building the static library archive
 from source, and linking the static library (with any additional sources) into an application. Most
 static library variables in the XCommon CMake API are used in just one of these two modes of use.
+When a static library archive is built from source, the version components in ``LIB_VERSION`` are
+made available to the archive's own source files as compile definitions named
+``<LIB_NAME>_VERSION_MAJOR``, ``<LIB_NAME>_VERSION_MINOR`` and ``<LIB_NAME>_VERSION_PATCH``, where
+``<LIB_NAME>`` is converted to uppercase. These definitions are not propagated to applications or
+dependent libraries.
 
 .. _archive-staticlib-variables:
 
