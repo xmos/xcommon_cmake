@@ -7,6 +7,7 @@ UNRELEASED
   * ADDED:     Include .cc files in C++ source glob
   * ADDED:     Troubleshooting section to documentation
   * ADDED:     LIB_VERSION generates version number compile definitions for library sources
+  * ADDED:     Documentation for using XCOMMON_CMAKE_VER to query the xcommon-cmake version
   * FIXED:     execute_process() failures were ignored
   * FIXED:     APP_COMPILER_FLAGS usage was missing from compiler flags documentation
 
