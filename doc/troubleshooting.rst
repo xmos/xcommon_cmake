@@ -82,3 +82,20 @@ Project always rebuilds on Windows
  current recommended work around is to install XTC tools on a path that does not include any
  spaces (i.e. not in the default `Program Files` location).
 
+xmake fails in Git Bash on Windows when the XTC Tools path contains parentheses
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When running ``xmake`` from Git Bash on Windows, the build can fail if the XTC Tools are installed
+in a path containing parentheses, such as the default ``C:\Program Files (x86)\XMOS`` location.
+This is caused by how GNU Make handles its internal ``MAKE`` variable when the path to the make
+executable contains shell-special characters.
+
+To work around this, override the ``MAKE`` variable when running the build so that recursive make
+invocations resolve ``xmake`` from ``PATH`` instead of using the full path containing parentheses:
+
+.. code-block:: console
+
+    xmake MAKE=xmake
+
+Alternatively, run the build from the XTC Tools Command Prompt or install the XTC Tools in a path
+that does not contain parentheses.
