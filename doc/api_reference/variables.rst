@@ -7,6 +7,21 @@ XCommon CMake relies on named variables which can be set for application and lib
 variables must be set before calling the :ref:`xcommon-cmake-functions`. The order in which the
 variables are set does not matter.
 
+XCommon CMake
+^^^^^^^^^^^^^
+
+``XCOMMON_CMAKE_VER``
+  Read-only version of XCommon CMake being used. This can be printed or compared using CMake
+  version comparison operators. Example:
+
+  .. code-block:: cmake
+
+    message(STATUS "Using xcommon-cmake ${XCOMMON_CMAKE_VER}")
+
+    if(XCOMMON_CMAKE_VER VERSION_LESS 1.3.0)
+        message(FATAL_ERROR "This project requires xcommon-cmake 1.3.0 or later")
+    endif()
+
 Applications
 ^^^^^^^^^^^^
 
@@ -79,7 +94,7 @@ Optional application variables
   list which provides no compiler options. Example:
 
   .. code-block:: cmake
-  
+
     set(APP_COMPILER_FLAGS_config0 -g -O2 -DMY_DEF=456)
 
 ``APP_COMPILER_FLAGS_<filename>``
