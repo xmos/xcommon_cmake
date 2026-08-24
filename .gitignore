@@ -21,3 +21,6 @@
 
 # Python
 *.pyc
+
+# Built documentation
+doc/_build*

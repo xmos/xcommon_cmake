@@ -4,18 +4,21 @@ Dependency Format
 -----------------
 
 The ``APP_DEPENDENT_MODULES`` and ``LIB_DEPENDENT_MODULES`` variables hold the list of module dependencies
-for an application, module or static library. The format is flexible to support releases to external users
-and also internal development practices.
+for an application, module or static library. The format is flexible: the location and the version of each
+dependency can both be specified, so a dependency can be pinned to a published release, tracked on a branch,
+or fetched from a fork or a private git server.
 
-External releases use this format:
+The simplest form names a module and a released version:
 
 1. ``lib_abc(1.2.3)``
      get lib_abc tag v1.2.3 from github.com/xmos; a check is made to see if SSH key access is available,
      otherwise HTTPS is used. The 'v' character is prepended so the released tag must be v1.2.3
 
-For internal development, there are ways to specify the location and version.
+This is the form used by released software, and the form to use wherever a build must be reproducible. The
+location and the version can each be given explicitly when something other than a released version from
+``github.com/xmos`` is required, such as a fork of a module or a branch under development.
 
-Firstly the location can be specified at the beginning of the string:
+The location can be specified at the beginning of the string:
 
 2. ``lib_abc``
      uses ``github.com/xmos`` as the location from which to clone lib_abc; same behaviour as format 1 for SSH/HTTPS access
@@ -32,7 +35,9 @@ Firstly the location can be specified at the beginning of the string:
 Then the version can be specified at the end of the string:
 
 6. ``lib_abc``
-     no version specified, gets the head of whichever branch has been configured as the default
+     no version specified; gets the head of the repository's default branch. XCommon CMake does not select
+     a branch itself. The default branch is a property of the repository being cloned, and so may differ
+     from one repository to another
 
 7. ``lib_abc(v1.2.3)``
      acceptable alternative to format 1, gets tag v1.2.3
