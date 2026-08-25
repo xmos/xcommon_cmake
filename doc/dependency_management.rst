@@ -29,8 +29,8 @@ The ``APP_DEPENDENT_MODULES`` and ``LIB_DEPENDENT_MODULES`` variables define lis
 element in the list is a string that specifies where to fetch the source code from and which version to fetch.
 See the :ref:`dependency-format` specification for full details of the accepted format.
 
-Retrieval happens by cloning from a git repo, which can be accessed via HTTPS (for public repositories) or via
-an SSH key if one is configured for passwordless access.
+Retrieval happens by cloning from a git repo, over SSH or HTTPS. How the protocol is selected is
+described in :ref:`fetch-protocol`.
 
 All the dependencies in the tree will be retrieved into the sandbox, if they are not already present. The location
 of the root of the sandbox must be specified by the application using the ``XMOS_SANDBOX_DIR`` variable. If an
@@ -39,6 +39,29 @@ application or static library has no dependencies, this variable doesn't need to
 During the process of dependency resolution, if a module is already present in the sandbox it will not be modified.
 If a different version of a module is subsequently required, the procedure is to use standard ``git`` commands to
 change to the desired version and then run ``cmake build`` in the application directory.
+
+.. _fetch-protocol:
+
+Fetch protocol
+^^^^^^^^^^^^^^
+
+Where a dependency declaration does not give a full URL, the protocol used to clone it is selected
+as follows. SSH access to the server is checked first, using the same ssh command that ``git``
+itself uses, without allowing any interactive prompt. If SSH access is available, dependencies from
+that server are cloned over SSH; otherwise HTTPS is used, and a message reports that HTTPS has been
+selected for that server. The result of the check is remembered for the rest of the configure, so
+each server is checked at most once.
+
+A key which would require interactive input, such as a passphrase-protected key with no SSH agent
+available, counts as SSH being unavailable. Cloning over HTTPS without credentials is only possible
+where the server allows anonymous read access: on github.com, the usual host for XMOS dependencies,
+that means public repositories, with private repositories requiring git to be configured with a
+credential helper. If SSH was expected to be used, the reported protocol selection is the first
+thing to check when a clone fails.
+
+The check can be bypassed by setting the ``DEPS_PROTOCOL`` option to force SSH or HTTPS for all
+dependencies; see :ref:`cmdline-options`. A declaration which gives a full URL is used exactly as
+written and is unaffected by the check and by ``DEPS_PROTOCOL``.
 
 .. _version-checking:
 

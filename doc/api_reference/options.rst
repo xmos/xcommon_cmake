@@ -32,6 +32,23 @@ Supported options
 
     cmake -G "Unix Makefiles" -B build -D DEPS_CLONE_SHALLOW=TRUE
 
+``DEPS_PROTOCOL``
+  String option to select the protocol used to fetch dependencies. The accepted values are:
+
+  - ``auto`` (the default): check whether SSH access to each server is available, and use SSH if
+    it is, otherwise HTTPS. See :ref:`fetch-protocol` for how the check works.
+  - ``ssh``: always clone over SSH, without checking access first.
+  - ``https``: always clone over HTTPS, without checking access first.
+
+  Forcing a protocol makes dependency fetching deterministic, which is useful in CI, and provides
+  a direct workaround when the access check selects the wrong protocol for an environment. A
+  dependency declared with a full URL is used exactly as written, whatever this option is set to.
+  Example:
+
+  .. code-block:: console
+
+    cmake -G "Unix Makefiles" -B build -D DEPS_PROTOCOL=https
+
 ``STRICT_VERSIONING``
   Boolean option to fail the build when a dependency pinned to a release version is not checked out
   at that version. For each declaration which names a three-part version, the release tag checked

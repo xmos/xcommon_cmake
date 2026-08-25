@@ -4,17 +4,22 @@ XCommon CMake Change Log
 UNRELEASED
 ----------
 
-  * ADDED:     Support APP_HW_TARGET paths to XN files outside the application directory
-  * ADDED:     Include .cc files in C++ source glob
+  * ADDED:     Support APP_HW_TARGET paths to XN files outside the application directory (#132)
+  * ADDED:     Include .cc files in C++ source glob (#212)
   * ADDED:     Troubleshooting section to documentation
-  * ADDED:     LIB_VERSION generates version number compile definitions for library sources
+  * ADDED:     LIB_VERSION generates version number compile definitions for library sources (#213)
   * ADDED:     Documentation for using XCOMMON_CMAKE_VER to query the xcommon-cmake version
   * ADDED:     STRICT_VERSIONING option to fail the build when a dependency pinned to a release
                version is not checked out at that version
   * ADDED:     Documentation for the version checking performed during dependency resolution
+  * ADDED:     DEPS_PROTOCOL option to force dependencies to be fetched over SSH or HTTPS
+  * ADDED:     Documentation for how the dependency fetch protocol is selected
+  * FIXED:     SSH access check now uses the same ssh command as git, so the check cannot pass
+               while the clone fails (#196)
+  * FIXED:     Falling back to HTTPS for dependency fetches is now reported instead of silent (#196)
   * FIXED:     execute_process() failures were ignored
-  * FIXED:     APP_COMPILER_FLAGS usage was missing from compiler flags documentation
-  * FIXED:     Duplicate matching XN filenames now report a clear configuration error
+  * FIXED:     APP_COMPILER_FLAGS usage was missing from compiler flags documentation (#218)
+  * FIXED:     Duplicate matching XN filenames now report a clear configuration error (#211)
 
 1.3.0
 -----
