@@ -71,8 +71,34 @@ When running the CMake command, dependency repositories fail to clone with the f
     Please make sure you have the correct access rights
     and the repository exists.
 
-To resolve this error, ensure that the SSH agent is running and, if the SSH key has a password
-that it has been unlocked. Then the CMake command can be re-run.
+To resolve this error, ensure that the SSH agent is running and, if the SSH key has a passphrase,
+that the key has been added to the agent. On Windows, the OpenSSH agent service is not started by
+default; the following PowerShell command sets it to start automatically and starts it now:
+
+.. code-block:: powershell
+
+    Get-Service ssh-agent | Set-Service -StartupType Automatic -PassThru | Start-Service
+
+(The ``-PassThru`` flag only passes the service object along the pipeline so that the two
+operations can be written as one command; it does not affect whether the agent starts.)
+
+If the error persists with the agent running, be aware that on Windows there can be more than one
+installation of ``ssh``: Git for Windows uses its own bundled ``ssh`` by default, which is not
+necessarily the one found on ``PATH``, and the two may be talking to different SSH agents. A key
+loaded into the Windows ``ssh-agent`` service can therefore still be invisible to ``git``. To see
+whether this is the case, compare the following two commands:
+
+.. code-block:: powershell
+
+    ssh -o BatchMode=yes git@github.com
+    git ls-remote git@github.com:xmos/lib_i2c
+
+If the first authenticates but the second is denied, ``git`` is using a different ``ssh``. Setting
+the ``GIT_SSH_COMMAND`` environment variable, or the ``core.sshCommand`` git option, controls which
+``ssh`` git uses. Alternatively, configure with ``-D DEPS_PROTOCOL=https`` to fetch public
+dependencies over HTTPS without using SSH at all; see :ref:`cmdline-options`.
+
+Then the CMake command can be re-run.
 
 Project always rebuilds on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

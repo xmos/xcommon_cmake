@@ -10,6 +10,13 @@ endmacro()
 
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
 option(DEPS_CLONE_SHALLOW "Perform a shallow git clone (--depth=1) for all dependencies")
+option(STRICT_VERSIONING "Fail if a dependency pinned to a release version is not checked out at that version")
+
+set(DEPS_PROTOCOL "auto" CACHE STRING "Protocol used to fetch dependencies: auto, ssh or https")
+set_property(CACHE DEPS_PROTOCOL PROPERTY STRINGS auto ssh https)
+if(NOT DEPS_PROTOCOL MATCHES "^(auto|ssh|https)$")
+    message(FATAL_ERROR "Invalid DEPS_PROTOCOL value \"${DEPS_PROTOCOL}\"; must be auto, ssh or https")
+endif()
 
 # Set up compiler
 if(NOT BUILD_NATIVE AND NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
@@ -203,6 +210,71 @@ macro(glob_srcs prefix src_dir src_subdir)
 endmacro()
 
 
+# Determine the ssh command that git itself would use, so that the SSH access check below agrees
+# with the git clones which follow it. Git resolves its ssh command from GIT_SSH_COMMAND, then
+# core.sshCommand, then GIT_SSH, and otherwise uses its own default; on Windows that default is the
+# ssh bundled with Git for Windows, which is not necessarily the ssh found on PATH and may be
+# talking to a different SSH agent. The result is cached so the lookup runs once per configure.
+function(resolve_git_ssh_command ret_cmd)
+    get_property(cached_cmd GLOBAL PROPERTY GIT_SSH_PROBE_COMMAND)
+    if(cached_cmd)
+        set(${ret_cmd} "${cached_cmd}" PARENT_SCOPE)
+        return()
+    endif()
+
+    unset(ssh_cmd)
+
+    if(DEFINED ENV{GIT_SSH_COMMAND})
+        # A command line, which may include options
+        separate_arguments(ssh_cmd UNIX_COMMAND "$ENV{GIT_SSH_COMMAND}")
+    endif()
+
+    if(NOT ssh_cmd)
+        execute_process(COMMAND git config --get core.sshCommand
+                        TIMEOUT 5
+                        RESULT_VARIABLE config_result
+                        OUTPUT_VARIABLE config_ssh_cmd
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        ERROR_QUIET)
+        if(config_result EQUAL 0 AND config_ssh_cmd)
+            # Also a command line
+            separate_arguments(ssh_cmd UNIX_COMMAND "${config_ssh_cmd}")
+        endif()
+    endif()
+
+    if(NOT ssh_cmd AND DEFINED ENV{GIT_SSH})
+        # The older variable: a path to an executable rather than a command line
+        set(ssh_cmd "$ENV{GIT_SSH}")
+    endif()
+
+    if(NOT ssh_cmd AND CMAKE_HOST_WIN32)
+        # Git for Windows uses its own bundled ssh by default. Locate it relative to the git
+        # installation: git --exec-path returns <root>/mingw64/libexec/git-core.
+        execute_process(COMMAND git --exec-path
+                        TIMEOUT 5
+                        RESULT_VARIABLE exec_path_result
+                        OUTPUT_VARIABLE git_exec_path
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        ERROR_QUIET)
+        if(exec_path_result EQUAL 0 AND git_exec_path)
+            cmake_path(SET git_exec_path NORMALIZE "${git_exec_path}")
+            get_filename_component(git_root "${git_exec_path}/../../.." ABSOLUTE)
+            if(EXISTS "${git_root}/usr/bin/ssh.exe")
+                set(ssh_cmd "${git_root}/usr/bin/ssh.exe")
+            endif()
+        endif()
+    endif()
+
+    if(NOT ssh_cmd)
+        # What git uses by default on non-Windows hosts, and the behaviour before this lookup existed
+        set(ssh_cmd ssh)
+    endif()
+
+    message(VERBOSE "SSH probe command: ${ssh_cmd}")
+    set_property(GLOBAL PROPERTY GIT_SSH_PROBE_COMMAND "${ssh_cmd}")
+    set(${ret_cmd} "${ssh_cmd}" PARENT_SCOPE)
+endfunction()
+
 function(parse_dep_string dep_str ret_repo ret_ver ret_name)
     # Extract version and remove version string with parentheses from original
     string(REGEX REPLACE "\\((.+)\\)" "" dep_str ${dep_str})
@@ -252,39 +324,37 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
 
     unset(ssh_host_status)
 
-    get_property(SSH_HOST_SUCCESS GLOBAL PROPERTY SSH_HOST_SUCCESS)
-    list(FIND SSH_HOST_SUCCESS ${match_server} found)
-    if(NOT ${found} EQUAL -1)
+    # An explicit DEPS_PROTOCOL setting selects the protocol directly and no check is performed
+    if(DEPS_PROTOCOL STREQUAL "ssh")
         set(ssh_host_status TRUE)
+    elseif(DEPS_PROTOCOL STREQUAL "https")
+        set(ssh_host_status FALSE)
     endif()
 
-    get_property(SSH_HOST_FAILURE GLOBAL PROPERTY SSH_HOST_FAILURE)
-    list(FIND SSH_HOST_FAILURE ${match_server} found)
-    if(NOT ${found} EQUAL -1)
-        set(ssh_host_status FALSE)
+    if(NOT DEFINED ssh_host_status)
+        get_property(SSH_HOST_SUCCESS GLOBAL PROPERTY SSH_HOST_SUCCESS)
+        list(FIND SSH_HOST_SUCCESS ${match_server} found)
+        if(NOT ${found} EQUAL -1)
+            set(ssh_host_status TRUE)
+        endif()
+
+        get_property(SSH_HOST_FAILURE GLOBAL PROPERTY SSH_HOST_FAILURE)
+        list(FIND SSH_HOST_FAILURE ${match_server} found)
+        if(NOT ${found} EQUAL -1)
+            set(ssh_host_status FALSE)
+        endif()
     endif()
 
     if(NOT DEFINED ssh_host_status)
         # This host isn't in either the success or failure list
 
-        if(CMAKE_HOST_WIN32)
-            # To avoid printing artifacts, provide an input file to the ssh command below.
-            # This input file is an empty file which will be left in the CMAKE_BINARY_DIR.
-            # The Windows NUL didn't work as an input.
-            execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/ssh-in.tmp
-                            OUTPUT_QUIET
-                            ERROR_QUIET
-                            COMMAND_ERROR_IS_FATAL ANY)
-            set(tmp_input_file ${CMAKE_BINARY_DIR}/ssh-in.tmp)
-        else()
-            set(tmp_input_file "/dev/null")
-        endif()
-
-        # Check whether SSH access is available (returns 1 on success, 255 on failure)
-        execute_process(COMMAND ssh -o "StrictHostKeyChecking no" git@${match_server}
+        # Check whether SSH access is available, using the same ssh command that git itself would
+        # use for the subsequent clones (returns 1 on success, 255 on failure). BatchMode prevents
+        # any prompt, so a key which would require interactive input counts as unavailable.
+        resolve_git_ssh_command(git_ssh_cmd)
+        execute_process(COMMAND ${git_ssh_cmd} -o BatchMode=yes -o "StrictHostKeyChecking no" git@${match_server}
                         TIMEOUT 30
                         RESULT_VARIABLE ret
-                        INPUT_FILE ${tmp_input_file}
                         OUTPUT_QUIET
                         ERROR_QUIET)
         if(ret EQUAL 1)
@@ -296,7 +366,7 @@ function(parse_dep_string dep_str ret_repo ret_ver ret_name)
             set(ssh_host_status FALSE)
             list(APPEND SSH_HOST_FAILURE ${match_server})
             set_property(GLOBAL PROPERTY SSH_HOST_FAILURE ${SSH_HOST_FAILURE})
-            message(VERBOSE "SSH access to ${match_server} failed")
+            message(STATUS "SSH access to ${match_server} unavailable; using HTTPS for dependencies from this server")
         endif()
     endif()
 
@@ -448,6 +518,39 @@ function(manifest_git_status name manifest_str_ret)
 
     set(${manifest_str_ret} ${manifest_str} PARENT_SCOPE)
 
+endfunction()
+
+# When STRICT_VERSIONING is enabled, check that a dependency pinned to a release version is actually
+# checked out at the corresponding tag. The check is against the state of the git repository rather
+# than the LIB_VERSION declared by the module, and the major, minor and patch components must all
+# match. Anything which cannot be verified is treated as a failure.
+function(check_dep_strict_version name dep_dir version)
+    if(NOT STRICT_VERSIONING)
+        return()
+    endif()
+
+    # Only a declaration naming a release version can be checked; a branch or a commit carries no
+    # version to compare against.
+    if(NOT "${version}" MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+$")
+        return()
+    endif()
+
+    execute_process(COMMAND git describe --tags --exact-match HEAD
+                    TIMEOUT 5
+                    WORKING_DIRECTORY "${dep_dir}"
+                    OUTPUT_VARIABLE tag
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    RESULT_VARIABLE describe_result
+                    ERROR_QUIET)
+
+    if(NOT describe_result EQUAL 0)
+        message(FATAL_ERROR "STRICT_VERSIONING: ${version} of ${name} was requested, but no release "
+                            "tag is checked out in ${dep_dir}. The dependency may be on a branch, at "
+                            "an untagged commit, or not a git repository.")
+    elseif(NOT tag STREQUAL version)
+        message(FATAL_ERROR "STRICT_VERSIONING: ${version} of ${name} was requested, but ${tag} is "
+                            "checked out in ${dep_dir}.")
+    endif()
 endfunction()
 
 macro(configure_optional_headers)
@@ -844,6 +947,8 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
                 )
                 FetchContent_Populate(${DEP_NAME})
             endif()
+
+            check_dep_strict_version(${DEP_NAME} ${dep_dir} ${DEP_VERSION})
 
             # Clear source variables to avoid inheriting from parent scope
             # Either lib_build_info.cmake will populate these, otherwise we glob for them
