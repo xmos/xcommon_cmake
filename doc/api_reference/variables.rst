@@ -31,9 +31,20 @@ Required application variables
 """"""""""""""""""""""""""""""
 
 ``APP_HW_TARGET``
-  The target name or filename of an XN file to define the target platform.
-  If a filename is provided, the full path is not required; the child directories of the application
-  directory will be searched and the first file matching this name is used. Examples:
+  The target platform, given either as a target name or as the filename of an XN file.
+
+  If a target name is provided, it is used directly to select the target platform.
+
+  If a filename is provided, the application directory and its child directories are searched for a
+  matching XN file, so the full path is not required.
+
+  .. note::
+
+    Dependency module directories outside the application directory are not searched. Exactly one
+    file must match the filename: configuration fails if no matching file is found, or if more than
+    one is found.
+
+  Examples:
 
   .. code-block:: cmake
 

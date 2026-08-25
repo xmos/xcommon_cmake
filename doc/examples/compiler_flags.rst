@@ -11,11 +11,11 @@ These flags apply to all source files in the default application build:
 
     set(APP_COMPILER_FLAGS -g -O3 -Wall -DMY_DEF=123)
 
-This example demonstrates how config-specific and file-specific options interact. The
-``MSG_NUM`` macro is defined for each config, so it applies to all sources in that config. Then
-the ``FLAG0`` and ``FLAG1`` macros are defined for specific files, so they are undefined in the
-other sources (and successful compilation of this example proves this as the ``#error``
-directives are not reached).
+The worked example in the rest of this section goes further, demonstrating how config-specific
+and file-specific options interact. The ``MSG_NUM`` macro is defined for each config, so it
+applies to all sources in that config. Then the ``FLAG0`` and ``FLAG1`` macros are defined for
+specific files, so they are undefined in the other sources; successful compilation of the example
+proves this, as the ``#error`` directives are not reached.
 
 Directory structure
 """""""""""""""""""
