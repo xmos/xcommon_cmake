@@ -31,3 +31,24 @@ Supported options
   .. code-block:: console
 
     cmake -G "Unix Makefiles" -B build -D DEPS_CLONE_SHALLOW=TRUE
+
+``STRICT_VERSIONING``
+  Boolean option to fail the build when a dependency pinned to a release version is not checked out
+  at that version. For each declaration which names a three-part version, the release tag checked
+  out in the module's git repository must match it exactly; the major, minor and patch components
+  must all be equal. This is a stronger check than the ``LIB_VERSION`` comparison described in
+  :ref:`version-checking`, which examines only the major component and only the version that a
+  module declares for itself.
+
+  A declaration which names a branch or a commit, or which gives no version, is not checked, because
+  there is no version to compare against.
+
+  A module whose version cannot be determined is treated as a failure rather than allowed to pass.
+  This includes a module which is checked out on a branch or at an untagged commit, and one whose
+  directory is not a git repository at all.
+
+  The option is disabled by default. Example:
+
+  .. code-block:: console
+
+    cmake -G "Unix Makefiles" -B build -D STRICT_VERSIONING=ON

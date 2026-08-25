@@ -40,6 +40,24 @@ During the process of dependency resolution, if a module is already present in t
 If a different version of a module is subsequently required, the procedure is to use standard ``git`` commands to
 change to the desired version and then run ``cmake build`` in the application directory.
 
+.. _version-checking:
+
+Version checking
+^^^^^^^^^^^^^^^^
+
+Because a module already present in the sandbox is used as it stands, the version of a module in the sandbox
+is not necessarily the version that a dependency declaration requested. Two checks report on this.
+
+Where a declaration gives a three-part version, its major component is compared against the ``LIB_VERSION``
+declared by the module which is used. A mismatch is reported as a CMake warning, and configuration continues.
+No comparison is made for a declaration which names a branch or a commit, because no version is specified in
+those cases. Note that this check uses the version the module declares for itself, which is not necessarily
+the version of the source code checked out in the sandbox.
+
+For a stricter guarantee, the :ref:`STRICT_VERSIONING <cmdline-options>` option compares the declared version
+against the release tag checked out in the module's git repository, and fails the build on any difference.
+This makes version pinning enforced rather than advisory.
+
 Sandbox Manifest
 ^^^^^^^^^^^^^^^^
 

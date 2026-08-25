@@ -8,6 +8,9 @@ UNRELEASED
   * ADDED:     Troubleshooting section to documentation
   * ADDED:     LIB_VERSION generates version number compile definitions for library sources
   * ADDED:     Documentation for using XCOMMON_CMAKE_VER to query the xcommon-cmake version
+  * ADDED:     STRICT_VERSIONING option to fail the build when a dependency pinned to a release
+               version is not checked out at that version
+  * ADDED:     Documentation for the version checking performed during dependency resolution
   * FIXED:     execute_process() failures were ignored
   * FIXED:     APP_COMPILER_FLAGS usage was missing from compiler flags documentation
 
