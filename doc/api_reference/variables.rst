@@ -31,18 +31,21 @@ Required application variables
 """"""""""""""""""""""""""""""
 
 ``APP_HW_TARGET``
-  The target platform, given either as a target name or as the filename of an XN file.
+  The target platform, given as a target name, the filename of an XN file, or a path to an XN file.
 
   If a target name is provided, it is used directly to select the target platform.
 
   If a filename is provided, the application directory and its child directories are searched for a
   matching XN file, so the full path is not required.
 
+  If a path is provided, either absolute or relative to the application directory, that file is used
+  directly and no search is performed.
+
   .. note::
 
-    Dependency module directories outside the application directory are not searched. Exactly one
-    file must match the filename: configuration fails if no matching file is found, or if more than
-    one is found.
+    When a filename is searched for, dependency module directories outside the application directory
+    are not searched, and exactly one file must match: configuration fails if no matching file is
+    found, or if more than one is found.
 
   Examples:
 
@@ -50,6 +53,7 @@ Required application variables
 
     set(APP_HW_TARGET XCORE-AI-EXPLORER)
     set(APP_HW_TARGET xk-316-mc.xn)
+    set(APP_HW_TARGET ${CMAKE_CURRENT_LIST_DIR}/../../shared/xk-316-mc.xn)
 
   Advanced: this variable is not required if exclusively performing :ref:`native-builds`.
 

@@ -55,38 +55,97 @@ def build(dir, cmake):
     assert ret.returncode == 0
 
 
-def test_duplicate_xn_filename_fails_with_clear_error(cmake, tmp_path):
-    app_dir = tmp_path / "app_duplicate_xn"
-    (app_dir / "src0").mkdir(parents=True)
-    (app_dir / "src1").mkdir()
-    (app_dir / "src0" / "duplicate.xn").write_text("")
-    (app_dir / "src1" / "duplicate.xn").write_text("")
-    (app_dir / "CMakeLists.txt").write_text(
-        "\n".join(
-            [
-                "cmake_minimum_required(VERSION 3.21)",
-                "include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)",
-                "project(duplicate_xn)",
-                "set(APP_HW_TARGET duplicate.xn)",
-                "XMOS_REGISTER_APP()",
-                "",
-            ]
-        )
-    )
-
+def configure_native_app(app_dir, cmake):
     cmake_env = os.environ.copy()
     cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
 
-    ret = subprocess.run(
-        [cmake, "-G", "Unix Makefiles", "-B", "build"],
+    return subprocess.run(
+        [cmake, "-G", "Unix Makefiles", "-B", "build", "-D", "BUILD_NATIVE=ON"],
         cwd=app_dir,
         env=cmake_env,
         capture_output=True,
         text=True,
     )
 
-    assert ret.returncode != 0
+
+def write_app(app_dir, app_hw_target):
+    (app_dir / "src").mkdir(parents=True)
+    (app_dir / "src" / "main.c").write_text("int main(void) { return 0; }\n")
+    (app_dir / "CMakeLists.txt").write_text(
+        "\n".join(
+            [
+                "cmake_minimum_required(VERSION 3.21)",
+                "include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)",
+                "project(test_app)",
+                f"set(APP_HW_TARGET {app_hw_target})",
+                "XMOS_REGISTER_APP()",
+                "",
+            ]
+        )
+    )
+
+
+def test_absolute_xn_path_outside_app_configures(cmake, tmp_path):
+    app_dir = tmp_path / "app_external_xn"
+    shared_xn = tmp_path / "shared" / "board.xn"
+    shared_xn.parent.mkdir()
+    shared_xn.write_text("")
+    write_app(app_dir, shared_xn.as_posix())
+
+    ret = configure_native_app(app_dir, cmake)
+
+    assert ret.returncode == 0, ret.stdout + ret.stderr
+
+
+def test_relative_xn_path_outside_app_configures(cmake, tmp_path):
+    app_dir = tmp_path / "app_external_xn"
+    shared_xn = tmp_path / "shared" / "board.xn"
+    shared_xn.parent.mkdir()
+    shared_xn.write_text("")
+    write_app(app_dir, "../shared/board.xn")
+
+    ret = configure_native_app(app_dir, cmake)
+
+    assert ret.returncode == 0, ret.stdout + ret.stderr
+
+
+def test_xn_path_with_falsey_directory_name_configures(cmake, tmp_path):
+    app_dir = tmp_path / "app_external_xn"
+    shared_xn = tmp_path / "OFF" / "board.xn"
+    shared_xn.parent.mkdir()
+    shared_xn.write_text("")
+    write_app(app_dir, "../OFF/board.xn")
+
+    ret = configure_native_app(app_dir, cmake)
+
+    assert ret.returncode == 0, ret.stdout + ret.stderr
+
+
+def test_missing_xn_path_outside_app_fails_with_clear_error(cmake, tmp_path):
+    app_dir = tmp_path / "app_external_xn"
+    write_app(app_dir, "../shared/missing.xn")
+
+    ret = configure_native_app(app_dir, cmake)
+
     output = ret.stdout + ret.stderr
+
+    assert ret.returncode != 0
+    assert "XN file not found: ../shared/missing.xn" in output
+
+
+def test_duplicate_xn_filename_fails_with_clear_error(cmake, tmp_path):
+    app_dir = tmp_path / "app_duplicate_xn"
+    write_app(app_dir, "duplicate.xn")
+    (app_dir / "src0").mkdir()
+    (app_dir / "src1").mkdir()
+    (app_dir / "src0" / "duplicate.xn").write_text("")
+    (app_dir / "src1" / "duplicate.xn").write_text("")
+
+    ret = configure_native_app(app_dir, cmake)
+
+    output = ret.stdout + ret.stderr
+
+    assert ret.returncode != 0
     assert "Multiple XN files found matching duplicate.xn" in output
     assert "src0/duplicate.xn" in output
     assert "src1/duplicate.xn" in output
@@ -95,39 +154,16 @@ def test_duplicate_xn_filename_fails_with_clear_error(cmake, tmp_path):
 def test_xn_filename_matches_whole_name_only(cmake, tmp_path):
     # A request for "board.xn" must not be satisfied or obstructed by "my_board.xn"
     app_dir = tmp_path / "app_similar_xn"
-    (app_dir / "src").mkdir(parents=True)
-    # A real XN file is needed so that configuration can determine the architecture
-    real_xn = Path(__file__).parent / "target_xn" / "app_target_xn" / "src" / "xk-audio-316-mc.xn"
-    shutil.copy(real_xn, app_dir / "src" / "board.xn")
-    shutil.copy(real_xn, app_dir / "src" / "my_board.xn")
-    (app_dir / "src" / "main.xc").write_text("int main(void) { return 0; }\n")
-    (app_dir / "CMakeLists.txt").write_text(
-        "\n".join(
-            [
-                "cmake_minimum_required(VERSION 3.21)",
-                "include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)",
-                "project(similar_xn)",
-                "set(APP_HW_TARGET board.xn)",
-                "XMOS_REGISTER_APP()",
-                "",
-            ]
-        )
-    )
+    write_app(app_dir, "board.xn")
+    (app_dir / "src" / "board.xn").write_text("")
+    (app_dir / "src" / "my_board.xn").write_text("")
 
-    cmake_env = os.environ.copy()
-    cmake_env["XMOS_CMAKE_PATH"] = str(Path(__file__).parents[1])
-
-    ret = subprocess.run(
-        [cmake, "-G", "Unix Makefiles", "-B", "build"],
-        cwd=app_dir,
-        env=cmake_env,
-        capture_output=True,
-        text=True,
-    )
+    ret = configure_native_app(app_dir, cmake)
 
     output = ret.stdout + ret.stderr
+
     assert "Multiple XN files found" not in output
-    assert ret.returncode == 0
+    assert ret.returncode == 0, output
 
 
 def run_xes(bin_dir, exp_dir):

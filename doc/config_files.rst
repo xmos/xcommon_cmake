@@ -24,11 +24,11 @@ variables, documented in :ref:`reference-variables`, which define the dependency
 the options for the build configuration.
 
 There are two required variables: ``APP_HW_TARGET`` is necessary to define the target device,
-either by a named target defined in the XTC Tools or a local XN file; ``XMOS_SANDBOX_DIR`` must
-be set to the path of the root of the sandbox (if the application has no dependencies, this
-variable isn't strictly required). It is best practice to set this to a path relative to the
-CMake variable ``${CMAKE_CURRENT_LIST_DIR}``, which is the directory containing this application
-``CMakeLists.txt`` file.
+either by a named target defined in the XTC Tools, an application-local XN filename, or a path to
+an XN file; ``XMOS_SANDBOX_DIR`` must be set to the path of the root of the sandbox (if the
+application has no dependencies, this variable isn't strictly required). It is best practice to set
+this to a path relative to the CMake variable ``${CMAKE_CURRENT_LIST_DIR}``, which is the directory
+containing this application ``CMakeLists.txt`` file.
 
 The list of dependent modules provided in the ``APP_DEPENDENT_MODULES`` variable should only be
 the direct dependencies used in the application source code. Any sub-dependencies that are

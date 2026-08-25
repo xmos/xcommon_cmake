@@ -4,6 +4,7 @@ XCommon CMake Change Log
 UNRELEASED
 ----------
 
+  * ADDED:     Support APP_HW_TARGET paths to XN files outside the application directory
   * ADDED:     Include .cc files in C++ source glob
   * ADDED:     Troubleshooting section to documentation
   * ADDED:     LIB_VERSION generates version number compile definitions for library sources
