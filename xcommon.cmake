@@ -10,6 +10,7 @@ endmacro()
 
 option(BUILD_NATIVE "Build applications/libraries for the native CPU instead of the xcore architecture")
 option(DEPS_CLONE_SHALLOW "Perform a shallow git clone (--depth=1) for all dependencies")
+option(STRICT_VERSIONING "Fail if a dependency pinned to a release version is not checked out at that version")
 
 # Set up compiler
 if(NOT BUILD_NATIVE AND NOT DEFINED ${CMAKE_TOOLCHAIN_FILE})
@@ -450,6 +451,42 @@ function(manifest_git_status name manifest_str_ret)
 
 endfunction()
 
+# When STRICT_VERSIONING is enabled, check that a dependency pinned to a release version is actually
+# checked out at the corresponding tag. The check is against the state of the git repository rather
+# than the LIB_VERSION declared by the module, and the major, minor and patch components must all
+# match. Anything which cannot be verified is treated as a failure.
+function(check_dep_strict_version name dep_dir version)
+
+    # Only a declaration naming a release version can be checked; a branch or a commit carries no
+    # version to compare against.
+    if(NOT "${version}" MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+$")
+        return()
+    endif()
+
+    execute_process(COMMAND git describe --tags --exact-match HEAD
+                    TIMEOUT 5
+                    WORKING_DIRECTORY "${dep_dir}"
+                    OUTPUT_VARIABLE tag
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    RESULT_VARIABLE describe_result
+                    ERROR_QUIET)
+
+    # A non-numeric result means git could not be run at all, rather than running and reporting a
+    # failure, so report that separately to avoid pointing at the dependency when the tooling is at
+    # fault.
+    if(NOT describe_result MATCHES "^[0-9]+$")
+        message(FATAL_ERROR "STRICT_VERSIONING: the version of ${name} in ${dep_dir} could not be "
+                            "determined because git could not be run: ${describe_result}")
+    elseif(NOT describe_result EQUAL 0)
+        message(FATAL_ERROR "STRICT_VERSIONING: ${version} of ${name} was requested, but no release "
+                            "tag is checked out in ${dep_dir}. The dependency may be on a branch, at "
+                            "an untagged commit, or not a git repository.")
+    elseif(NOT tag STREQUAL version)
+        message(FATAL_ERROR "STRICT_VERSIONING: ${version} of ${name} was requested, but ${tag} is "
+                            "checked out in ${dep_dir}.")
+    endif()
+endfunction()
+
 macro(configure_optional_headers)
     string(REPLACE "lib_" "" auto_opthdr ${LIB_NAME})
     foreach(target ${APP_BUILD_TARGETS})
@@ -844,6 +881,10 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
                 )
                 FetchContent_Populate(${DEP_NAME})
             endif()
+
+if(STRICT_VERSIONING)
+   check_dep_strict_version(${DEP_NAME} ${dep_dir} ${DEP_VERSION})
+endif()
 
             # Clear source variables to avoid inheriting from parent scope
             # Either lib_build_info.cmake will populate these, otherwise we glob for them

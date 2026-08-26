@@ -275,6 +275,9 @@ Required module variables
   ``LIB_LOGGING_VERSION_MINOR=1`` and ``LIB_LOGGING_VERSION_PATCH=1`` for the module's own source
   files.
 
+  The major component is also compared against the version requested by any dependency declaration
+  naming a three-part version, and a mismatch is reported as a CMake warning.
+
 .. _optional-module-variables:
 
 Optional module variables
