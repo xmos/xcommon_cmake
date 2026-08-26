@@ -867,7 +867,9 @@ function(XMOS_REGISTER_DEPS DEPS_LIST)
                 FetchContent_Populate(${DEP_NAME})
             endif()
 
-            check_dep_strict_version(${DEP_NAME} ${dep_dir} ${DEP_VERSION})
+if(STRICT_VERSIONING)
+   check_dep_strict_version(${DEP_NAME} ${dep_dir} ${DEP_VERSION})
+endif()
 
             # Clear source variables to avoid inheriting from parent scope
             # Either lib_build_info.cmake will populate these, otherwise we glob for them
