@@ -456,9 +456,6 @@ endfunction()
 # than the LIB_VERSION declared by the module, and the major, minor and patch components must all
 # match. Anything which cannot be verified is treated as a failure.
 function(check_dep_strict_version name dep_dir version)
-    if(NOT STRICT_VERSIONING)
-        return()
-    endif()
 
     # Only a declaration naming a release version can be checked; a branch or a commit carries no
     # version to compare against.
